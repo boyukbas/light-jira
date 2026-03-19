@@ -101,7 +101,7 @@
     .group-item {
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 12px; border-radius: 6px; cursor: pointer;
-      color: var(--text-secondary); font-size: 13px; font-weight: 500;
+      color: var(--text-secondary); font-size: 14px; font-weight: 500;
       user-select: none; transition: var(--transition);
     }
     .group-item .count {
@@ -142,8 +142,7 @@
     .list-card:hover { background: var(--surface); }
     .list-card.active { background: var(--card); border-left: 3px solid var(--accent); padding-left: 13px; }
     
-    .lc-key-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
-    .lc-key { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); }
+    .lc-key-row { display: flex; justify-content: flex-end; margin-bottom: 4px; }
     .status-badge {
       font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
       background: rgba(110,118,129,0.2); color: var(--text-secondary);
@@ -157,7 +156,7 @@
       font-size: 11px; font-family: var(--mono); background: var(--surface-hover); color: var(--text-secondary);
       padding: 1px 5px; border-radius: 4px; display: inline-block; vertical-align: middle;
     }
-    .lc-summary { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.4; word-break: break-word; }
+    .lc-summary { font-size: 14.5px; font-weight: 600; color: var(--text-primary); line-height: 1.4; word-break: break-word; }
     
     .lc-preview {
       font-size: 12px; color: var(--text-tertiary); line-height: 1.5;
@@ -552,12 +551,13 @@ function renderMiddle() {
     
     html += '<div class="list-card' + active + '" data-key="' + esc(key) + '">' +
       '<div class="lc-key-row">' +
-        '<span class="lc-key">' + esc(key) + '</span>' +
         (stat ? '<span class="status-badge ' + statusClass(f.status?.statusCategory?.name || stat) + '">' + esc(stat) + '</span>' : '') +
       '</div>' +
       '<div class="lc-title-row">' +
-        (parent ? '<span class="lc-parent">↑ ' + esc(parent) + '</span>' : '') +
-        '<span class="lc-summary">' + esc(sum) + '</span>' +
+        '<span class="lc-summary">' +
+          (parent ? '<span class="lc-parent">↑ ' + esc(parent) + '</span> ' : '') +
+          esc(key) + ' ' + esc(sum) +
+        '</span>' +
       '</div>' +
       (preview ? '<div class="lc-preview">' + esc(preview) + '</div>' : '') +
       '<button class="lc-delete" onclick="event.stopPropagation(); removeTicket(\'' + esc(key) + '\')">Remove</button>' +
@@ -638,8 +638,7 @@ function renderReading() {
     html += '<a href="' + esc(cfg.baseUrl) + '/browse/' + esc(f.parent.key) + '" target="_blank" class="rs-parent-link">↑ ' + esc(f.parent.key) + ' : ' + esc(f.parent.fields?.summary) + '</a>';
   }
   html += '<div class="rs-title-row">' +
-    '<div class="rs-title">' + esc(f.summary) + '</div>' +
-    '<a href="' + esc(cfg.baseUrl) + '/browse/' + esc(key) + '" target="_blank" class="rs-key-badge">' + esc(key) + '</a>' +
+    '<div class="rs-title"><a href="' + esc(cfg.baseUrl) + '/browse/' + esc(key) + '" target="_blank" style="color:var(--accent);text-decoration:none;">' + esc(key) + '</a> ' + esc(f.summary) + '</div>' +
   '</div>';
   
   html += '<div class="rs-actions">' + selHtml + 
@@ -669,7 +668,13 @@ function renderReading() {
     // Iterate over all other custom/native fields that are pure string HTML
     for (const [key, val] of Object.entries(issue.renderedFields)) {
       if (key === 'description' || key === 'comment' || !val || typeof val !== 'string') continue;
+      
       const fName = customFieldMap[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '));
+      const ln = fName.toLowerCase();
+      
+      // Filter out noisy Time fields
+      if (ln.includes('time') || ln.includes('estimate') || ln.includes('worklog')) continue;
+      
       html += '<div class="section-title">' + esc(fName) + '</div><div class="description">' + val + '</div>';
     }
   }
