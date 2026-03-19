@@ -102,14 +102,16 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 12px; border-radius: 6px; cursor: pointer;
       color: var(--text-secondary); font-size: 14px; font-weight: 500;
-      user-select: none; transition: var(--transition);
+      user-select: none; transition: var(--transition); border: 2px solid transparent;
     }
-    .group-item .count {
-      background: rgba(110,118,129,0.2); font-size: 11px; padding: 2px 6px; border-radius: 10px;
-    }
+    .group-item .count { background: rgba(110,118,129,0.2); font-size: 11px; padding: 2px 6px; border-radius: 10px; }
+    .group-item.drag-over { border-color: var(--accent); background: var(--surface-hover); }
     .group-item:hover { background: var(--bg); color: var(--text-primary); }
     .group-item.active { background: var(--accent-muted); color: var(--accent); font-weight: 600; }
     .group-item.active .count { background: var(--accent); color: #0d1117; }
+    .g-actions { display: none; }
+    .group-item:hover .g-actions { display: block; padding-right:6px; margin-right:4px; }
+    .g-del { background: transparent; border: none; color: var(--red); cursor: pointer; padding: 0 4px; font-size: 14px; }
     
     #add-group-btn {
       background: transparent; border: 1px dashed var(--border); color: var(--text-tertiary);
@@ -136,13 +138,14 @@
     }
     
     .list-card {
-      padding: 14px 16px; border-bottom: 1px solid var(--border-subtle);
-      cursor: pointer; transition: background 0.1s; position: relative;
+      padding: 10px 16px; border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer; transition: background 0.1s; position: relative; border-left: 3px solid transparent;
     }
     .list-card:hover { background: var(--surface); }
-    .list-card.active { background: var(--card); border-left: 3px solid var(--accent); padding-left: 13px; }
+    .list-card.active { background: var(--card); border-left-color: var(--accent); padding-left: 13px; }
+    .list-card.drag-over { border-top: 2px solid var(--accent); }
     
-    .lc-key-row { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+    .lc-key-row { display: flex; justify-content: flex-end; margin-bottom: 2px; }
     .status-badge {
       font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
       background: rgba(110,118,129,0.2); color: var(--text-secondary);
@@ -151,20 +154,15 @@
     .s-done { background: rgba(63,185,80,0.15); color: var(--green); }
     .s-blocked { background: rgba(248,81,73,0.15); color: var(--red); }
     
-    .lc-title-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; align-items: baseline; }
+    .lc-title-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
     .lc-parent {
       font-size: 11px; font-family: var(--mono); background: var(--surface-hover); color: var(--text-secondary);
       padding: 1px 5px; border-radius: 4px; display: inline-block; vertical-align: middle;
     }
     .lc-summary { font-size: 14.5px; font-weight: 600; color: var(--text-primary); line-height: 1.4; word-break: break-word; }
     
-    .lc-preview {
-      font-size: 12px; color: var(--text-tertiary); line-height: 1.5;
-      display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical;
-      overflow: hidden; white-space: pre-line; word-break: break-word;
-    }
     .lc-delete {
-      position: absolute; right: 12px; bottom: 12px; opacity: 0;
+      position: absolute; right: 12px; bottom: 8px; opacity: 0;
       background: transparent; border: none; color: var(--red); cursor: pointer; padding: 4px; border-radius: 4px;
     }
     .list-card:hover .lc-delete { opacity: 0.6; }
@@ -224,7 +222,13 @@
 
     .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 
-    /* Links */
+    .lbl-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.1s; }
+    .lbl-badge .x-btn { margin-left: 4px; opacity: 0.6; font-size: 10px; padding: 2px; }
+    .lbl-badge:hover .x-btn { opacity: 1; color: #fff; }
+    .lbl-add { background: transparent; border: 1px dashed var(--border); color: var(--text-secondary); padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; cursor: pointer; }
+    .lbl-add:hover { color: var(--text-primary); border-color: var(--text-primary); }
+
+    /* Comments & Links */
     .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 40px; }
     .link-card { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; text-decoration: none; color: inherit; transition: var(--transition); display: flex; align-items: flex-start; gap: 12px; }
     .link-card:hover { border-color: var(--accent); }
@@ -374,11 +378,16 @@ function authHeader() { return 'Basic ' + btoa(cfg.email + ':' + cfg.token); }
 let state = {
   groups: [{ id: 'inbox', name: 'Inbox', keys: [] }],
   activeGroupId: 'inbox',
-  activeKey: null
+  activeKey: null,
+  notes: {}, // key -> string
+  labels: {}, // key -> [string]
+  labelColors: {} // label text -> color
 };
 let issueCache = {}; // in-memory cache for fast pane switching
 let blobCache = {};  // prevents reloading identical images
 let customFieldMap = {}; // maps customfield_10010 to "Business Case", etc
+
+let draggedKey = null; // for drag & drop
 
 function loadState() {
   try {
@@ -391,6 +400,13 @@ function loadState() {
       const old = localStorage.getItem('jira_open_keys');
       if (old) state.groups[0].keys = JSON.parse(old);
     }
+    // Ensure recycle bin exists
+    if (!state.groups.find(g => g.id === 'recycle')) {
+      state.groups.push({ id: 'recycle', name: 'Recycle Bin', keys: [] });
+    }
+    if (!state.notes) state.notes = {};
+    if (!state.labels) state.labels = {};
+    if (!state.labelColors) state.labelColors = {};
   } catch {}
 }
 function saveState() {
@@ -488,10 +504,14 @@ function renderSidebar() {
   let html = '';
   for (const g of state.groups) {
     const activeObj = state.activeGroupId === g.id ? ' active' : '';
-    html += '<div class="group-item' + activeObj + '" data-id="' + esc(g.id) + '">' +
+    const isSys = g.id === 'inbox' || g.id === 'recycle';
+    html += '<div class="group-item' + activeObj + '" data-id="' + esc(g.id) + '" ' +
+      'ondragover="handleDragOver(event)" ondrop="handleDropToGroup(event, \'' + esc(g.id) + '\')" ondragleave="handleDragLeave(event)">' +
       '<span class="g-name" oncontextmenu="renameGroup(event, \'' + esc(g.id) + '\')">' + esc(g.name) + '</span>' +
-      '<span class="count">' + g.keys.length + '</span>' +
-      '</div>';
+      '<div>' + 
+        (!isSys ? '<span class="g-actions"><button class="g-del" title="Delete Group" onclick="deleteGroup(event,\'' + esc(g.id) + '\')">&times;</button></span> ' : '') +
+        '<span class="count">' + g.keys.length + '</span>' +
+      '</div></div>';
   }
   list.innerHTML = html;
   list.querySelectorAll('.group-item').forEach(el => {
@@ -508,9 +528,22 @@ function renderSidebar() {
 
 function renameGroup(e, id) {
   e.preventDefault();
+  if (id === 'inbox' || id === 'recycle') { toast('Cannot rename system list', 'error'); return; }
   const g = getGroup(id);
   const newName = prompt('Rename group:', g.name);
   if (newName && newName.trim()) { g.name = newName.trim(); saveState(); renderSidebar(); renderMiddle(); }
+}
+
+function deleteGroup(e, id) {
+  e.stopPropagation();
+  if (confirm('Delete this group? Any active tickets in it will be dumped back to Inbox.')) {
+    const g = getGroup(id);
+    const inbox = getGroup('inbox');
+    inbox.keys.push(...g.keys);
+    state.groups = state.groups.filter(x => x.id !== id);
+    if (state.activeGroupId === id) state.activeGroupId = 'inbox';
+    saveState(); renderSidebar(); renderMiddle(); renderReading();
+  }
 }
 
 document.getElementById('add-group-btn').addEventListener('click', () => {
@@ -544,23 +577,19 @@ function renderMiddle() {
     let sum = f.summary || 'Loading...';
     let stat = f.status ? f.status.name : '';
     let parent = f.parent ? f.parent.key : '';
-    let preview = '';
-    if (issue.renderedFields?.description) {
-      preview = stripHtml(issue.renderedFields.description).replace(/\n\s*\n/g, '\n').trim();
-    }
     
-    html += '<div class="list-card' + active + '" data-key="' + esc(key) + '">' +
+    html += '<div class="list-card' + active + '" data-key="' + esc(key) + '" draggable="true" ' +
+      'ondragstart="handleDragStart(event, \'' + esc(key) + '\')" ondragover="handleDragOver(event)" ondrop="handleDropToItem(event, \'' + esc(key) + '\')" ondragleave="handleDragLeave(event)">' +
       '<div class="lc-key-row">' +
         (stat ? '<span class="status-badge ' + statusClass(f.status?.statusCategory?.name || stat) + '">' + esc(stat) + '</span>' : '') +
       '</div>' +
       '<div class="lc-title-row">' +
         '<span class="lc-summary">' +
           (parent ? '<span class="lc-parent">↑ ' + esc(parent) + '</span> ' : '') +
-          esc(key) + ' ' + esc(sum) +
+          '<span style="color:var(--accent);">' + esc(key) + '</span> ' + esc(sum) +
         '</span>' +
       '</div>' +
-      (preview ? '<div class="lc-preview">' + esc(preview) + '</div>' : '') +
-      '<button class="lc-delete" onclick="event.stopPropagation(); removeTicket(\'' + esc(key) + '\')">Remove</button>' +
+      '<button class="lc-delete" title="Move to Recycle Bin" onclick="event.stopPropagation(); removeTicket(\'' + esc(key) + '\')">✕</button>' +
     '</div>';
   }
   list.innerHTML = html;
@@ -577,7 +606,15 @@ function renderMiddle() {
 
 function removeTicket(key) {
   const group = getActiveGroup();
-  group.keys = group.keys.filter(k => k !== key);
+  if (group.id === 'recycle') {
+    // Delete permanently from cache / memory
+    group.keys = group.keys.filter(k => k !== key);
+    delete state.notes[key];
+    delete state.labels[key];
+  } else {
+    // move to recycle
+    window.moveTicket(key, 'recycle');
+  }
   if (state.activeKey === key) state.activeKey = null;
   saveState(); renderSidebar(); renderMiddle(); renderReading();
 }
@@ -637,6 +674,18 @@ function renderReading() {
   if (f.parent) {
     html += '<a href="' + esc(cfg.baseUrl) + '/browse/' + esc(f.parent.key) + '" target="_blank" class="rs-parent-link">↑ ' + esc(f.parent.key) + ' : ' + esc(f.parent.fields?.summary) + '</a>';
   }
+  
+  // Labels row
+  html += '<div style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;">';
+  const myLbls = state.labels[key] || [];
+  for (const L of myLbls) {
+    const c = state.labelColors[L] || '#6e7681';
+    html += '<span class="lbl-badge" style="background:' + c + ';' + (c==='#f0883e'||c==='#e3b341'?'color:#000;':'color:#fff;') + '">' + esc(L) +
+            ' <span class="x-btn" onclick="removeLabel(\'' + esc(key) + '\', \'' + esc(L) + '\')">✕</span></span>';
+  }
+  html += '<button class="lbl-add" onclick="addLabel(\'' + esc(key) + '\')">+ Label</button>';
+  html += '</div>';
+
   html += '<div class="rs-title-row">' +
     '<div class="rs-title"><a href="' + esc(cfg.baseUrl) + '/browse/' + esc(key) + '" target="_blank" style="color:var(--accent);text-decoration:none;">' + esc(key) + '</a> ' + esc(f.summary) + '</div>' +
   '</div>';
@@ -666,10 +715,10 @@ function renderReading() {
     }
     
     // Iterate over all other custom/native fields that are pure string HTML
-    for (const [key, val] of Object.entries(issue.renderedFields)) {
-      if (key === 'description' || key === 'comment' || !val || typeof val !== 'string') continue;
+    for (const [keyField, val] of Object.entries(issue.renderedFields)) {
+      if (keyField === 'description' || keyField === 'comment' || !val || typeof val !== 'string') continue;
       
-      const fName = customFieldMap[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '));
+      const fName = customFieldMap[keyField] || (keyField.charAt(0).toUpperCase() + keyField.slice(1).replace(/_/g, ' '));
       const ln = fName.toLowerCase();
       
       // Filter out noisy Time fields
@@ -678,6 +727,10 @@ function renderReading() {
       html += '<div class="section-title">' + esc(fName) + '</div><div class="description">' + val + '</div>';
     }
   }
+
+  // Personal Notes
+  html += '<div class="section-title" style="margin-top:24px;">Personal Notes</div>';
+  html += '<textarea id="pn-' + esc(key) + '" class="form-input" style="width:100%;min-height:80px;resize:vertical;font-family:var(--font);margin-bottom:40px;" placeholder="Type personal notes entirely saved in your browser..." onblur="saveNotes(\'' + esc(key) + '\', this.value)">' + esc(state.notes[key] || '') + '</textarea>';
 
   // Linked Issues
   if (f.issuelinks && f.issuelinks.length) {
@@ -722,7 +775,8 @@ window.moveTicket = function(key, newGroupId) {
   oldG.keys = oldG.keys.filter(k => k !== key);
   const newG = getGroup(newGroupId);
   if (!newG.keys.includes(key)) newG.keys.unshift(key); // prepend
-  state.activeKey = null; // hide from reading
+  
+  if (state.activeKey === key && state.activeGroupId !== newGroupId) state.activeKey = null; 
   saveState(); renderSidebar(); renderMiddle(); renderReading();
   toast('Moved to ' + newG.name, 'success');
 };
@@ -732,6 +786,51 @@ window.forceRefreshReading = async function() {
   if (!key) return;
   delete issueCache[key];
   renderReading(); // will trigger spinner and refetch
+};
+
+function saveNotes(key, val) { state.notes[key] = val; saveState(); }
+
+function addLabel(key) {
+  const name = prompt('Enter a label (e.g. "Bug", "Docs"):');
+  if (!name || !name.trim()) return;
+  const tn = name.trim();
+  if (!state.labelColors[tn]) {
+    state.labelColors[tn] = AV_COLORS[Object.keys(state.labelColors).length % AV_COLORS.length];
+  }
+  if (!state.labels[key]) state.labels[key] = [];
+  if (!state.labels[key].includes(tn)) {
+    state.labels[key].push(tn);
+    saveState(); renderReading();
+  }
+}
+function removeLabel(key, lbl) {
+  if (!state.labels[key]) return;
+  state.labels[key] = state.labels[key].filter(x => x !== lbl);
+  saveState(); renderReading();
+}
+
+// ── DRAG AND DROP HANDLERS ────────────────────────────────────────────────────
+window.handleDragStart = (e, key) => { draggedKey = key; };
+window.handleDragOver = e => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); };
+window.handleDragLeave = e => { e.currentTarget.classList.remove('drag-over'); };
+window.handleDropToGroup = (e, gId) => {
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedKey) return;
+  const oldG = state.groups.find(x => x.keys.includes(draggedKey));
+  if (oldG && oldG.id !== gId) window.moveTicket(draggedKey, gId);
+};
+window.handleDropToItem = (e, targetKey) => {
+  e.currentTarget.classList.remove('drag-over');
+  e.preventDefault(); e.stopPropagation();
+  if (!draggedKey || draggedKey === targetKey) return;
+  const g = getActiveGroup();
+  const oldIdx = g.keys.indexOf(draggedKey);
+  const newIdx = g.keys.indexOf(targetKey);
+  if (oldIdx !== -1 && newIdx !== -1) {
+    g.keys.splice(oldIdx, 1);
+    g.keys.splice(newIdx, 0, draggedKey);
+    saveState(); renderMiddle();
+  }
 };
 
 // ── IMAGE AUTH ENGINE ─────────────────────────────────────────────────────────
