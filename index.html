@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Light Jira</title>
+  <meta name="description" content="Lightweight Jira Viewer with a 3-pane layout">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2358a6ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='2' ry='2'/%3E%3Crect x='9' y='9' width='6' height='6'/%3E%3Cpath d='M9 1v3'/%3E%3Cpath d='M15 1v3'/%3E%3Cpath d='M9 20v3'/%3E%3Cpath d='M15 20v3'/%3E%3Cpath d='M20 9h3'/%3E%3Cpath d='M20 14h3'/%3E%3Cpath d='M1 9h3'/%3E%3Cpath d='M1 14h3'/%3E%3C/svg%3E">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1c2128;
+      --card: #1c2128;
+      --border: #30363d;
+      --border-subtle: #21262d;
+      --accent: #58a6ff;
+      --accent-muted: rgba(88,166,255,0.12);
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-tertiary: #6e7681;
+      --font: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', Consolas, monospace;
+      --transition: all 0.15s ease;
+      
+      --green: #3fb950;
+      --red: #f85149;
+      --orange: #f0883e;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* TOP BAR */
+    #topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      display: flex; align-items: center; gap: 12px;
+      height: 52px; flex-shrink: 0;
+    }
+    #logo {
+      font-weight: 700; font-size: 15px; color: var(--accent);
+      letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px;
+      width: 224px; /* Matches sidebar width minus padding */
+    }
+    #search-form { display: flex; gap: 8px; flex: 1; max-width: 400px; }
+    #search-input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text-primary);
+      font-family: var(--font); font-size: 13px;
+      padding: 6px 12px; outline: none; transition: var(--transition);
+    }
+    #search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-muted); }
+    #search-btn {
+      background: var(--accent); color: #0d1117;
+      border: none; border-radius: 6px; padding: 6px 14px;
+      font-weight: 600; font-size: 12px; cursor: pointer; transition: var(--transition);
+    }
+    #search-btn:hover { background: #79b8ff; }
+
+    .top-btn {
+      background: transparent; color: var(--text-primary); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 10px; font-weight: 500; font-size: 12px;
+      cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 6px;
+    }
+    .top-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .top-btn.icon-only { padding: 6px; }
+
+    /* 3-PANE LAYOUT */
+    #app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* SIDEBAR (Groups) */
+    #sidebar {
+      width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      flex-shrink: 0; padding: 12px 8px; gap: 4px;
+    }
+    .group-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; border-radius: 6px; cursor: pointer;
+      color: var(--text-secondary); font-size: 13px; font-weight: 500;
+      user-select: none; transition: var(--transition);
+    }
+    .group-item .count {
+      background: rgba(110,118,129,0.2); font-size: 11px; padding: 2px 6px; border-radius: 10px;
+    }
+    .group-item:hover { background: var(--bg); color: var(--text-primary); }
+    .group-item.active { background: var(--accent-muted); color: var(--accent); font-weight: 600; }
+    .group-item.active .count { background: var(--accent); color: #0d1117; }
+    
+    #add-group-btn {
+      background: transparent; border: 1px dashed var(--border); color: var(--text-tertiary);
+      margin-top: 12px; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 12px;
+      font-weight: 500; transition: var(--transition);
+    }
+    #add-group-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+    /* MIDDLE (Ticket List) */
+    #middle {
+      width: 340px;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      flex-shrink: 0;
+    }
+    .middle-header {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      font-weight: 600; font-size: 14px; background: var(--surface);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    #ticket-list {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+    }
+    
+    .list-card {
+      padding: 14px 16px; border-bottom: 1px solid var(--border-subtle);
+      cursor: pointer; transition: background 0.1s; position: relative;
+    }
+    .list-card:hover { background: var(--surface); }
+    .list-card.active { background: var(--card); border-left: 3px solid var(--accent); padding-left: 13px; }
+    
+    .lc-key-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .lc-key { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); }
+    .status-badge {
+      font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+      background: rgba(110,118,129,0.2); color: var(--text-secondary);
+    }
+    .s-inprogress { background: rgba(88,166,255,0.15); color: var(--accent); }
+    .s-done { background: rgba(63,185,80,0.15); color: var(--green); }
+    .s-blocked { background: rgba(248,81,73,0.15); color: var(--red); }
+    
+    .lc-title-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; align-items: baseline; }
+    .lc-parent {
+      font-size: 11px; font-family: var(--mono); background: var(--surface-hover); color: var(--text-secondary);
+      padding: 1px 5px; border-radius: 4px; display: inline-block; vertical-align: middle;
+    }
+    .lc-summary { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.4; word-break: break-word; }
+    
+    .lc-preview {
+      font-size: 12px; color: var(--text-tertiary); line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical;
+      overflow: hidden; white-space: pre-line; word-break: break-word;
+    }
+    .lc-delete {
+      position: absolute; right: 12px; bottom: 12px; opacity: 0;
+      background: transparent; border: none; color: var(--red); cursor: pointer; padding: 4px; border-radius: 4px;
+    }
+    .list-card:hover .lc-delete { opacity: 0.6; }
+    .lc-delete:hover { opacity: 1 !important; background: rgba(248,81,73,0.1); }
+
+    /* RIGHT (Reading Pane) */
+    #reading {
+      flex: 1; background: var(--bg); overflow-y: auto; padding: 32px 40px;
+    }
+    .reading-content { max-width: 860px; margin: 0 auto; }
+    
+    .rs-header { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .rs-parent-link {
+      display: inline-flex; font-size: 13px; color: var(--text-secondary); text-decoration: none; margin-bottom: 8px;
+    }
+    .rs-parent-link:hover { color: var(--accent); }
+    
+    .rs-title-row { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
+    .rs-title { font-size: 24px; font-weight: 600; line-height: 1.3; color: var(--text-primary); flex: 1; }
+    .rs-key-badge {
+      font-family: var(--mono); font-size: 14px; background: var(--accent-muted); color: var(--accent);
+      padding: 4px 10px; border-radius: 6px; text-decoration: none; flex-shrink: 0;
+    }
+    
+    .rs-actions { display: flex; gap: 12px; margin-top: 16px; align-items: center; }
+    .rs-group-select {
+      background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 6px; font-size: 12px; outline: none; cursor: pointer;
+    }
+    
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 16px; margin-bottom: 32px; }
+    .meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .meta-label { font-size: 11.5px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .meta-value { font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    
+    /* Description & Typography (Native Jira HTML) */
+    .description { font-size: 14.5px; line-height: 1.7; color: var(--text-primary); margin-bottom: 40px; }
+    .description p { margin-bottom: 12px; }
+    .description p:last-child { margin-bottom: 0; }
+    .description h1 { font-size: 20px; margin: 24px 0 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;}
+    .description h2 { font-size: 18px; margin: 20px 0 10px; }
+    .description h3 { font-size: 16px; margin: 16px 0 8px; font-weight: 600; }
+    .description ul, .description ol { padding-left: 24px; margin-bottom: 12px; }
+    .description li { margin-bottom: 4px; }
+    .description code { font-family: var(--mono); font-size: 13px; background: rgba(110,118,129,0.15); padding: 2px 6px; border-radius: 4px; color: var(--orange); }
+    .description pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; margin-bottom: 16px; }
+    .description pre code { background: none; padding: 0; color: var(--text-primary); }
+    .description blockquote { border-left: 4px solid var(--accent); padding: 8px 16px; margin: 12px 0; background: var(--accent-muted); border-radius: 0 8px 8px 0; color: var(--text-secondary); }
+    .description a { color: var(--accent); text-decoration: none; }
+    .description a:hover { text-decoration: underline; }
+    .description img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); margin: 12px 0; display: block; background: var(--surface); }
+    .description table { border-collapse: collapse; width: 100%; margin-bottom: 16px; font-size: 13px; }
+    .description th, .description td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    .description th { background: var(--surface); font-weight: 600; }
+    .description tr:nth-child(even) td { background: rgba(110,118,129,0.04); }
+    .description .adf-mention { background: var(--accent-muted); color: var(--accent); border-radius: 4px; padding: 0 4px; display: inline-block; }
+
+    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+    /* Links */
+    .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 40px; }
+    .link-card { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; text-decoration: none; color: inherit; transition: var(--transition); display: flex; align-items: flex-start; gap: 12px; }
+    .link-card:hover { border-color: var(--accent); }
+    .link-type { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+    .link-key { font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 600; }
+    .link-sum { font-size: 13px; color: var(--text-primary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Comments */
+    .comment-item { display: flex; gap: 16px; margin-bottom: 24px; }
+    .c-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface); overflow: hidden; flex-shrink: 0; }
+    .c-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .c-content { flex: 1; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--surface); overflow: hidden; }
+    .c-header { background: var(--surface-hover); padding: 10px 16px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+    .c-author { font-size: 13px; font-weight: 600; }
+    .c-date { font-size: 12px; color: var(--text-tertiary); }
+    .c-body { padding: 16px; font-size: 14px; }
+
+    /* Empty States & Common */
+    .empty-msg { text-align: center; color: var(--text-tertiary); padding: 40px 20px; font-size: 14px; line-height: 1.6; }
+    .loading-spinner { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text-secondary); gap: 12px; }
+    .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Initials Badges */
+    .av-badge { 
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%; font-weight: 600; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+      flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+    }
+    .av-sm { width: 18px; height: 18px; font-size: 9px; }
+    .av-md { width: 32px; height: 32px; font-size: 13px; }
+
+    /* Settings Modal / Toast (Reused from before) */
+    #settings-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    #settings-overlay.hidden { display: none; }
+    #settings-modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    .modal-close { background: transparent; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 20px; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-label { font-size: 12px; color: var(--text-secondary); }
+    .form-input { background: var(--bg); border: 1px solid var(--border); color: var(--text-primary); padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .modal-footer { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; }
+    
+    #toast { position: fixed; bottom: 24px; right: 24px; z-index: 2000; background: var(--card); border: 1px solid var(--border); padding: 12px 20px; border-radius: 8px; transform: translateY(50px); opacity: 0; transition: all 0.3s; pointer-events: none; }
+    #f2-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 3000; display: flex; align-items: flex-start; justify-content: center; padding-top: 15vh; }
+    #f2-modal.hidden { display: none; }
+    #f2-box { background: var(--card); border: 1px solid var(--accent); border-radius: 8px; padding: 20px; width: 340px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    #f2-input { width: 100%; border: 1px solid var(--border); padding: 12px; border-radius: 6px; font-size: 16px; background: var(--bg); color: var(--text-primary); font-family: var(--mono); outline: none; }
+    #f2-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-muted); }
+  </style>
+</head>
+<body>
+
+<div id="topbar">
+  <div id="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2" ry="2" stroke="#58a6ff"/><rect x="9" y="9" width="6" height="6" fill="#58a6ff" stroke="#58a6ff"/>
+    </svg>
+    Light Jira
+  </div>
+  <form id="search-form">
+    <input id="search-input" type="text" placeholder="Type key... (e.g. 1234 or OSA-42)"/>
+    <button type="submit" id="search-btn">Open Ticket</button>
+  </form>
+  
+  <div style="flex:1"></div>
+  
+  <button class="top-btn" id="refresh-all-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg>
+    Refresh Group
+  </button>
+  <button class="top-btn icon-only" id="settings-btn" title="Settings">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</div>
+
+<div id="app-body">
+  <!-- LEFT: Groups -->
+  <div id="sidebar">
+    <div id="group-list"></div>
+    <button id="add-group-btn">+ New Group</button>
+  </div>
+
+  <!-- MIDDLE: Ticket List -->
+  <div id="middle">
+    <div class="middle-header" id="current-group-name">Inbox</div>
+    <div id="ticket-list"></div>
+  </div>
+
+  <!-- RIGHT: Reading Pane -->
+  <div id="reading">
+    <div class="empty-msg" id="reading-empty" style="margin-top:100px;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="color:var(--text-tertiary);margin-bottom:16px;">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/>
+      </svg>
+      <h2>No ticket selected</h2>
+      <p>Select a ticket from the list to view its details.</p>
+    </div>
+    <div class="reading-content" id="reading-content" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-overlay" class="hidden">
+  <div id="settings-modal">
+    <div class="modal-header">Settings <button class="modal-close" id="settings-close">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Jira Base URL</label><input class="form-input" id="cfg-url" type="url"/></div>
+      <div class="form-group"><label class="form-label">Atlassian Email</label><input class="form-input" id="cfg-email" type="email"/></div>
+      <div class="form-group"><label class="form-label">API Token</label><input class="form-input" id="cfg-token" type="password"/></div>
+      <div class="form-group"><label class="form-label">Default Project Prefix</label><input class="form-input" id="cfg-project" type="text"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="top-btn" id="settings-cancel">Cancel</button>
+      <button class="top-btn" style="background:var(--accent);color:#000;" id="settings-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- F2 MODAL -->
+<div id="f2-modal" class="hidden">
+  <div id="f2-box">
+    <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:6px;font-weight:600;text-transform:uppercase;">Quick Open Ticket</div>
+    <form id="f2-form">
+      <input type="text" id="f2-input" placeholder="e.g. 138589 or OSA-42" autocomplete="off"/>
+    </form>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>'use strict';
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const DEFAULTS = { baseUrl:'https://regusit.atlassian.net', email:'', token:'', defaultProject:'TTN' };
+let cfg = {...DEFAULTS};
+
+function loadConfig() { try { const s = localStorage.getItem('jira_config'); if (s) cfg = {...DEFAULTS, ...JSON.parse(s)}; } catch{} }
+function saveConfig() { localStorage.setItem('jira_config', JSON.stringify(cfg)); }
+function isConfigured() { return !!(cfg.email && cfg.token && cfg.baseUrl); }
+function authHeader() { return 'Basic ' + btoa(cfg.email + ':' + cfg.token); }
+
+// ── APP STATE ─────────────────────────────────────────────────────────────────
+// Data Model:
+// groups: [ { id: 'uuid', name: 'Inbox', keys: ['TTN-1'] } ]
+let state = {
+  groups: [{ id: 'inbox', name: 'Inbox', keys: [] }],
+  activeGroupId: 'inbox',
+  activeKey: null
+};
+let issueCache = {}; // in-memory cache for fast pane switching
+let blobCache = {};  // prevents reloading identical images
+let customFieldMap = {}; // maps customfield_10010 to "Business Case", etc
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('jira_state');
+    if (s) {
+      const parsed = JSON.parse(s);
+      if (parsed.groups && parsed.groups.length) state = parsed;
+    } else {
+      // Migrate old openKeys
+      const old = localStorage.getItem('jira_open_keys');
+      if (old) state.groups[0].keys = JSON.parse(old);
+    }
+  } catch {}
+}
+function saveState() {
+  localStorage.setItem('jira_state', JSON.stringify(state));
+}
+function getGroup(id) { return state.groups.find(g => g.id === id) || state.groups[0]; }
+function getActiveGroup() { return getGroup(state.activeGroupId); }
+
+// ── API ENGINE ────────────────────────────────────────────────────────────────
+function apiBase() { return window.location.protocol === 'file:' ? cfg.baseUrl : '/api/jira'; }
+function proxyUrl(fullUrl) {
+  if (window.location.protocol === 'file:') return fullUrl;
+  if (!fullUrl) return fullUrl;
+  if (fullUrl.startsWith(cfg.baseUrl)) return '/api/jira' + fullUrl.slice(cfg.baseUrl.length);
+  if (fullUrl.startsWith('http') && !fullUrl.includes(window.location.host)) return '/api/ext?url=' + encodeURIComponent(fullUrl);
+  return fullUrl;
+}
+
+async function fetchIssue(key) {
+  const fields = '*all'; // Must request all fields so Jira populates custom fields in 'renderedFields'!
+  const url = apiBase() + '/rest/api/3/issue/' + encodeURIComponent(key) + '?fields=' + fields + '&expand=renderedFields';
+  const r = await fetch(url, { headers: { Authorization: authHeader(), Accept: 'application/json' } });
+  if (!r.ok) {
+    let msg = r.status + ' ' + r.statusText;
+    try { const j = await r.json(); msg += ': ' + (j.errorMessages?.[0] || j.message || ''); } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function fetchCustomFields() {
+  try {
+    const url = apiBase() + '/rest/api/3/field';
+    const fields = await (await fetch(url, { headers: { Authorization: authHeader() } })).json();
+    for (const f of fields) customFieldMap[f.id] = f.name;
+  } catch(e) { console.error('Error fetching custom fields map:', e); }
+}
+
+async function fetchBlob(url) {
+  if (blobCache[url]) return blobCache[url];
+  try {
+    const target = proxyUrl(url);
+    const r = await fetch(target, { headers: { Authorization: authHeader() } });
+    if (!r.ok) return null;
+    const objectUrl = URL.createObjectURL(await r.blob());
+    blobCache[url] = objectUrl;
+    return objectUrl;
+  } catch { return null; }
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function normalise(raw) {
+  const t = raw.trim().toUpperCase();
+  if (/^\d+$/.test(t)) return cfg.defaultProject + '-' + t;
+  if (/^[A-Z][A-Z0-9]+-\d+$/.test(t)) return t;
+  const m = t.match(/^([A-Z][A-Z0-9]+)(\d+)$/);
+  return m ? m[1] + '-' + m[2] : t;
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function stripHtml(html) { const t = document.createElement('div'); t.innerHTML = html; return t.textContent; }
+function statusClass(cat) {
+  if (!cat) return ''; const c = cat.toLowerCase();
+  if (c.includes('progress') || c.includes('review')) return 's-inprogress';
+  if (c.includes('done') || c.includes('complete') || c.includes('closed') || c.includes('resolved')) return 's-done';
+  if (c.includes('block')) return 's-blocked';
+  return '';
+}
+function relDate(iso) {
+  const d = new Date(iso), s = (Date.now() - d) / 1000;
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  if (s < 604800) return Math.floor(s/86400) + 'd ago';
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show' + (type ? ' toast-'+type : '');
+  setTimeout(() => el.className = '', 3000);
+}
+
+const AV_COLORS = ['#f85149', '#f0883e', '#e3b341', '#3fb950', '#58a6ff', '#a371f7', '#d29922', '#1f6feb'];
+function initials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return (parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2)).toUpperCase();
+}
+function avBadge(name, cls) {
+  const color = AV_COLORS[(name||'').length % AV_COLORS.length];
+  return '<div class="av-badge ' + cls + '" style="background:' + color + ';" title="' + esc(name) + '">' + esc(initials(name)) + '</div>';
+}
+
+// ── RENDER SIDEBAR ────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const list = document.getElementById('group-list');
+  let html = '';
+  for (const g of state.groups) {
+    const activeObj = state.activeGroupId === g.id ? ' active' : '';
+    html += '<div class="group-item' + activeObj + '" data-id="' + esc(g.id) + '">' +
+      '<span class="g-name" oncontextmenu="renameGroup(event, \'' + esc(g.id) + '\')">' + esc(g.name) + '</span>' +
+      '<span class="count">' + g.keys.length + '</span>' +
+      '</div>';
+  }
+  list.innerHTML = html;
+  list.querySelectorAll('.group-item').forEach(el => {
+    el.addEventListener('click', () => {
+      state.activeGroupId = el.dataset.id;
+      state.activeKey = null; // Clear reading pane on group switch
+      saveState();
+      renderSidebar();
+      renderMiddle();
+      renderReading();
+    });
+  });
+}
+
+function renameGroup(e, id) {
+  e.preventDefault();
+  const g = getGroup(id);
+  const newName = prompt('Rename group:', g.name);
+  if (newName && newName.trim()) { g.name = newName.trim(); saveState(); renderSidebar(); renderMiddle(); }
+}
+
+document.getElementById('add-group-btn').addEventListener('click', () => {
+  const name = prompt('New List Name:');
+  if (name && name.trim()) {
+    const id = 'g_' + Date.now();
+    state.groups.push({ id, name: name.trim(), keys: [] });
+    state.activeGroupId = id;
+    saveState(); renderSidebar(); renderMiddle(); renderReading();
+  }
+});
+
+// ── RENDER MIDDLE ─────────────────────────────────────────────────────────────
+function renderMiddle() {
+  const group = getActiveGroup();
+  document.getElementById('current-group-name').textContent = group.name;
+  
+  const list = document.getElementById('ticket-list');
+  if (!group.keys.length) {
+    list.innerHTML = '<div class="empty-msg">No tickets in this list.<br>Search a key to add one.</div>';
+    return;
+  }
+
+  let html = '';
+  for (const key of group.keys) {
+    const active = state.activeKey === key ? ' active' : '';
+    // Pull cached basics
+    const issue = issueCache[key] || {};
+    const f = issue.fields || {};
+    
+    let sum = f.summary || 'Loading...';
+    let stat = f.status ? f.status.name : '';
+    let parent = f.parent ? f.parent.key : '';
+    let preview = '';
+    if (issue.renderedFields?.description) {
+      preview = stripHtml(issue.renderedFields.description).replace(/\n\s*\n/g, '\n').trim();
+    }
+    
+    html += '<div class="list-card' + active + '" data-key="' + esc(key) + '">' +
+      '<div class="lc-key-row">' +
+        '<span class="lc-key">' + esc(key) + '</span>' +
+        (stat ? '<span class="status-badge ' + statusClass(f.status?.statusCategory?.name || stat) + '">' + esc(stat) + '</span>' : '') +
+      '</div>' +
+      '<div class="lc-title-row">' +
+        (parent ? '<span class="lc-parent">↑ ' + esc(parent) + '</span>' : '') +
+        '<span class="lc-summary">' + esc(sum) + '</span>' +
+      '</div>' +
+      (preview ? '<div class="lc-preview">' + esc(preview) + '</div>' : '') +
+      '<button class="lc-delete" onclick="event.stopPropagation(); removeTicket(\'' + esc(key) + '\')">Remove</button>' +
+    '</div>';
+  }
+  list.innerHTML = html;
+  
+  list.querySelectorAll('.list-card').forEach(el => {
+    el.addEventListener('click', () => {
+      state.activeKey = el.dataset.key;
+      saveState();
+      renderMiddle(); // Update active highlights
+      renderReading();
+    });
+  });
+}
+
+function removeTicket(key) {
+  const group = getActiveGroup();
+  group.keys = group.keys.filter(k => k !== key);
+  if (state.activeKey === key) state.activeKey = null;
+  saveState(); renderSidebar(); renderMiddle(); renderReading();
+}
+
+async function loadAllGroupTickets() {
+  const group = getActiveGroup();
+  for (const key of group.keys) {
+    if (!issueCache[key]) {
+      try {
+        issueCache[key] = await fetchIssue(key);
+        renderMiddle(); // live update cards
+        if (state.activeKey === key) renderReading();
+      } catch(e) {}
+    }
+  }
+}
+
+// ── RENDER RIGHT (READING) ────────────────────────────────────────────────────
+function renderReading() {
+  const empty = document.getElementById('reading-empty');
+  const content = document.getElementById('reading-content');
+  
+  if (!state.activeKey) {
+    empty.style.display = 'block'; content.style.display = 'none';
+    return;
+  }
+  
+  empty.style.display = 'none';
+  content.style.display = 'block';
+  
+  const key = state.activeKey;
+  const issue = issueCache[key];
+  
+  if (!issue) {
+    content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div>Loading ' + esc(key) + '...</div>';
+    // Fetch if not cached
+    fetchIssue(key).then(data => {
+      issueCache[key] = data;
+      renderMiddle(); // Update left card with latest preview
+      if (state.activeKey === key) renderReading();
+    }).catch(err => {
+      content.innerHTML = '<div class="empty-msg" style="color:var(--red);">Error loading ' + esc(key) + ':<br>' + esc(err.message) + '</div>';
+    });
+    return;
+  }
+
+  const f = issue.fields;
+  
+  // Group Selector Dropdown HTML
+  let selHtml = '<select class="rs-group-select" onchange="moveTicket(\'' + esc(key) + '\', this.value)">';
+  for (const g of state.groups) {
+    selHtml += '<option value="' + esc(g.id) + '" ' + (g.id === state.activeGroupId ? 'selected' : '') + '>' + esc(g.name) + '</option>';
+  }
+  selHtml += '</select>';
+
+  let html = '<div class="rs-header">';
+  if (f.parent) {
+    html += '<a href="' + esc(cfg.baseUrl) + '/browse/' + esc(f.parent.key) + '" target="_blank" class="rs-parent-link">↑ ' + esc(f.parent.key) + ' : ' + esc(f.parent.fields?.summary) + '</a>';
+  }
+  html += '<div class="rs-title-row">' +
+    '<div class="rs-title">' + esc(f.summary) + '</div>' +
+    '<a href="' + esc(cfg.baseUrl) + '/browse/' + esc(key) + '" target="_blank" class="rs-key-badge">' + esc(key) + '</a>' +
+  '</div>';
+  
+  html += '<div class="rs-actions">' + selHtml + 
+    '<button class="top-btn" onclick="forceRefreshReading()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg> Refresh</button>' +
+  '</div></div>';
+
+  // Meta Grid
+  html += '<div class="meta-grid">';
+  const metas = [
+    { l: 'Status', v: '<span class="status-badge ' + statusClass(f.status?.statusCategory?.name || f.status?.name) + '">' + esc(f.status?.name) + '</span>' },
+    { l: 'Assignee', v: f.assignee ? avBadge(f.assignee.displayName, 'av-sm') + ' ' + esc(f.assignee.displayName) : 'Unassigned' },
+    { l: 'Reporter', v: f.reporter ? avBadge(f.reporter.displayName, 'av-sm') + ' ' + esc(f.reporter.displayName) : '—' },
+    { l: 'Priority', v: f.priority?.name || '—' },
+    { l: 'Type', v: f.issuetype?.name || '—' },
+    { l: 'Created', v: relDate(f.created) }
+  ];
+  for (const m of metas) html += '<div class="meta-item"><div class="meta-label">' + m.l + '</div><div class="meta-value">' + m.v + '</div></div>';
+  html += '</div>';
+
+  // Description and other full-length text fields
+  if (issue.renderedFields) {
+    // Description is rendered first as it's the primary field
+    if (issue.renderedFields.description) {
+      html += '<div class="section-title">Description</div><div class="description">' + issue.renderedFields.description + '</div>';
+    }
+    
+    // Iterate over all other custom/native fields that are pure string HTML
+    for (const [key, val] of Object.entries(issue.renderedFields)) {
+      if (key === 'description' || key === 'comment' || !val || typeof val !== 'string') continue;
+      const fName = customFieldMap[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '));
+      html += '<div class="section-title">' + esc(fName) + '</div><div class="description">' + val + '</div>';
+    }
+  }
+
+  // Linked Issues
+  if (f.issuelinks && f.issuelinks.length) {
+    html += '<div class="section-title">Linked Issues</div><div class="links-grid">';
+    for (const l of f.issuelinks) {
+      const isOut = !!l.outwardIssue;
+      const t = isOut ? l.outwardIssue : l.inwardIssue;
+      const rel = isOut ? l.type.outward : l.type.inward;
+      html += '<a href="' + esc(cfg.baseUrl) + '/browse/' + esc(t.key) + '" target="_blank" class="link-card">' +
+        '<div><div class="link-type">' + esc(rel) + '</div>' +
+        '<div class="link-key">' + esc(t.key) + '</div>' +
+        '<div class="link-sum">' + esc(t.fields?.summary || '') + '</div></div>' +
+      '</a>';
+    }
+    html += '</div>';
+  }
+
+  // Comments
+  const comments = f.comment?.comments || [];
+  const rc = issue.renderedFields?.comment?.comments || [];
+  if (comments.length) {
+    html += '<div class="section-title">Comments (' + comments.length + ')</div><div>';
+    for (let i = 0; i < comments.length; i++) {
+        const c = comments[i];
+        html += '<div class="comment-item">' +
+          '<div class="c-avatar">' + avBadge(c.author?.displayName, 'av-md') + '</div>' +
+          '<div class="c-content">' +
+            '<div class="c-header"><span class="c-author">' + esc(c.author?.displayName) + '</span><span class="c-date">' + relDate(c.created) + '</span></div>' +
+            '<div class="c-body description">' + (rc[i] ? rc[i].body : '') + '</div>' +
+          '</div></div>';
+    }
+    html += '</div>';
+  }
+
+  content.innerHTML = html;
+  bindAuthImages(content);
+}
+
+// Global hook for the select dropdown
+window.moveTicket = function(key, newGroupId) {
+  const oldG = getActiveGroup();
+  oldG.keys = oldG.keys.filter(k => k !== key);
+  const newG = getGroup(newGroupId);
+  if (!newG.keys.includes(key)) newG.keys.unshift(key); // prepend
+  state.activeKey = null; // hide from reading
+  saveState(); renderSidebar(); renderMiddle(); renderReading();
+  toast('Moved to ' + newG.name, 'success');
+};
+
+window.forceRefreshReading = async function() {
+  const key = state.activeKey;
+  if (!key) return;
+  delete issueCache[key];
+  renderReading(); // will trigger spinner and refetch
+};
+
+// ── IMAGE AUTH ENGINE ─────────────────────────────────────────────────────────
+async function bindAuthImages(container) {
+  const nativeImgs = container.querySelectorAll('img[src]');
+  for (const img of nativeImgs) {
+    let src = img.getAttribute('src');
+    if (!src || src.startsWith('data:') || src.startsWith('blob:')) continue;
+    if (src.startsWith('/') || src.includes(cfg.baseUrl.split('//')[1])) {
+      if (src.startsWith('/')) src = cfg.baseUrl + src;
+      img.removeAttribute('src'); 
+      img.dataset.authSrc = proxyUrl(src);
+    }
+  }
+  const authImgs = container.querySelectorAll('img[data-auth-src]');
+  for (const img of authImgs) {
+    const blob = await fetchBlob(img.dataset.authSrc);
+    if (blob) img.src = blob;
+    else img.alt = 'Image unavailable';
+    delete img.dataset.authSrc;
+  }
+}
+
+// ── ACTION HANDLERS ───────────────────────────────────────────────────────────
+function openTicketByKey(val) {
+  if (!val) return;
+  const key = normalise(val);
+  const g = getActiveGroup();
+  if (!g.keys.includes(key)) g.keys.unshift(key);
+  state.activeKey = key;
+  saveState(); renderSidebar(); renderMiddle(); renderReading();
+}
+
+// ── INITIALIZATION ────────────────────────────────────────────────────────────
+function init() {
+  loadConfig();
+  if (!isConfigured()) document.getElementById('settings-overlay').classList.remove('hidden');
+  
+  loadState();
+  renderSidebar();
+  renderMiddle();
+  renderReading();
+  
+  // Kick off background fetches
+  if (isConfigured()) { 
+    fetchCustomFields(); 
+    loadAllGroupTickets(); 
+  }
+
+  // Search Submit
+  document.getElementById('search-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const val = document.getElementById('search-input').value.trim();
+    openTicketByKey(val);
+    document.getElementById('search-input').value = '';
+  });
+
+  // F2 Quick Modal
+  window.addEventListener('keydown', e => {
+    if (e.key === 'F2') {
+      e.preventDefault();
+      const modal = document.getElementById('f2-modal');
+      modal.classList.remove('hidden');
+      setTimeout(() => document.getElementById('f2-input').focus(), 50);
+    } else if (e.key === 'Escape' && !document.getElementById('f2-modal').classList.contains('hidden')) {
+      document.getElementById('f2-modal').classList.add('hidden');
+    }
+  });
+
+  document.getElementById('f2-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const val = document.getElementById('f2-input').value.trim();
+    openTicketByKey(val);
+    document.getElementById('f2-modal').classList.add('hidden');
+    document.getElementById('f2-input').value = '';
+  });
+
+  // Refresh All
+  document.getElementById('refresh-all-btn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.style.pointerEvents = 'none'; btn.style.opacity = '0.5';
+    // dump cache for current group keys
+    const g = getActiveGroup();
+    for (const k of g.keys) delete issueCache[k];
+    await loadAllGroupTickets();
+    btn.style.pointerEvents = ''; btn.style.opacity = '1';
+    toast('List refreshed');
+  });
+
+  // Settings
+  document.getElementById('settings-btn').addEventListener('click', () => {
+    document.getElementById('cfg-url').value = cfg.baseUrl;
+    document.getElementById('cfg-email').value = cfg.email;
+    document.getElementById('cfg-token').value = cfg.token;
+    document.getElementById('cfg-project').value = cfg.defaultProject;
+    document.getElementById('settings-overlay').classList.remove('hidden');
+  });
+  const closeCfg = () => document.getElementById('settings-overlay').classList.add('hidden');
+  document.getElementById('settings-close').addEventListener('click', closeCfg);
+  document.getElementById('settings-cancel').addEventListener('click', closeCfg);
+  document.getElementById('settings-save').addEventListener('click', () => {
+    cfg.baseUrl = (document.getElementById('cfg-url').value || DEFAULTS.baseUrl).replace(/\/$/, '');
+    cfg.email = document.getElementById('cfg-email').value.trim();
+    cfg.token = document.getElementById('cfg-token').value.trim();
+    cfg.defaultProject = document.getElementById('cfg-project').value.trim().toUpperCase() || DEFAULTS.defaultProject;
+    saveConfig(); closeCfg(); toast('Settings saved');
+    if (getActiveGroup().keys.length) loadAllGroupTickets();
+  });
+}
+
+init();
+</script>
+</body>
+</html>
