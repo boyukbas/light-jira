@@ -15,7 +15,7 @@ const path  = require('path');
 const { URL } = require('url');
 
 const PORT      = parseInt(process.env.PORT || '3000', 10);
-const JIRA_BASE = (process.env.JIRA_BASE || 'https://regusit.atlassian.net').replace(/\/$/, '');
+const JIRA_BASE = (process.env.JIRA_BASE || 'https://site.atlassian.net').replace(/\/$/, '');
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -126,6 +126,14 @@ const server = http.createServer((req, res) => {
     const jiraPath = pathname.slice('/api/jira'.length) + reqUrl.search;
     const target   = JIRA_BASE + jiraPath;
     console.log(`[proxy jira] ${method} ${target}`);
+    proxyRequest(req, res, target);
+    return;
+  }
+
+  // ── /rest/* and /s/* → fallback for absolute Jira links in HTML ───────────
+  if (pathname.startsWith('/rest/') || pathname.startsWith('/s/')) {
+    const target = JIRA_BASE + pathname + reqUrl.search;
+    console.log(`[proxy auto] ${method} ${target}`);
     proxyRequest(req, res, target);
     return;
   }
