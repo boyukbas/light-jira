@@ -1,7 +1,11 @@
-const CACHE_NAME = 'light-jira-v1';
+const CACHE_NAME = 'light-jira-v2';
 const ASSETS = [
   './',
   './index.html',
+  './style.css',
+  './utils.js',
+  './api.js',
+  './app.js',
   './manifest.json',
   './icon.svg'
 ];
