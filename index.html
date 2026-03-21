@@ -40,22 +40,35 @@
 <div id="app-body">
   <!-- LEFT: Groups -->
   <div id="sidebar">
+    <div class="middle-header" style="justify-content:space-between;padding:12px 10px;">
+      <span style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-tertiary)">Lists</span>
+      <button class="top-btn icon-only collapse-btn" onclick="toggleCollapse('sidebar')" title="Collapse Sidebar" style="border:none;padding:2px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+      </button>
+    </div>
     <div id="group-list"></div>
     <button id="add-group-btn" title="New Group">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
     </button>
   </div>
 
+  <div class="resizer" id="resizer-sidebar"></div>
+
   <!-- MIDDLE: Ticket List -->
   <div id="middle">
     <div class="middle-header">
-      <span id="current-group-name">Inbox</span>
+      <button class="top-btn icon-only collapse-btn" id="middle-collapse-btn" onclick="toggleCollapse('middle')" title="Collapse Items" style="border:none;padding:2px;margin-right:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+      </button>
+      <span id="current-group-name" style="flex:1">Inbox</span>
       <button class="top-btn icon-only" id="refresh-all-btn" title="Refresh List" style="border:none;padding:4px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg>
       </button>
     </div>
     <div id="ticket-list"></div>
   </div>
+
+  <div class="resizer" id="resizer-middle"></div>
 
   <!-- RIGHT: Reading Pane -->
   <div id="reading">
@@ -69,10 +82,12 @@
     <div class="reading-content" id="reading-content" style="display:none;"></div>
   </div>
 
+  <div class="resizer" id="resizer-notes"></div>
+
   <!-- RIGHT 2: Notes Pane -->
   <div id="notes-pane">
     <div class="middle-header" style="border-bottom: 1px solid var(--border-subtle);background:var(--card);">
-      Personal Notes
+      Notes
       <button style="float:right;background:transparent;border:none;color:var(--text-tertiary);cursor:pointer;font-size:16px;line-height:1;" onclick="toggleNotes()">&times;</button>
     </div>
     <textarea id="notes-text" placeholder="Type personal notes here... Saved automatically to your browser." oninput="saveNotes(this.value)"></textarea>

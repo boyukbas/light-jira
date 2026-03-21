@@ -7,7 +7,14 @@ let state = {
   activeKey: null,
   notes: {}, // key -> string
   labels: {}, // key -> [string]
-  labelColors: {} // label text -> color
+  labelColors: {}, // label text -> color
+  layout: {
+    sidebarWidth: 240,
+    middleWidth: 320,
+    notesWidth: 320,
+    sidebarCollapsed: false,
+    middleCollapsed: false
+  }
 };
 
 let draggedKey = null; // for drag & drop
@@ -23,17 +30,13 @@ function loadState() {
       const old = localStorage.getItem('jira_open_keys');
       if (old) state.groups[0].keys = JSON.parse(old);
     }
-    // Ensure history exists instead of recycle
-    let rec = state.groups.find(g => g.id === 'recycle');
-    if (rec) { rec.id = 'history'; rec.name = 'History'; }
-    if (!state.groups.find(g => g.id === 'history')) {
-      state.groups.push({ id: 'history', name: 'History', keys: [] });
-    }
+    // Migration/Ensure fields
+    if (!state.groups.find(g => g.id === 'history')) state.groups.push({ id: 'history', name: 'History', keys: [] });
     if (!state.notes) state.notes = {};
     if (!state.labels) state.labels = {};
     if (!state.labelColors) state.labelColors = {};
+    if (!state.layout) state.layout = { sidebarWidth: 240, middleWidth: 320, notesWidth: 320, sidebarCollapsed: false, middleCollapsed: false };
 
-    // Load persisted cache for offline use
     const cached = localStorage.getItem('jira_issue_cache');
     if (cached) issueCache = JSON.parse(cached);
   } catch {}
@@ -41,7 +44,6 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem('jira_state', JSON.stringify(state));
-  // Also persist issue cache
   localStorage.setItem('jira_issue_cache', JSON.stringify(issueCache));
 }
 
@@ -51,13 +53,79 @@ function getActiveGroup() { return getGroup(state.activeGroupId); }
 function updateViewMode() {
   const isHist = state.activeGroupId === 'history';
   document.body.setAttribute('data-active-view', isHist ? 'history' : 'normal');
+  
+  // Apply layout from state
+  const sb = document.getElementById('sidebar');
+  const mid = document.getElementById('middle');
+  const nts = document.getElementById('notes-pane');
+  
+  if (sb) {
+    sb.style.width = state.layout.sidebarWidth + 'px';
+    sb.classList.toggle('collapsed', state.layout.sidebarCollapsed);
+  }
+  if (mid) {
+    mid.style.width = state.layout.middleWidth + 'px';
+    mid.classList.toggle('collapsed', state.layout.middleCollapsed);
+  }
+  if (nts) {
+    nts.style.width = state.layout.notesWidth + 'px';
+  }
+
   renderSidebar();
   if (isHist) renderHistoryTable();
   else { 
     renderMiddle(); 
     renderReading(); 
-    // DROPPED AUTOMATIC loadAllGroupTickets() on every mode update per user request
   }
+}
+
+// ── LAYOUT & RESIZING ─────────────────────────────────────────────────────────
+window.toggleCollapse = function(id) {
+  if (id === 'sidebar') state.layout.sidebarCollapsed = !state.layout.sidebarCollapsed;
+  if (id === 'middle') state.layout.middleCollapsed = !state.layout.middleCollapsed;
+  saveState();
+  updateViewMode();
+};
+
+function initResizing() {
+  const body = document.getElementById('app-body');
+  const setup = (handleId, targetId, prop, min, align) => {
+    const handle = document.getElementById(handleId);
+    const target = document.getElementById(targetId);
+    if (!handle || !target) return;
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      body.classList.add('resizing');
+      handle.classList.add('active');
+      const startX = e.pageX;
+      const startW = target.offsetWidth;
+
+      const onMouseMove = (moveE) => {
+        let diff = moveE.pageX - startX;
+        if (align === 'right') diff = -diff;
+        let newW = startW + diff;
+        if (newW < min) newW = min;
+        target.style.width = newW + 'px';
+        state.layout[prop] = newW;
+      };
+
+      const onMouseUp = () => {
+        body.classList.remove('resizing');
+        handle.classList.remove('active');
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        saveState();
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+  };
+
+  setup('resizer-sidebar', 'sidebar', 'sidebarWidth', 120, 'left');
+  setup('resizer-middle', 'middle', 'middleWidth', 150, 'left');
+  setup('resizer-notes', 'notes-pane', 'notesWidth', 200, 'right');
 }
 
 // ── RENDER SIDEBAR ────────────────────────────────────────────────────────────
@@ -65,7 +133,6 @@ function renderSidebar() {
   const list = document.getElementById('group-list');
   if (!list) return;
   let html = '';
-  // REMOVED 'history' from sidebar groups display per user request
   const displayGroups = state.groups.filter(g => g.id !== 'history');
   
   for (const g of displayGroups) {
@@ -73,7 +140,8 @@ function renderSidebar() {
     html += '<div class="group-item' + activeObj + '" data-id="' + esc(g.id) + '" ' +
       'ondragover="handleDragOver(event)" ondrop="handleDropToGroup(event, \'' + esc(g.id) + '\')" ondragleave="handleDragLeave(event)" ' +
       'oncontextmenu="showGroupCtx(event, \'' + esc(g.id) + '\')">' +
-      '<span class="g-name">' + esc(g.name) + '</span>' +
+      '<span class="av-badge av-sm" style="background:var(--border);color:var(--text-tertiary);margin-right:8px;font-size:10px;">' + g.name[0].toUpperCase() + '</span>' +
+      '<span class="g-name" style="flex:1">' + esc(g.name) + '</span>' +
       '<span class="count">' + g.keys.length + '</span>' +
       '</div>';
   }
@@ -128,6 +196,25 @@ function handleDeleteGroup() {
   ctxGroupId = null;
 }
 
+document.getElementById('ctx-rename').addEventListener('click', handleRenameGroup);
+document.getElementById('ctx-delete').addEventListener('click', handleDeleteGroup);
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#ctx-menu')) {
+    document.getElementById('ctx-menu').classList.remove('show');
+    ctxGroupId = null;
+  }
+});
+
+document.getElementById('add-group-btn').addEventListener('click', () => {
+  const name = prompt('New List Name:');
+  if (name && name.trim()) {
+    const id = 'g_' + Date.now();
+    state.groups.push({ id, name: name.trim(), keys: [] });
+    state.activeGroupId = id;
+    saveState(); updateViewMode();
+  }
+});
+
 // ── RENDER MIDDLE ─────────────────────────────────────────────────────────────
 function renderMiddle() {
   const group = getActiveGroup();
@@ -156,7 +243,6 @@ function renderMiddle() {
       '</div>' +
       '<div class="lc-title-row">' +
         '<span class="lc-summary">' +
-          // REMOVED lc-parent rendering on Items list per user request
           '<span style="color:var(--accent);">' + esc(key) + '</span> ' + esc(sum) +
         '</span>' +
       '</div>' +
@@ -187,7 +273,7 @@ async function loadAllGroupTickets() {
     if (!issueCache[key]) {
       try {
         issueCache[key] = await fetchIssue(key);
-        saveState(); // Persist newly loaded tickets to localStorage
+        saveState();
         renderMiddle();
         if (state.activeKey === key) renderReading();
       } catch(e) {}
@@ -213,7 +299,7 @@ function renderReading() {
     content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div>Loading ' + esc(key) + '...</div>';
     fetchIssue(key).then(data => {
       issueCache[key] = data;
-      saveState(); // Persist
+      saveState();
       renderMiddle();
       if (state.activeKey === key) renderReading();
     }).catch(err => {
@@ -424,7 +510,9 @@ function renderHistoryTable() {
 function init() {
   loadConfig();
   if (!isConfigured()) document.getElementById('settings-overlay').classList.remove('hidden');
-  loadState(); updateViewMode();
+  loadState(); 
+  initResizing();
+  updateViewMode();
   if (isConfigured()) { fetchCustomFields(); loadAllGroupTickets(); }
 
   document.getElementById('search-form').addEventListener('submit', e => {
@@ -451,11 +539,7 @@ function init() {
   });
 
   document.getElementById('history-toggle-btn').addEventListener('click', () => {
-    if (state.activeGroupId === 'history') {
-      state.activeGroupId = 'inbox';
-    } else {
-      state.activeGroupId = 'history';
-    }
+    state.activeGroupId = (state.activeGroupId === 'history') ? 'inbox' : 'history';
     saveState(); updateViewMode();
   });
 
