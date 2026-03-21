@@ -61,12 +61,12 @@ function getActiveGroup() { return getGroup(state.activeGroupId); }
 function updateViewMode() {
   const isHist = state.activeGroupId === 'history';
   document.body.setAttribute('data-active-view', isHist ? 'history' : 'normal');
-  
+
   // Apply layout from state
   const sb = document.getElementById('sidebar');
   const mid = document.getElementById('middle');
   const nts = document.getElementById('notes-pane');
-  
+
   if (sb) {
     sb.style.width = state.layout.sidebarWidth + 'px';
     sb.classList.toggle('collapsed', state.layout.sidebarCollapsed);
@@ -81,14 +81,14 @@ function updateViewMode() {
 
   renderSidebar();
   if (isHist) renderHistoryTable();
-  else { 
-    renderMiddle(); 
-    renderReading(); 
+  else {
+    renderMiddle();
+    renderReading();
   }
 }
 
 // ── LAYOUT & RESIZING ─────────────────────────────────────────────────────────
-window.toggleCollapse = function(id) {
+window.toggleCollapse = function (id) {
   if (id === 'sidebar') state.layout.sidebarCollapsed = !state.layout.sidebarCollapsed;
   if (id === 'middle') state.layout.middleCollapsed = !state.layout.middleCollapsed;
   saveState();
@@ -142,7 +142,7 @@ function renderSidebar() {
   if (!list) return;
   let html = '';
   const displayGroups = state.groups.filter(g => g.id !== 'history');
-  
+
   for (const g of displayGroups) {
     const activeObj = state.activeGroupId === g.id ? ' active' : '';
     html += '<div class="group-item' + activeObj + '" data-id="' + esc(g.id) + '" ' +
@@ -228,7 +228,7 @@ function renderMiddle() {
   const group = getActiveGroup();
   const nameEl = document.getElementById('current-group-name');
   if (nameEl) nameEl.textContent = group.name;
-  
+
   const list = document.getElementById('ticket-list');
   if (!list) return;
   if (!group.keys.length) {
@@ -243,19 +243,19 @@ function renderMiddle() {
     const f = issue.fields || {};
     let sum = f.summary || 'Loading...';
     let stat = f.status ? f.status.name : '';
-    
+
     html += '<div class="list-card' + active + '" data-key="' + esc(key) + '" draggable="true" ' +
       'ondragstart="handleDragStart(event, \'' + esc(key) + '\')" ondragover="handleDragOver(event)" ondrop="handleDropToItem(event, \'' + esc(key) + '\')" ondragleave="handleDragLeave(event)">' +
       '<div class="lc-key-row">' +
-        (stat ? '<span class="status-badge ' + statusClass(f.status?.statusCategory?.name || stat) + '">' + esc(stat) + '</span>' : '') +
+      (stat ? '<span class="status-badge ' + statusClass(f.status?.statusCategory?.name || stat) + '">' + esc(stat) + '</span>' : '') +
       '</div>' +
       '<div class="lc-title-row">' +
-        '<span class="lc-summary">' +
-          '<span style="color:var(--accent);">' + esc(key) + '</span> ' + esc(sum) +
-        '</span>' +
+      '<span class="lc-summary">' +
+      '<span style="color:var(--accent);">' + esc(key) + '</span> ' + esc(sum) +
+      '</span>' +
       '</div>' +
       '<button class="lc-delete" title="Remove from list (Kept in History)" onclick="event.stopPropagation(); removeTicket(\'' + esc(key) + '\')">✕</button>' +
-    '</div>';
+      '</div>';
   }
   list.innerHTML = html;
   list.querySelectorAll('.list-card').forEach(el => {
@@ -284,7 +284,7 @@ async function loadAllGroupTickets() {
         saveState();
         renderMiddle();
         if (state.activeKey === key) renderReading();
-      } catch(e) {}
+      } catch (e) { }
     }
   }
 }
@@ -300,7 +300,7 @@ function renderReading() {
   }
   empty.style.display = 'none';
   content.style.display = 'block';
-  
+
   const key = state.activeKey;
   const issue = issueCache[key];
   if (!issue) {
@@ -324,21 +324,17 @@ function renderReading() {
   selHtml += '</select>';
 
   let html = '<div class="rs-header">';
-  if (f.parent) {
-    html += '<a href="' + esc(cfg.baseUrl) + '/browse/' + esc(f.parent.key) + '" target="_blank" class="rs-parent-link">↑ ' + esc(f.parent.key) + ' : ' + esc(f.parent.fields?.summary) + '</a>';
-  }
-  
   html += '<div style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;">';
   const myLbls = state.labels[key] || [];
   for (const L of myLbls) {
     const c = state.labelColors[L] || '#6e7681';
-    html += '<span class="lbl-badge" style="background:' + c + ';' + (c==='#f0883e'||c==='#e3b341'?'color:#000;':'color:#fff;') + '">' + esc(L) +
-            ' <span class="x-btn" onclick="removeLabel(\'' + esc(key) + '\', \'' + esc(L) + '\')">✕</span></span>';
+    html += '<span class="lbl-badge" style="background:' + c + ';' + (c === '#f0883e' || c === '#e3b341' ? 'color:#000;' : 'color:#fff;') + '">' + esc(L) +
+      ' <span class="x-btn" onclick="removeLabel(\'' + esc(key) + '\', \'' + esc(L) + '\')">✕</span></span>';
   }
   html += '<button class="lbl-add" onclick="addLabel(\'' + esc(key) + '\')">+ Label</button></div>';
 
   html += '<div class="rs-title-row"><div class="rs-title"><a href="' + esc(cfg.baseUrl) + '/browse/' + esc(key) + '" target="_blank" style="color:var(--accent);text-decoration:none;">' + esc(key) + '</a> ' + esc(f.summary) + '</div></div>';
-  html += '<div class="rs-actions">' + selHtml + 
+  html += '<div class="rs-actions">' + selHtml +
     '<button class="top-btn" onclick="toggleNotes()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Notes</button>' +
     '<button class="top-btn" onclick="forceRefreshReading()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg> Refresh</button></div></div>';
 
@@ -347,20 +343,49 @@ function renderReading() {
     { l: 'Status', v: '<span class="status-badge ' + statusClass(f.status?.statusCategory?.name || f.status?.name) + '">' + esc(f.status?.name) + '</span>' },
     { l: 'Assignee', v: f.assignee ? avBadge(f.assignee.displayName, 'av-sm') + ' ' + esc(f.assignee.displayName) : 'Unassigned' },
     { l: 'Reporter', v: f.reporter ? avBadge(f.reporter.displayName, 'av-sm') + ' ' + esc(f.reporter.displayName) : '—' },
-    { l: 'Priority', v: f.priority?.name || '—' },
     { l: 'Type', v: f.issuetype?.name || '—' },
-    { l: 'Created', v: relDate(f.created) }
+    { l: 'Created', v: relDate(f.created) },
+    { l: 'Updated', v: relDate(f.updated) }
   ];
   for (const m of metas) html += '<div class="meta-item"><div class="meta-label">' + m.l + '</div><div class="meta-value">' + m.v + '</div></div>';
   html += '</div>';
 
+  // ... (after meta-grid)
+  if (f.parent) {
+    let hierarchyHtml = '<div class="section-title">Hierarchy</div><div style="margin-bottom:12px;">';
+    // Grandparent if available
+    if (f.parent.fields?.parent) {
+      const gp = f.parent.fields.parent;
+      hierarchyHtml += '<div style="margin-bottom:4px;"><a href="' + esc(cfg.baseUrl) + '/browse/' + esc(gp.key) + '" target="_blank" class="rs-parent-link" style="opacity:0.7;font-size:12px;">↑ ' + esc(gp.key) + ' : ' + esc(gp.fields?.summary || '') + '</a></div>';
+    }
+    hierarchyHtml += '<div><a href="' + esc(cfg.baseUrl) + '/browse/' + esc(f.parent.key) + '" target="_blank" class="rs-parent-link">↑ ' + esc(f.parent.key) + ' : ' + esc(f.parent.fields?.summary) + '</a></div>';
+    hierarchyHtml += '</div>';
+    html += hierarchyHtml;
+  }
+
   if (issue.renderedFields) {
-    if (issue.renderedFields.description) html += '<div class="section-title">Description</div><div class="description">' + issue.renderedFields.description + '</div>';
+    const HIDDEN_FIELDS = [
+      'last viewed', 'updated', 'status category changed', 
+      '[chart] date of first response', 'created', 'parent key', 
+      'ticket score', 'service offering'
+    ];
+    
+    if (issue.renderedFields.description) {
+        // Aggressive strip of Smart Link icons and Jira-injected decorators
+        let cleanDesc = issue.renderedFields.description;
+        cleanDesc = cleanDesc.replace(/<img[^>]*lightbulb[^>]*>/gi, '');
+        cleanDesc = cleanDesc.replace(/<img[^>]*favicon[^>]*>/gi, '');
+        cleanDesc = cleanDesc.replace(/<span[^>]*ak-link-icon[^>]*>.*?<\/span>/gi, '');
+        cleanDesc = cleanDesc.replace(/<img[^>]*info-modeler[^>]*>/gi, '');
+        html += '<div class="section-title">Description</div><div class="description">' + cleanDesc + '</div>';
+    }
     for (const [keyField, val] of Object.entries(issue.renderedFields)) {
       if (keyField === 'description' || keyField === 'comment' || !val || typeof val !== 'string') continue;
       const fName = customFieldMap[keyField] || (keyField.charAt(0).toUpperCase() + keyField.slice(1).replace(/_/g, ' '));
       const ln = fName.toLowerCase();
       if (ln.includes('time') || ln.includes('estimate') || ln.includes('worklog')) continue;
+      if (ln.includes('incident')) continue;
+      if (HIDDEN_FIELDS.includes(ln)) continue;
       html += '<div class="section-title">' + esc(fName) + '</div><div class="description">' + val + '</div>';
     }
   }
@@ -384,12 +409,12 @@ function renderReading() {
   if (comments.length) {
     html += '<div class="section-title">Comments (' + comments.length + ')</div><div>';
     for (let i = 0; i < comments.length; i++) {
-        const c = comments[i];
-        html += '<div class="comment-item">' +
-          '<div class="c-avatar">' + avBadge(c.author?.displayName, 'av-md') + '</div>' +
-          '<div class="c-content">' +
-            '<div class="c-header"><span class="c-author">' + esc(c.author?.displayName) + '</span><span class="c-date">' + relDate(c.created) + '</span></div>' +
-            '<div class="c-body description">' + (rc[i] ? rc[i].body : '') + '</div></div></div>';
+      const c = comments[i];
+      html += '<div class="comment-item">' +
+        '<div class="c-avatar">' + avBadge(c.author?.displayName, 'av-md') + '</div>' +
+        '<div class="c-content">' +
+        '<div class="c-header"><span class="c-author">' + esc(c.author?.displayName) + '</span><span class="c-date">' + relDate(c.created) + '</span></div>' +
+        '<div class="c-body description">' + (rc[i] ? rc[i].body : '') + '</div></div></div>';
     }
     html += '</div>';
   }
@@ -401,17 +426,17 @@ function renderReading() {
 function toggleNotes() { document.getElementById('notes-pane').classList.toggle('open'); }
 function saveNotes(val) { if (state.activeKey) { state.notes[state.activeKey] = val; saveState(); } }
 
-window.moveTicket = function(key, newGroupId) {
+window.moveTicket = function (key, newGroupId) {
   const oldG = getGroup(state.activeGroupId);
   oldG.keys = oldG.keys.filter(k => k !== key);
   const newG = getGroup(newGroupId);
   if (!newG.keys.includes(key)) newG.keys.unshift(key);
-  if (state.activeKey === key && state.activeGroupId !== newGroupId) state.activeKey = null; 
+  if (state.activeKey === key && state.activeGroupId !== newGroupId) state.activeKey = null;
   saveState(); updateViewMode();
   toast('Moved to ' + newG.name, 'success');
 };
 
-window.forceRefreshReading = async function() {
+window.forceRefreshReading = async function () {
   const key = state.activeKey;
   if (key) { delete issueCache[key]; renderReading(); }
 };
@@ -478,7 +503,7 @@ function openTicketByKey(val) {
   state.activeKey = key; saveState(); updateViewMode();
 }
 
-window.addToHistory = function(key) {
+window.addToHistory = function (key) {
   const h = getGroup('history');
   if (h) {
     h.keys = h.keys.filter(k => (typeof k === 'string' ? k !== key : k.key !== key));
@@ -488,7 +513,7 @@ window.addToHistory = function(key) {
   }
 };
 
-window.openFromHistory = function(key) {
+window.openFromHistory = function (key) {
   let g = state.groups.find(x => x.id !== 'history' && x.keys.includes(key)) || getGroup('inbox');
   if (!g.keys.includes(key)) g.keys.unshift(key);
   state.activeGroupId = g.id; state.activeKey = key;
@@ -502,27 +527,27 @@ function renderHistoryTable() {
     '<colgroup><col style="width: 40%;"><col style="width: 12%;"><col style="width: 12%;"><col style="width: 11%;"><col style="width: 10%;"><col style="width: 15%;"></colgroup>' +
     '<thead><tr>' +
     '<th>Work<div class="th-resizer"></div></th>' +
-    '<th>Added to Hist<div class="th-resizer"></div></th>' +
+    '<th>Added<div class="th-resizer"></div></th>' +
     '<th>Assignee<div class="th-resizer"></div></th>' +
     '<th>Status<div class="th-resizer"></div></th>' +
     '<th>Parent<div class="th-resizer"></div></th>' +
     '<th>Created<div class="th-resizer"></div></th>' +
     '</tr></thead><tbody>';
-  
+
   for (const entry of h.keys) {
     const key = typeof entry === 'string' ? entry : entry.key;
     const added = typeof entry === 'string' ? null : entry.added;
     const issue = issueCache[key] || {}, f = issue.fields || {};
-    const typeIcon = f.issuetype?.iconUrl ? '<img src="'+esc(f.issuetype.iconUrl)+'" style="width:14px;height:14px;vertical-align:middle;margin-right:8px;border-radius:2px;">' : '';
+    const typeIcon = f.issuetype?.iconUrl ? '<img src="' + esc(f.issuetype.iconUrl) + '" style="width:14px;height:14px;vertical-align:middle;margin-right:8px;border-radius:2px;">' : '';
     const workHtml = typeIcon + '<span style="color:var(--accent);font-weight:600;margin-right:6px;font-family:var(--mono);">' + esc(key) + '</span>' + esc(f.summary || 'Loading...');
     const addedHtml = added ? relDate(new Date(added)) : '—';
     const assgnHtml = f.assignee ? avBadge(f.assignee.displayName, 'av-sm') + ' <span style="font-size:12px;margin-left:4px;">' + esc(f.assignee.displayName) + '</span>' : '<span style="color:var(--text-tertiary)">Unassigned</span>';
     const statHtml = f.status ? '<span class="status-badge ' + statusClass(f.status.statusCategory?.name || f.status.name) + '">' + esc(f.status.name) + '</span>' : '';
-    const pSum = f.parent?.fields?.summary ? f.parent.fields.summary.substring(0,25) + (f.parent.fields.summary.length>25?'...':'') : '';
+    const pSum = f.parent?.fields?.summary ? f.parent.fields.summary.substring(0, 25) + (f.parent.fields.summary.length > 25 ? '...' : '') : '';
     const parentHtml = f.parent ? '<span class="lc-parent">↑ ' + esc(f.parent.key) + (pSum ? ' ' + esc(pSum) : '') + '</span>' : '';
-    const createdHtml = f.created ? new Date(f.created).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
+    const createdHtml = f.created ? new Date(f.created).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
 
-    html += '<tr onclick="openFromHistory(\''+esc(key)+'\')">' +
+    html += '<tr onclick="openFromHistory(\'' + esc(key) + '\')">' +
       '<td class="td-limit">' + workHtml + '</td>' +
       '<td class="td-limit" style="color:var(--text-secondary);">' + addedHtml + '</td>' +
       '<td class="td-limit">' + assgnHtml + '</td>' +
@@ -533,7 +558,7 @@ function renderHistoryTable() {
   }
   html += '</tbody></table></div>';
   document.getElementById('history-pane').innerHTML = html;
-  
+
   // Bind column resizers
   const table = document.getElementById('history-table');
   if (table) {
@@ -545,7 +570,7 @@ function renderHistoryTable() {
         const startX = e.pageX;
         const col = table.querySelector('colgroup').children[i];
         const startW = parseInt(window.getComputedStyle(th).width);
-        
+
         const onMove = moveE => {
           const newW = startW + (moveE.pageX - startX);
           col.style.width = newW + 'px';
@@ -562,14 +587,14 @@ function renderHistoryTable() {
 
   for (const entry of h.keys) {
     const key = typeof entry === 'string' ? entry : entry.key;
-    if (!issueCache[key] && isConfigured()) fetchIssue(key).then(d => { issueCache[key] = d; saveState(); renderHistoryTable(); }).catch(()=>{});
+    if (!issueCache[key] && isConfigured()) fetchIssue(key).then(d => { issueCache[key] = d; saveState(); renderHistoryTable(); }).catch(() => { });
   }
 }
 
 function init() {
   loadConfig();
   if (!isConfigured()) document.getElementById('settings-overlay').classList.remove('hidden');
-  loadState(); 
+  loadState();
   initResizing();
   updateViewMode();
   if (isConfigured()) { fetchCustomFields(); loadAllGroupTickets(); }

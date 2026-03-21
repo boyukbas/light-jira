@@ -312,6 +312,30 @@ body[data-active-view="history"] #history-pane { display: flex; }
 }
 .th-resizer:hover { background: var(--accent); }
 
+/* Rendered Jira Panels (Note/Warning/etc) */
+.description .panel { margin: 16px 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: #fffbe6; }
+.description .panelHeader { padding: 8px 12px; font-weight: 700; font-size: 11px; text-transform: uppercase; color: #fff; background: #0052cc; border-bottom: 1px solid rgba(0,0,0,0.1); }
+.description .panelContent { padding: 12px; color: #172b4d; line-height: 1.6; }
+.description .panel[style*="background-color: #deebff"] .panelHeader { background: #0747a6; } /* Info */
+.description .panel[style*="background-color: #fffae6"] .panelHeader { background: #ff991f; } /* Warning */
+.description .panel[style*="background-color: #e3fcef"] .panelHeader { background: #36b37e; } /* Success */
+.description .panel[style*="background-color: #ffebe6"] .panelHeader { background: #ff5630; } /* Error */
+
+/* Hide Jira "Smart Link" lightbulbs and other intrusive UI bits */
+.description img[src*="info-modeler"], 
+.description img[src*="lightbulb"],
+.description img[data-smart-link-favicon],
+.description .ak-editor-extension,
+.description .ak-extension-view-node,
+.description .ak-link-icon,
+.description .ak-status-macro-img,
+.description img[src*="favicon"] { 
+  display: none !important; 
+}
+/* Prevent links from showing any Jira-provided icons or breaking lines */
+.description a img { display: none !important; }
+.description a { white-space: nowrap; }
+
 /* Comments */
 .comment-item { display: flex; gap: 16px; margin-bottom: 24px; }
 .c-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface); overflow: hidden; flex-shrink: 0; }
