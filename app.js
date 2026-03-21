@@ -31,7 +31,12 @@ function loadState() {
       if (old) state.groups[0].keys = JSON.parse(old);
     }
     // Migration/Ensure fields
-    if (!state.groups.find(g => g.id === 'history')) state.groups.push({ id: 'history', name: 'History', keys: [] });
+    let hist = state.groups.find(g => g.id === 'history');
+    if (hist && hist.keys.length && typeof hist.keys[0] === 'string') {
+      hist.keys = hist.keys.map(k => ({ key: k, added: Date.now() }));
+    }
+    if (!hist) state.groups.push({ id: 'history', name: 'History', keys: [] });
+
     if (!state.notes) state.notes = {};
     if (!state.labels) state.labels = {};
     if (!state.labelColors) state.labelColors = {};
@@ -476,8 +481,8 @@ function openTicketByKey(val) {
 window.addToHistory = function(key) {
   const h = getGroup('history');
   if (h) {
-    h.keys = h.keys.filter(k => k !== key);
-    h.keys.unshift(key);
+    h.keys = h.keys.filter(k => (typeof k === 'string' ? k !== key : k.key !== key));
+    h.keys.unshift({ key, added: Date.now() });
     const limit = parseInt(cfg.historyLimit) || 100;
     if (h.keys.length > limit) h.keys = h.keys.slice(0, limit);
   }
@@ -493,22 +498,72 @@ window.openFromHistory = function(key) {
 function renderHistoryTable() {
   const h = getGroup('history');
   let html = '<div class="middle-header" style="border-bottom: 1px solid var(--border-subtle);background:var(--card);flex-shrink:0;">History</div>';
-  html += '<div id="history-table-container"><table class="ht-table"><colgroup><col style="width: 240px;"><col style="width: 150px;"><col style="width: 180px;"><col style="width: 120px;"><col style="width: 160px;"><col style="width: auto;"></colgroup><thead><tr><th>Work</th><th>Created</th><th>Assignee</th><th>Status</th><th>Parent</th><th>Description</th></tr></thead><tbody>';
-  for (const key of h.keys) {
+  html += '<div id="history-table-container"><table class="ht-table" id="history-table">' +
+    '<colgroup><col style="width: 40%;"><col style="width: 12%;"><col style="width: 12%;"><col style="width: 11%;"><col style="width: 10%;"><col style="width: 15%;"></colgroup>' +
+    '<thead><tr>' +
+    '<th>Work<div class="th-resizer"></div></th>' +
+    '<th>Added to Hist<div class="th-resizer"></div></th>' +
+    '<th>Assignee<div class="th-resizer"></div></th>' +
+    '<th>Status<div class="th-resizer"></div></th>' +
+    '<th>Parent<div class="th-resizer"></div></th>' +
+    '<th>Created<div class="th-resizer"></div></th>' +
+    '</tr></thead><tbody>';
+  
+  for (const entry of h.keys) {
+    const key = typeof entry === 'string' ? entry : entry.key;
+    const added = typeof entry === 'string' ? null : entry.added;
     const issue = issueCache[key] || {}, f = issue.fields || {};
     const typeIcon = f.issuetype?.iconUrl ? '<img src="'+esc(f.issuetype.iconUrl)+'" style="width:14px;height:14px;vertical-align:middle;margin-right:8px;border-radius:2px;">' : '';
     const workHtml = typeIcon + '<span style="color:var(--accent);font-weight:600;margin-right:6px;font-family:var(--mono);">' + esc(key) + '</span>' + esc(f.summary || 'Loading...');
-    const createdHtml = f.created ? new Date(f.created).toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'}) : '';
+    const addedHtml = added ? relDate(new Date(added)) : '—';
     const assgnHtml = f.assignee ? avBadge(f.assignee.displayName, 'av-sm') + ' <span style="font-size:12px;margin-left:4px;">' + esc(f.assignee.displayName) + '</span>' : '<span style="color:var(--text-tertiary)">Unassigned</span>';
     const statHtml = f.status ? '<span class="status-badge ' + statusClass(f.status.statusCategory?.name || f.status.name) + '">' + esc(f.status.name) + '</span>' : '';
     const pSum = f.parent?.fields?.summary ? f.parent.fields.summary.substring(0,25) + (f.parent.fields.summary.length>25?'...':'') : '';
     const parentHtml = f.parent ? '<span class="lc-parent">↑ ' + esc(f.parent.key) + (pSum ? ' ' + esc(pSum) : '') + '</span>' : '';
-    let descTxt = ''; if (issue.renderedFields?.description) descTxt = stripHtml(issue.renderedFields.description).replace(/\s+/g, ' ').trim().substring(0, 100);
-    html += '<tr onclick="openFromHistory(\''+esc(key)+'\')"><td class="td-limit">' + workHtml + '</td><td class="td-limit" style="color:var(--text-secondary);">' + createdHtml + '</td><td class="td-limit">' + assgnHtml + '</td><td class="td-limit">' + statHtml + '</td><td class="td-limit">' + parentHtml + '</td><td class="td-limit" style="color:var(--text-tertiary);">' + esc(descTxt) + '</td></tr>';
+    const createdHtml = f.created ? new Date(f.created).toLocaleDateString(undefined, {month:'short', day:'numeric'}) : '';
+
+    html += '<tr onclick="openFromHistory(\''+esc(key)+'\')">' +
+      '<td class="td-limit">' + workHtml + '</td>' +
+      '<td class="td-limit" style="color:var(--text-secondary);">' + addedHtml + '</td>' +
+      '<td class="td-limit">' + assgnHtml + '</td>' +
+      '<td class="td-limit">' + statHtml + '</td>' +
+      '<td class="td-limit">' + parentHtml + '</td>' +
+      '<td class="td-limit" style="color:var(--text-tertiary);">' + createdHtml + '</td>' +
+      '</tr>';
   }
   html += '</tbody></table></div>';
   document.getElementById('history-pane').innerHTML = html;
-  for (const key of h.keys) if (!issueCache[key] && isConfigured()) fetchIssue(key).then(d => { issueCache[key] = d; saveState(); renderHistoryTable(); }).catch(()=>{});
+  
+  // Bind column resizers
+  const table = document.getElementById('history-table');
+  if (table) {
+    table.querySelectorAll('th').forEach((th, i) => {
+      const resizer = th.querySelector('.th-resizer');
+      if (!resizer) return;
+      resizer.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const startX = e.pageX;
+        const col = table.querySelector('colgroup').children[i];
+        const startW = parseInt(window.getComputedStyle(th).width);
+        
+        const onMove = moveE => {
+          const newW = startW + (moveE.pageX - startX);
+          col.style.width = newW + 'px';
+        };
+        const onUp = () => {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
+  }
+
+  for (const entry of h.keys) {
+    const key = typeof entry === 'string' ? entry : entry.key;
+    if (!issueCache[key] && isConfigured()) fetchIssue(key).then(d => { issueCache[key] = d; saveState(); renderHistoryTable(); }).catch(()=>{});
+  }
 }
 
 function init() {
