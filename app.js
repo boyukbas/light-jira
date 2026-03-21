@@ -32,11 +32,19 @@ function loadState() {
     if (!state.notes) state.notes = {};
     if (!state.labels) state.labels = {};
     if (!state.labelColors) state.labelColors = {};
+
+    // Load persisted cache for offline use
+    const cached = localStorage.getItem('jira_issue_cache');
+    if (cached) issueCache = JSON.parse(cached);
   } catch {}
 }
+
 function saveState() {
   localStorage.setItem('jira_state', JSON.stringify(state));
+  // Also persist issue cache
+  localStorage.setItem('jira_issue_cache', JSON.stringify(issueCache));
 }
+
 function getGroup(id) { return state.groups.find(g => g.id === id) || state.groups[0]; }
 function getActiveGroup() { return getGroup(state.activeGroupId); }
 
@@ -48,7 +56,7 @@ function updateViewMode() {
   else { 
     renderMiddle(); 
     renderReading(); 
-    loadAllGroupTickets();
+    // DROPPED AUTOMATIC loadAllGroupTickets() on every mode update per user request
   }
 }
 
@@ -57,13 +65,16 @@ function renderSidebar() {
   const list = document.getElementById('group-list');
   if (!list) return;
   let html = '';
-  for (const g of state.groups) {
+  // REMOVED 'history' from sidebar groups display per user request
+  const displayGroups = state.groups.filter(g => g.id !== 'history');
+  
+  for (const g of displayGroups) {
     const activeObj = state.activeGroupId === g.id ? ' active' : '';
     html += '<div class="group-item' + activeObj + '" data-id="' + esc(g.id) + '" ' +
       'ondragover="handleDragOver(event)" ondrop="handleDropToGroup(event, \'' + esc(g.id) + '\')" ondragleave="handleDragLeave(event)" ' +
       'oncontextmenu="showGroupCtx(event, \'' + esc(g.id) + '\')">' +
       '<span class="g-name">' + esc(g.name) + '</span>' +
-      '<span class="count" ' + (g.id === 'history' ? 'style="display:none;"' : '') + '>' + g.keys.length + '</span>' +
+      '<span class="count">' + g.keys.length + '</span>' +
       '</div>';
   }
   list.innerHTML = html;
@@ -117,25 +128,6 @@ function handleDeleteGroup() {
   ctxGroupId = null;
 }
 
-document.getElementById('ctx-rename').addEventListener('click', handleRenameGroup);
-document.getElementById('ctx-delete').addEventListener('click', handleDeleteGroup);
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('#ctx-menu')) {
-    document.getElementById('ctx-menu').classList.remove('show');
-    ctxGroupId = null;
-  }
-});
-
-document.getElementById('add-group-btn').addEventListener('click', () => {
-  const name = prompt('New List Name:');
-  if (name && name.trim()) {
-    const id = 'g_' + Date.now();
-    state.groups.push({ id, name: name.trim(), keys: [] });
-    state.activeGroupId = id;
-    saveState(); updateViewMode();
-  }
-});
-
 // ── RENDER MIDDLE ─────────────────────────────────────────────────────────────
 function renderMiddle() {
   const group = getActiveGroup();
@@ -156,7 +148,6 @@ function renderMiddle() {
     const f = issue.fields || {};
     let sum = f.summary || 'Loading...';
     let stat = f.status ? f.status.name : '';
-    let parent = f.parent ? f.parent.key : '';
     
     html += '<div class="list-card' + active + '" data-key="' + esc(key) + '" draggable="true" ' +
       'ondragstart="handleDragStart(event, \'' + esc(key) + '\')" ondragover="handleDragOver(event)" ondrop="handleDropToItem(event, \'' + esc(key) + '\')" ondragleave="handleDragLeave(event)">' +
@@ -165,7 +156,7 @@ function renderMiddle() {
       '</div>' +
       '<div class="lc-title-row">' +
         '<span class="lc-summary">' +
-          (parent ? '<span class="lc-parent">↑ ' + esc(parent) + '</span> ' : '') +
+          // REMOVED lc-parent rendering on Items list per user request
           '<span style="color:var(--accent);">' + esc(key) + '</span> ' + esc(sum) +
         '</span>' +
       '</div>' +
@@ -196,6 +187,7 @@ async function loadAllGroupTickets() {
     if (!issueCache[key]) {
       try {
         issueCache[key] = await fetchIssue(key);
+        saveState(); // Persist newly loaded tickets to localStorage
         renderMiddle();
         if (state.activeKey === key) renderReading();
       } catch(e) {}
@@ -221,6 +213,7 @@ function renderReading() {
     content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div>Loading ' + esc(key) + '...</div>';
     fetchIssue(key).then(data => {
       issueCache[key] = data;
+      saveState(); // Persist
       renderMiddle();
       if (state.activeKey === key) renderReading();
     }).catch(err => {
@@ -405,7 +398,7 @@ window.openFromHistory = function(key) {
   if (!g.keys.includes(key)) g.keys.unshift(key);
   state.activeGroupId = g.id; state.activeKey = key;
   addToHistory(key); saveState(); updateViewMode();
-};
+}
 
 function renderHistoryTable() {
   const h = getGroup('history');
@@ -425,7 +418,7 @@ function renderHistoryTable() {
   }
   html += '</tbody></table></div>';
   document.getElementById('history-pane').innerHTML = html;
-  for (const key of h.keys) if (!issueCache[key] && isConfigured()) fetchIssue(key).then(d => { issueCache[key] = d; renderHistoryTable(); }).catch(()=>{});
+  for (const key of h.keys) if (!issueCache[key] && isConfigured()) fetchIssue(key).then(d => { issueCache[key] = d; saveState(); renderHistoryTable(); }).catch(()=>{});
 }
 
 function init() {
@@ -455,6 +448,15 @@ function init() {
     const btn = e.currentTarget; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.5';
     const g = getActiveGroup(); for (const k of g.keys) delete issueCache[k];
     await loadAllGroupTickets(); btn.style.pointerEvents = ''; btn.style.opacity = '1'; toast('List refreshed');
+  });
+
+  document.getElementById('history-toggle-btn').addEventListener('click', () => {
+    if (state.activeGroupId === 'history') {
+      state.activeGroupId = 'inbox';
+    } else {
+      state.activeGroupId = 'history';
+    }
+    saveState(); updateViewMode();
   });
 
   document.getElementById('settings-btn').addEventListener('click', () => {

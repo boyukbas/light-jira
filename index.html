@@ -15,8 +15,10 @@
 
 <div id="topbar">
   <div id="logo">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="4" y="4" width="16" height="16" rx="2" ry="2" stroke="#58a6ff"/><rect x="9" y="9" width="6" height="6" fill="#58a6ff" stroke="#58a6ff"/>
+    <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+      <rect width="100" height="100" rx="20" fill="#2ea44f"/>
+      <rect x="25" y="25" width="20" height="50" rx="5" fill="white"/>
+      <rect x="55" y="25" width="20" height="30" rx="5" fill="white"/>
     </svg>
     Light Jira
   </div>
@@ -27,9 +29,8 @@
   
   <div style="flex:1"></div>
   
-  <button class="top-btn" id="refresh-all-btn">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg>
-    Refresh Group
+  <button class="top-btn icon-only" id="history-toggle-btn" title="View History">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
   </button>
   <button class="top-btn icon-only" id="settings-btn" title="Settings">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -40,12 +41,19 @@
   <!-- LEFT: Groups -->
   <div id="sidebar">
     <div id="group-list"></div>
-    <button id="add-group-btn">+ New Group</button>
+    <button id="add-group-btn" title="New Group">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
   </div>
 
   <!-- MIDDLE: Ticket List -->
   <div id="middle">
-    <div class="middle-header" id="current-group-name">Inbox</div>
+    <div class="middle-header">
+      <span id="current-group-name">Inbox</span>
+      <button class="top-btn icon-only" id="refresh-all-btn" title="Refresh List" style="border:none;padding:4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg>
+      </button>
+    </div>
     <div id="ticket-list"></div>
   </div>
 
