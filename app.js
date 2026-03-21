@@ -39,7 +39,10 @@ function loadState() {
 
     const cached = localStorage.getItem('jira_issue_cache');
     if (cached) issueCache = JSON.parse(cached);
-  } catch {}
+  } catch (err) {
+    console.warn('State parse error. Resetting to defaults.', err);
+    saveState(); // Overwrite corrupted state with current defaults
+  }
 }
 
 function saveState() {
@@ -475,7 +478,8 @@ window.addToHistory = function(key) {
   if (h) {
     h.keys = h.keys.filter(k => k !== key);
     h.keys.unshift(key);
-    if (h.keys.length > 200) h.keys.pop();
+    const limit = parseInt(cfg.historyLimit) || 100;
+    if (h.keys.length > limit) h.keys = h.keys.slice(0, limit);
   }
 };
 
@@ -548,6 +552,7 @@ function init() {
     document.getElementById('cfg-email').value = cfg.email;
     document.getElementById('cfg-token').value = cfg.token;
     document.getElementById('cfg-project').value = cfg.defaultProject;
+    document.getElementById('cfg-hist-limit').value = cfg.historyLimit || 100;
     document.getElementById('settings-overlay').classList.remove('hidden');
   });
   const closeCfg = () => document.getElementById('settings-overlay').classList.add('hidden');
@@ -558,6 +563,7 @@ function init() {
     cfg.email = document.getElementById('cfg-email').value.trim();
     cfg.token = document.getElementById('cfg-token').value.trim();
     cfg.defaultProject = document.getElementById('cfg-project').value.trim().toUpperCase() || DEFAULTS.defaultProject;
+    cfg.historyLimit = parseInt(document.getElementById('cfg-hist-limit').value) || 100;
     saveConfig(); closeCfg(); toast('Settings saved');
     if (getActiveGroup().keys.length) loadAllGroupTickets();
   });

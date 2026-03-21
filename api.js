@@ -1,13 +1,27 @@
 'use strict';
 
-const DEFAULTS = { baseUrl:'https://regusit.atlassian.net', email:'', token:'', defaultProject:'TTN' };
+const DEFAULTS = { 
+  baseUrl:'https://site.atlassian.net', 
+  email:'', 
+  token:'', 
+  defaultProject:'PROJ',
+  historyLimit: 100 
+};
 let cfg = {...DEFAULTS};
 
 let issueCache = {}; // in-memory cache for fast pane switching
 let blobCache = {};  // prevents reloading identical images
 let customFieldMap = {}; // maps customfield_10010 to "Business Case", etc
 
-function loadConfig() { try { const s = localStorage.getItem('jira_config'); if (s) cfg = {...DEFAULTS, ...JSON.parse(s)}; } catch{} }
+function loadConfig() { 
+  try { 
+    const s = localStorage.getItem('jira_config'); 
+    if (s) cfg = {...DEFAULTS, ...JSON.parse(s)}; 
+  } catch(e) { 
+    console.error('Config parsing error:', e);
+    cfg = {...DEFAULTS};
+  } 
+}
 function saveConfig() { localStorage.setItem('jira_config', JSON.stringify(cfg)); }
 function isConfigured() { return !!(cfg.email && cfg.token && cfg.baseUrl); }
 function authHeader() { return 'Basic ' + btoa(cfg.email + ':' + cfg.token); }
