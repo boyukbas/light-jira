@@ -633,6 +633,7 @@ function init() {
     document.getElementById('cfg-token').value = cfg.token;
     document.getElementById('cfg-project').value = cfg.defaultProject;
     document.getElementById('cfg-hist-limit').value = cfg.historyLimit || 100;
+    document.getElementById('cfg-proxy-url').value = cfg.proxyUrl || '';
     document.getElementById('settings-overlay').classList.remove('hidden');
   });
   const closeCfg = () => document.getElementById('settings-overlay').classList.add('hidden');
@@ -644,6 +645,7 @@ function init() {
     cfg.token = document.getElementById('cfg-token').value.trim();
     cfg.defaultProject = document.getElementById('cfg-project').value.trim().toUpperCase() || DEFAULTS.defaultProject;
     cfg.historyLimit = parseInt(document.getElementById('cfg-hist-limit').value) || 100;
+    cfg.proxyUrl = (document.getElementById('cfg-proxy-url').value || '').trim().replace(/\/$/, '');
     saveConfig(); closeCfg(); toast('Settings saved');
     if (getActiveGroup().keys.length) loadAllGroupTickets();
   });
