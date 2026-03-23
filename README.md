@@ -37,7 +37,13 @@ Jira's API has strict CORS policies. This app uses a lightweight Node.js proxy t
 node proxy.js
 ```
 
-### 4. Launch the App
+### 4. Cloud Deployment (Alternative)
+If you host the web UI on **GitHub Pages**, browser security (CORS) will block direct requests to Jira. Use the provided **AWS Lambda** assets to bridge the connection:
+1.  **Deploy**: Use the `main.tf` with Terraform to deploy `lambda_handler.js` to AWS.
+2.  **Configure**: Copy the generated **Function URL**.
+3.  **Settings**: Paste it into the **Cloud Proxy URL** field in the app settings.
+
+### 5. Launch the App
 Open `index.html` in your browser. For the best experience, use the "Install" button in your browser's address bar to add it as an app.
 
 ### 5. Configuration

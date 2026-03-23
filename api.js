@@ -5,7 +5,8 @@ const DEFAULTS = {
   email:'', 
   token:'', 
   defaultProject:'PROJ',
-  historyLimit: 100 
+  historyLimit: 100,
+  proxyUrl: ''
 };
 let cfg = {...DEFAULTS};
 
@@ -26,12 +27,23 @@ function saveConfig() { localStorage.setItem('jira_config', JSON.stringify(cfg))
 function isConfigured() { return !!(cfg.email && cfg.token && cfg.baseUrl); }
 function authHeader() { return 'Basic ' + btoa(cfg.email + ':' + cfg.token); }
 
-function apiBase() { return window.location.protocol === 'file:' ? cfg.baseUrl : '/api/jira'; }
+function apiBase() { 
+  if (cfg.proxyUrl) return cfg.proxyUrl.replace(/\/$/, '') + '/api/jira';
+  return window.location.protocol === 'file:' ? cfg.baseUrl : '/api/jira'; 
+}
+
 function proxyUrl(fullUrl) {
-  if (window.location.protocol === 'file:') return fullUrl;
   if (!fullUrl) return fullUrl;
-  if (fullUrl.startsWith(cfg.baseUrl)) return '/api/jira' + fullUrl.slice(cfg.baseUrl.length);
-  if (fullUrl.startsWith('http') && !fullUrl.includes(window.location.host)) return '/api/ext?url=' + encodeURIComponent(fullUrl);
+  const base = cfg.proxyUrl ? cfg.proxyUrl.replace(/\/$/, '') : '';
+  
+  if (fullUrl.startsWith(cfg.baseUrl)) {
+    const path = fullUrl.slice(cfg.baseUrl.length);
+    return (base || '/api/jira') + path;
+  }
+  if (fullUrl.startsWith('http')) {
+    const isLocal = fullUrl.includes(window.location.host);
+    if (!isLocal) return (base || '/api/ext') + '?url=' + encodeURIComponent(fullUrl);
+  }
   return fullUrl;
 }
 
