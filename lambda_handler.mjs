@@ -47,7 +47,7 @@ async function proxyRequest(method, targetUrlStr, event, authHeader, depth = 0) 
     const isJira = target.hostname.includes('atlassian.net') || target.hostname.includes('atlassian.com');
     
     const fwdHeaders = {};
-    const skip = new Set(['host', 'content-length', 'content-encoding', 'transfer-encoding', 'connection', 'accept-encoding', 'upgrade', 'x-jira-host']);
+    const skip = new Set(['host', 'content-length', 'content-encoding', 'transfer-encoding', 'connection', 'accept-encoding', 'upgrade', 'x-jira-host', 'access-control-allow-origin', 'access-control-allow-credentials']);
     if (!isJira) skip.add('authorization'); // Security: Don't leak credentials to S3/External
 
     for (const [k, v] of Object.entries(event.headers)) {
