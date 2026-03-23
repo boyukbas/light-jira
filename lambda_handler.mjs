@@ -1,13 +1,17 @@
 import https from 'https';
 
-// ⚠️ IMPORTANT: Set your Jira domain here or via JIRA_BASE env var
-const JIRA_BASE = (process.env.JIRA_BASE || 'https://site.atlassian.net').replace(/\/$/, '');
+// Fallback if header is missing
+const JIRA_BASE_DEFAULT = (process.env.JIRA_BASE || 'https://site.atlassian.net').replace(/\/$/, '');
 
 export const handler = async (event) => {
   const method = event.requestContext?.http?.method || 'GET';
   const rawPath = event.rawPath || '';
   const rawQueryString = event.rawQueryString || '';
   
+  // 1. Determine target host
+  const jiraHostHeader = event.headers['x-jira-host'] || event.headers['X-Jira-Host'];
+  const targetBase = jiraHostHeader ? 'https://' + jiraHostHeader : JIRA_BASE_DEFAULT;
+
   let targetPath = '';
   if (rawPath.startsWith('/api/jira')) {
     targetPath = rawPath.replace('/api/jira', '');
@@ -24,7 +28,7 @@ export const handler = async (event) => {
   targetPath = targetPath.replace(/^\/\//, '/');
   if (!targetPath.startsWith('/')) targetPath = '/' + targetPath;
 
-  const targetUrl = JIRA_BASE + targetPath + (rawQueryString ? '?' + rawQueryString : '');
+  const targetUrl = targetBase.replace(/\/$/, '') + targetPath + (rawQueryString ? '?' + rawQueryString : '');
   
   // Find authorization header
   const authKey = Object.keys(event.headers).find(k => k.toLowerCase() === 'authorization');
@@ -42,7 +46,7 @@ async function proxyRequest(method, targetUrlStr, event, authHeader) {
   return new Promise((resolve, reject) => {
     const target = new URL(targetUrlStr);
     const fwdHeaders = {};
-    const skip = new Set(['host', 'content-length', 'content-encoding', 'transfer-encoding', 'connection', 'accept-encoding', 'upgrade']);
+    const skip = new Set(['host', 'content-length', 'content-encoding', 'transfer-encoding', 'connection', 'accept-encoding', 'upgrade', 'x-jira-host']);
     
     for (const [k, v] of Object.entries(event.headers)) {
         if (!skip.has(k.toLowerCase())) {
@@ -50,8 +54,8 @@ async function proxyRequest(method, targetUrlStr, event, authHeader) {
         }
     }
     fwdHeaders['host'] = target.host;
-    fwdHeaders['accept-encoding'] = 'identity'; // Jira should send raw data
-    if (authHeader) fwdHeaders['Authorization'] = authHeader; // Force casing
+    fwdHeaders['accept-encoding'] = 'identity';
+    if (authHeader) fwdHeaders['Authorization'] = authHeader;
 
     const req = https.request({
       hostname: target.hostname,
