@@ -6,7 +6,7 @@ provider "aws" {
 # Zip the handler
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "lambda_handler.js"
+  source_file = "lambda_handler.mjs"
   output_path = "lambda_function.zip"
 }
 
