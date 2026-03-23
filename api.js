@@ -26,6 +26,11 @@ function loadConfig() {
 function saveConfig() { localStorage.setItem('jira_config', JSON.stringify(cfg)); }
 function isConfigured() { return !!(cfg.email && cfg.token && cfg.baseUrl); }
 function authHeader() { return 'Basic ' + btoa(cfg.email + ':' + cfg.token); }
+function commonHeaders() {
+  const h = { Authorization: authHeader(), Accept: 'application/json' };
+  if (cfg.baseUrl) h['X-Jira-Host'] = new URL(cfg.baseUrl).host;
+  return h;
+}
 
 function apiBase() { 
   if (cfg.proxyUrl) return cfg.proxyUrl.replace(/\/$/, '') + '/api/jira';
@@ -36,7 +41,7 @@ function proxyUrl(fullUrl) {
   if (!fullUrl) return fullUrl;
   const base = cfg.proxyUrl ? cfg.proxyUrl.replace(/\/$/, '') : '';
   
-  if (fullUrl.startsWith(cfg.baseUrl)) {
+  if (cfg.baseUrl && fullUrl.startsWith(cfg.baseUrl)) {
     const path = fullUrl.slice(cfg.baseUrl.length);
     return (base || '/api/jira') + path;
   }
@@ -50,7 +55,7 @@ function proxyUrl(fullUrl) {
 async function fetchIssue(key) {
   const fields = '*all';
   const url = apiBase() + '/rest/api/3/issue/' + encodeURIComponent(key) + '?fields=' + fields + '&expand=renderedFields';
-  const r = await fetch(url, { headers: { Authorization: authHeader(), Accept: 'application/json' } });
+  const r = await fetch(url, { headers: commonHeaders() });
   if (!r.ok) {
     let msg = r.status + ' ' + r.statusText;
     try { const j = await r.json(); msg += ': ' + (j.errorMessages?.[0] || j.message || ''); } catch {}
@@ -62,7 +67,7 @@ async function fetchIssue(key) {
 async function fetchCustomFields() {
   try {
     const url = apiBase() + '/rest/api/3/field';
-    const fields = await (await fetch(url, { headers: { Authorization: authHeader() } })).json();
+    const fields = await (await fetch(url, { headers: commonHeaders() })).json();
     for (const f of fields) customFieldMap[f.id] = f.name;
   } catch(e) { console.error('Error fetching custom fields map:', e); }
 }
@@ -71,7 +76,7 @@ async function fetchBlob(url) {
   if (blobCache[url]) return blobCache[url];
   try {
     const target = proxyUrl(url);
-    const r = await fetch(target, { headers: { Authorization: authHeader() } });
+    const r = await fetch(target, { headers: commonHeaders() });
     if (!r.ok) return null;
     const objectUrl = URL.createObjectURL(await r.blob());
     blobCache[url] = objectUrl;

@@ -121,10 +121,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const jiraHost = req.headers['x-jira-host'] || (new URL(JIRA_BASE)).host;
+  const targetBase = 'https://' + jiraHost;
+
   // ── /api/jira/* → proxy to primary Jira ──────────────────────────────────
   if (pathname.startsWith('/api/jira/')) {
     const jiraPath = pathname.slice('/api/jira'.length) + reqUrl.search;
-    const target   = JIRA_BASE + jiraPath;
+    const target = targetBase + jiraPath;
     console.log(`[proxy jira] ${method} ${target}`);
     proxyRequest(req, res, target);
     return;
@@ -132,7 +135,7 @@ const server = http.createServer((req, res) => {
 
   // ── /rest/* and /s/* → fallback for absolute Jira links in HTML ───────────
   if (pathname.startsWith('/rest/') || pathname.startsWith('/s/')) {
-    const target = JIRA_BASE + pathname + reqUrl.search;
+    const target = targetBase + pathname + reqUrl.search;
     console.log(`[proxy auto] ${method} ${target}`);
     proxyRequest(req, res, target);
     return;
