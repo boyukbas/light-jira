@@ -151,6 +151,11 @@
             id="cfg-project" type="text" /></div>
         <div class="form-group"><label class="form-label">History Limit (Max Items)</label><input class="form-input"
             id="cfg-hist-limit" type="number" min="10" max="1000" placeholder="e.g. 100" /></div>
+        <div class="form-group" style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
+          <label class="form-label">Cloud Proxy URL (Optional)</label>
+          <input class="form-input" id="cfg-proxy-url" type="text" placeholder="https://xyz.lambda-url.region.on.aws" />
+          <div style="font-size:11px; opacity:0.6; margin-top:4px;">Leave empty for local proxy (localhost:3000)</div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="top-btn" id="settings-cancel">Cancel</button>
