@@ -482,8 +482,8 @@ async function bindAuthImages(container) {
   container.querySelectorAll('img[src]').forEach(img => {
     let src = img.getAttribute('src');
     if (src && !src.startsWith('data:') && !src.startsWith('blob:') && (src.startsWith('/') || src.includes(cfg.baseUrl.split('//')[1]))) {
-      if (src.startsWith('/')) src = cfg.baseUrl + src;
-      img.removeAttribute('src'); img.dataset.authSrc = proxyUrl(src);
+      img.dataset.authSrc = src.startsWith('/') ? cfg.baseUrl + src : src;
+      img.removeAttribute('src'); 
     }
   });
   container.querySelectorAll('img[data-auth-src]').forEach(async img => {
