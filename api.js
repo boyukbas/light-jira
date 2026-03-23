@@ -41,6 +41,9 @@ function proxyUrl(fullUrl) {
   if (!fullUrl) return fullUrl;
   const base = cfg.proxyUrl ? cfg.proxyUrl.replace(/\/$/, '') : '';
   const jira = cfg.baseUrl ? cfg.baseUrl.replace(/\/$/, '') : '';
+
+  // Prevent double proxying if we already hit the Lambda
+  if (base && fullUrl.startsWith(base)) return fullUrl;
   
   if (jira && fullUrl.startsWith(jira)) {
     const path = fullUrl.slice(jira.length);
