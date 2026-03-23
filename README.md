@@ -27,7 +27,7 @@ Light Jira is a Progress Web App (PWA) designed to replace heavy Jira tabs with 
 ### 2. Setup
 Clone the repository and install dependencies (if any):
 ```bash
-git clone https://github.com/your-username/light-jira.git
+git clone https://github.com/boyukbas/light-jira.git
 cd light-jira
 ```
 
