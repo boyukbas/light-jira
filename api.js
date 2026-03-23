@@ -40,9 +40,10 @@ function apiBase() {
 function proxyUrl(fullUrl) {
   if (!fullUrl) return fullUrl;
   const base = cfg.proxyUrl ? cfg.proxyUrl.replace(/\/$/, '') : '';
+  const jira = cfg.baseUrl ? cfg.baseUrl.replace(/\/$/, '') : '';
   
-  if (cfg.baseUrl && fullUrl.startsWith(cfg.baseUrl)) {
-    const path = fullUrl.slice(cfg.baseUrl.length);
+  if (jira && fullUrl.startsWith(jira)) {
+    const path = fullUrl.slice(jira.length);
     return (base || '/api/jira') + path;
   }
   if (fullUrl.startsWith('http')) {
