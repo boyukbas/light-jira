@@ -5,7 +5,7 @@ let state = {
   groups: [{ id: 'inbox', name: 'Inbox', keys: [] }],
   activeGroupId: 'inbox',
   activeKey: null,
-  notes: {}, // key -> string
+  notes: {}, // key -> string (ticket notes)
   labels: {}, // key -> [string]
   labelColors: {}, // label text -> color
   layout: {
@@ -14,7 +14,10 @@ let state = {
     notesWidth: 320,
     sidebarCollapsed: false,
     middleCollapsed: false
-  }
+  },
+  appMode: 'jira', // 'jira' or 'notes'
+  standAloneNotes: [], // [{id, title, body, created, updated}]
+  activeNoteId: null
 };
 
 let draggedKey = null; // for drag & drop
@@ -41,6 +44,9 @@ function loadState() {
     if (!state.labels) state.labels = {};
     if (!state.labelColors) state.labelColors = {};
     if (!state.layout) state.layout = { sidebarWidth: 240, middleWidth: 320, notesWidth: 320, sidebarCollapsed: false, middleCollapsed: false };
+    if (!state.appMode) state.appMode = 'jira';
+    if (!state.standAloneNotes) state.standAloneNotes = [];
+    if (state.activeNoteId === undefined) state.activeNoteId = null;
 
     const cached = localStorage.getItem('jira_issue_cache');
     if (cached) issueCache = JSON.parse(cached);
@@ -61,6 +67,12 @@ function getActiveGroup() { return getGroup(state.activeGroupId); }
 function updateViewMode() {
   const isHist = state.activeGroupId === 'history';
   document.body.setAttribute('data-active-view', isHist ? 'history' : 'normal');
+  document.body.setAttribute('data-app-mode', state.appMode);
+
+  // Update tab bar
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const activeTab = document.getElementById('tab-' + state.appMode);
+  if (activeTab) activeTab.classList.add('active');
 
   // Apply layout from state
   const sb = document.getElementById('sidebar');
@@ -79,11 +91,16 @@ function updateViewMode() {
     nts.style.width = state.layout.notesWidth + 'px';
   }
 
-  renderSidebar();
-  if (isHist) renderHistoryTable();
-  else {
-    renderMiddle();
-    renderReading();
+  if (state.appMode === 'notes') {
+    renderNotesSidebar();
+    renderNoteEditor();
+  } else {
+    renderSidebar();
+    if (isHist) renderHistoryTable();
+    else {
+      renderMiddle();
+      renderReading();
+    }
   }
 }
 
@@ -165,6 +182,22 @@ function renderSidebar() {
       updateViewMode();
     });
   });
+
+  // Restore header and add-group-btn for Jira mode
+  const sidebarHeader = document.querySelector('#sidebar .middle-header span:first-child');
+  if (sidebarHeader) sidebarHeader.textContent = 'Lists';
+  const addBtn = document.getElementById('add-group-btn');
+  if (addBtn) {
+    addBtn.onclick = () => {
+      const name = prompt('New List Name:');
+      if (name && name.trim()) {
+        const id = 'g_' + Date.now();
+        state.groups.push({ id, name: name.trim(), keys: [] });
+        state.activeGroupId = id;
+        saveState(); updateViewMode();
+      }
+    };
+  }
 }
 
 // ── CONTEXT MENU & GROUPS ─────────────────────────────────────────────────────
@@ -591,6 +624,154 @@ function renderHistoryTable() {
   }
 }
 
+// ── NOTES MODE ────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  state.appMode = tab;
+  saveState();
+  updateViewMode();
+}
+
+function createNote() {
+  const note = {
+    id: 'note_' + Date.now(),
+    title: '',
+    body: '',
+    created: Date.now(),
+    updated: Date.now()
+  };
+  state.standAloneNotes.unshift(note);
+  state.activeNoteId = note.id;
+  saveState();
+  updateViewMode();
+  const titleInput = document.getElementById('note-title-input');
+  if (titleInput) titleInput.focus();
+}
+
+function deleteNote(noteId) {
+  if (!confirm('Delete this note?')) return;
+  state.standAloneNotes = state.standAloneNotes.filter(n => n.id !== noteId);
+  if (state.activeNoteId === noteId) {
+    state.activeNoteId = state.standAloneNotes.length ? state.standAloneNotes[0].id : null;
+  }
+  saveState();
+  updateViewMode();
+}
+
+function getActiveNote() {
+  return state.standAloneNotes.find(n => n.id === state.activeNoteId) || null;
+}
+
+function renderNotesSidebar() {
+  const list = document.getElementById('group-list');
+  if (!list) return;
+  const search = document.getElementById('notes-search-val') || '';
+  
+  let html = '';
+  const notes = state.standAloneNotes;
+  
+  for (const note of notes) {
+    const active = state.activeNoteId === note.id ? ' active' : '';
+    const title = note.title || 'Untitled Note';
+    const preview = (note.body || '').replace(/\n/g, ' ').substring(0, 60);
+    const dateStr = relDate(new Date(note.updated));
+    
+    html += '<div class="note-item' + active + '" data-note-id="' + esc(note.id) + '">' +
+      '<span class="note-item-title">' + esc(title) + '</span>' +
+      '<span class="note-item-preview">' + esc(preview || 'Empty note') + '</span>' +
+      '<span class="note-item-date">' + dateStr + '</span>' +
+      '<button class="note-delete-btn" data-delete-id="' + esc(note.id) + '" title="Delete Note">✕</button>' +
+      '</div>';
+  }
+  
+  if (!notes.length) {
+    html = '<div style="padding:16px;text-align:center;color:var(--text-tertiary);font-size:12px;">No notes yet.<br>Click + to create one.</div>';
+  }
+  
+  list.innerHTML = html;
+  
+  // Bind click events
+  list.querySelectorAll('.note-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('note-delete-btn')) return;
+      state.activeNoteId = el.dataset.noteId;
+      saveState();
+      updateViewMode();
+    });
+  });
+  
+  list.querySelectorAll('.note-delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteNote(btn.dataset.deleteId);
+    });
+  });
+
+  // Update sidebar header for notes mode
+  const sidebarHeader = document.querySelector('#sidebar .middle-header span:first-child');
+  if (sidebarHeader) sidebarHeader.textContent = 'Notes';
+
+  // Change add-group-btn to add-note
+  const addBtn = document.getElementById('add-group-btn');
+  if (addBtn) {
+    addBtn.onclick = createNote;
+  }
+}
+
+function renderNoteEditor() {
+  const pane = document.getElementById('notes-editor-pane');
+  const titleInput = document.getElementById('note-title-input');
+  const textarea = document.getElementById('note-editor-textarea');
+  const dateDisplay = document.getElementById('note-date-display');
+  
+  if (!pane) return;
+
+  const note = getActiveNote();
+  if (!note) {
+    pane.innerHTML = '<div class="notes-empty-state">' +
+      '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="color:var(--text-tertiary);">' +
+      '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' +
+      '<polyline points="14 2 14 8 20 8"/></svg>' +
+      '<h3>No note selected</h3>' +
+      '<p>Select a note from the sidebar or create a new one.</p></div>';
+    return;
+  }
+
+  // Restore the editor structure if it was replaced by empty state
+  if (!titleInput) {
+    pane.innerHTML = '<div class="notes-editor-header">' +
+      '<input type="text" class="note-title-input" id="note-title-input" placeholder="Untitled Note" />' +
+      '<span class="note-date" id="note-date-display"></span></div>' +
+      '<textarea id="note-editor-textarea" placeholder="Start writing..."></textarea>';
+  }
+  
+  const ti = document.getElementById('note-title-input');
+  const ta = document.getElementById('note-editor-textarea');
+  const dd = document.getElementById('note-date-display');
+  
+  if (ti) {
+    ti.value = note.title;
+    ti.oninput = () => {
+      note.title = ti.value;
+      note.updated = Date.now();
+      saveState();
+      // Update sidebar title without full re-render
+      const sidebarItem = document.querySelector('.note-item[data-note-id="' + note.id + '"] .note-item-title');
+      if (sidebarItem) sidebarItem.textContent = note.title || 'Untitled Note';
+    };
+  }
+  if (ta) {
+    ta.value = note.body;
+    ta.oninput = () => {
+      note.body = ta.value;
+      note.updated = Date.now();
+      saveState();
+    };
+  }
+  if (dd) {
+    dd.textContent = new Date(note.updated).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+}
+
 function init() {
   loadConfig();
   if (!isConfigured()) document.getElementById('settings-overlay').classList.remove('hidden');
@@ -598,6 +779,11 @@ function init() {
   initResizing();
   updateViewMode();
   if (isConfigured()) { fetchCustomFields(); loadAllGroupTickets(); }
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
 
   document.getElementById('search-form').addEventListener('submit', e => {
     e.preventDefault(); const val = document.getElementById('search-input').value.trim();
