@@ -87,3 +87,47 @@ async function fetchBlob(url) {
     return objectUrl;
   } catch { return null; }
 }
+
+// ── JQL SEARCH ────────────────────────────────────────────────────────────────
+async function fetchByJql(jql, maxResults = 50) {
+  const url = apiBase() + '/rest/api/3/search?jql=' + encodeURIComponent(jql) + '&maxResults=' + maxResults + '&fields=summary,status,assignee,issuetype,parent,created,updated,reporter&expand=renderedFields';
+  const r = await fetch(url, { headers: commonHeaders() });
+  if (!r.ok) {
+    let msg = r.status + ' ' + r.statusText;
+    try { const j = await r.json(); msg += ': ' + (j.errorMessages?.[0] || j.message || ''); } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function fetchFilterById(filterId) {
+  const url = apiBase() + '/rest/api/3/filter/' + encodeURIComponent(filterId);
+  const r = await fetch(url, { headers: commonHeaders() });
+  if (!r.ok) {
+    let msg = r.status + ' ' + r.statusText;
+    try { const j = await r.json(); msg += ': ' + (j.errorMessages?.[0] || j.message || ''); } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function parseFilterInput(input) {
+  const trimmed = input.trim();
+  // Handle filter URL: https://site.atlassian.net/issues/?filter=12345
+  try {
+    if (trimmed.startsWith('http')) {
+      const url = new URL(trimmed);
+      const filterId = url.searchParams.get('filter');
+      if (filterId) return { type: 'filterId', value: filterId };
+      // Could also be a JQL URL
+      const jql = url.searchParams.get('jql');
+      if (jql) return { type: 'jql', value: jql };
+    }
+  } catch { /* not a URL */ }
+  
+  // Plain filter ID
+  if (/^\d+$/.test(trimmed)) return { type: 'filterId', value: trimmed };
+  
+  // Assume it's JQL
+  return { type: 'jql', value: trimmed };
+}

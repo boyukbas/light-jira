@@ -636,6 +636,68 @@ window.viewByLabel = function (label) {
   toast(ticketKeys.length + ' ticket(s) with label "' + label + '"');
 };
 
+// ── FILTER & JQL MODE ─────────────────────────────────────────────────────────
+async function handleLoadFilter() {
+  const input = document.getElementById('filter-input').value.trim();
+  const customName = document.getElementById('filter-group-name').value.trim();
+  if (!input) return toast('Please enter a filter URL or JQL', 'error');
+
+  const btn = document.getElementById('filter-load');
+  btn.disabled = true; btn.textContent = 'Loading...';
+
+  try {
+    const parsed = parseFilterInput(input);
+    let jql = '';
+    let groupName = customName || 'Filter Results';
+
+    if (parsed.type === 'filterId') {
+      const filter = await fetchFilterById(parsed.value);
+      jql = filter.jql;
+      if (!customName) groupName = filter.name;
+    } else {
+      jql = parsed.value;
+    }
+
+    const results = await fetchByJql(jql);
+    const issues = results.issues || [];
+    if (!issues.length) {
+      toast('No tickets found for this query', 'error');
+    } else {
+      const keys = issues.map(iss => {
+        issueCache[iss.key] = iss;
+        return iss.key;
+      });
+
+      const id = 'filter_' + Date.now();
+      state.groups.push({ 
+        id, 
+        name: groupName, 
+        keys, 
+        query: jql, // Save for refresh
+        isFilter: true 
+      });
+      state.activeGroupId = id;
+      state.activeKey = keys[0];
+      
+      saveState();
+      updateViewMode();
+      toast('Loaded ' + keys.length + ' tickets into "' + groupName + '"', 'success');
+      closeFilterModal();
+    }
+  } catch (err) {
+    console.error('Filter load error:', err);
+    toast('Error loading filter: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Load Tickets';
+  }
+}
+
+function closeFilterModal() {
+  document.getElementById('filter-overlay').classList.add('hidden');
+  document.getElementById('filter-input').value = '';
+  document.getElementById('filter-group-name').value = '';
+}
+
 // ── DRAG AND DROP ─────────────────────────────────────────────────────────────
 window.handleDragStart = (e, key) => { draggedKey = key; };
 window.handleDragOver = e => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); };
@@ -954,8 +1016,42 @@ function init() {
 
   document.getElementById('refresh-all-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.5';
-    const g = getActiveGroup(); for (const k of g.keys) delete issueCache[k];
-    await loadAllGroupTickets(); btn.style.pointerEvents = ''; btn.style.opacity = '1'; toast('List refreshed');
+    const g = getActiveGroup(); 
+    
+    if (g.isFilter && g.query) {
+      try {
+        const results = await fetchByJql(g.query);
+        const issues = results.issues || [];
+        g.keys = issues.map(iss => {
+          issueCache[iss.key] = iss;
+          return iss.key;
+        });
+        toast('Filter refreshed (' + g.keys.length + ' items)');
+      } catch (err) {
+        toast('Refresh failed: ' + err.message, 'error');
+      }
+    } else {
+      for (const k of g.keys) delete issueCache[k];
+      await loadAllGroupTickets();
+      toast('List refreshed');
+    }
+    
+    btn.style.pointerEvents = ''; btn.style.opacity = '1';
+    renderMiddle();
+    if (state.activeKey) renderReading();
+  });
+
+  // Filter Modal
+  document.getElementById('filter-btn').addEventListener('click', () => {
+    document.getElementById('filter-overlay').classList.remove('hidden');
+    document.getElementById('filter-input').focus();
+  });
+  document.getElementById('filter-close').addEventListener('click', closeFilterModal);
+  document.getElementById('filter-cancel').addEventListener('click', closeFilterModal);
+  document.getElementById('filter-load').addEventListener('click', handleLoadFilter);
+  document.getElementById('filter-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLoadFilter();
+    if (e.key === 'Escape') closeFilterModal();
   });
 
   document.getElementById('history-toggle-btn').addEventListener('click', () => {
