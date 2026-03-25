@@ -1,0 +1,267 @@
+/* ── TAB BAR ── */
+#tab-bar {
+  display: flex;
+  gap: 2px;
+  margin-right: 16px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.tab-btn:hover {
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+}
+
+.tab-btn.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.tab-btn svg {
+  flex-shrink: 0;
+}
+
+/* ── NOTES MODE LAYOUT ── */
+body[data-app-mode="notes"] #app-body > #middle,
+body[data-app-mode="notes"] #resizer-middle,
+body[data-app-mode="notes"] #reading,
+body[data-app-mode="notes"] #resizer-notes,
+body[data-app-mode="notes"] #notes-pane,
+body[data-app-mode="notes"] #history-pane {
+  display: none !important;
+}
+
+body[data-app-mode="notes"] #sidebar {
+  border-right: none;
+}
+
+body[data-app-mode="notes"] #notes-editor-pane {
+  display: flex !important;
+}
+
+/* ── NOTES EDITOR PANE ── */
+#notes-editor-pane {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+#notes-editor-pane .notes-editor-header {
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+#notes-editor-pane .notes-editor-header .note-title-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 600;
+  outline: none;
+  padding: 4px 0;
+}
+
+#notes-editor-pane .notes-editor-header .note-title-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+#notes-editor-pane .notes-editor-header .note-date {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+#note-editor-textarea {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  padding: 24px 32px;
+  resize: none;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.8;
+  outline: none;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── NOTES LIST IN SIDEBAR ── */
+.note-item {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: var(--transition);
+  border: 2px solid transparent;
+  gap: 2px;
+}
+
+.note-item:hover {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.note-item.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+.note-item .note-item-title {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-item .note-item-preview {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-item.active .note-item-preview {
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.note-item .note-item-date {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+#add-note-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-tertiary);
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: var(--transition);
+  width: 100%;
+  font-family: var(--font);
+  font-size: 12px;
+}
+
+#add-note-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg);
+}
+
+/* Search within notes */
+#notes-search-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 6px 10px;
+  outline: none;
+  transition: var(--transition);
+  margin-bottom: 8px;
+}
+
+#notes-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+/* Delete note button */
+.note-delete-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  background: transparent;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.note-item {
+  position: relative;
+}
+
+.note-item:hover .note-delete-btn {
+  opacity: 0.5;
+}
+
+.note-delete-btn:hover {
+  opacity: 1 !important;
+  background: rgba(248,81,73,0.1);
+}
+
+/* Empty note state */
+.notes-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-tertiary);
+  gap: 12px;
+  padding: 40px;
+  text-align: center;
+}
+
+.notes-empty-state h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.notes-empty-state p {
+  font-size: 13px;
+  line-height: 1.5;
+}
