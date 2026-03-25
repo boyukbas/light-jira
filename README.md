@@ -10,12 +10,32 @@ Light Jira is a Progress Web App (PWA) designed to replace heavy Jira tabs with 
 
 - **🚀 Performance-First**: No heavy frameworks. Pure, vanilla JavaScript ensures instant loads and transitions.
 - **📥 Grouped Workflow**: Move tickets out of your "Inbox" into custom groups like "To Review," "Backlog," or "Personal Tasks."
-- **💾 Offline Persistence**: Ticket titles, summaries, and statuses are cached locally. Your data is available even without an internet connection.
-- **⏳ History Tracking**: Every ticket you open is automatically tracked in a dedicated History view, accessible via the top-bar hourglass icon.
-- **📝 Personal Notes**: Each ticket has a persistent, private notes pane for your own thoughts, code snippets, or draft comments that aren't synced to Jira.
-- **⚡ Quick Open (F2)**: Press `F2` from anywhere to instantly search and open a ticket by its number.
-- **🖼️ Image Proxying**: Automatically handles Jira's authentication for attachments, so screenshots and images render seamlessly within the app.
-- **📱 PWA Ready**: Install it as a standalone application on your Desktop or Mobile for a distraction-free experience.
+- **📒 Standalone Notes**: Toggle between Jira and Notes mode. A dedicated note-taking environment for your personal thoughts and drafts.
+- **🏷️ Label Intelligence**: Tag tickets with custom labels. Click a label to instantly view all tickets with that tag across all lists.
+- **🔍 Filter & JQL Loading**: Load up to 50 tickets at once using Jira filters or raw JQL queries into new, auto-refreshing lists.
+- **💾 Offline Persistence**: Ticket data, notes, and even pasted screenshots are cached locally for offline access.
+- **⏳ History Tracking**: Every ticket you open is automatically tracked in a dedicated History view.
+- **📝 Personal Notes**: Each ticket has a persistent, private notes pane for your own thoughts.
+- **🖼️ Screenshot Persistence**: Paste images (Ctrl+V) directly into ticket notes or standalone notes; they are stored as base64 data URLs for offline viewing.
+- **⚡ Quick Open (F2)**: Press `F2` from anywhere to instantly search and open a ticket by key, URL, or number.
+- **📱 PWA Ready**: Install it as a standalone application on your Desktop or Mobile.
+
+---
+
+## 🗺️ Roadmap
+
+### Phase 1: Core Productivity & Data Portability (In Progress)
+- [x] **Tabbed Interface**: Switch between Jira and Standalone Notes modes.
+- [x] **Note Taking UI**: Full editor with title, body, and dates.
+- [x] **Screenshot Persistence**: `Ctrl+V` to paste and store images in notes.
+- [x] **Label Intelligence**: Intelligent label suggestions and global label navigation.
+- [x] **Advanced Open Ticket**: Handle full Jira URLs.
+- [x] **JQL/Filter Loading**: Create groups from Jira filters (up to 50 items).
+- [ ] **External Link Handling**: Separate buttons/logic for opening links inside vs. outside the app.
+
+### Phase 2: Testing & Reliability
+- [ ] **Mock Atlassian Server**: For development and testing without hitting real APIs.
+- [ ] **Automated Test Suite**: End-to-end and unit tests for core logic.
 
 ---
 
