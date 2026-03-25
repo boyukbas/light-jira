@@ -22,6 +22,7 @@ let state = {
 
 let draggedKey = null; // for drag & drop
 let ctxGroupId = null; // group ID actively being right-clicked
+let screenshotStore = {}; // id -> data URL (stored separately from state to manage size)
 
 function loadState() {
   try {
@@ -50,6 +51,8 @@ function loadState() {
 
     const cached = localStorage.getItem('jira_issue_cache');
     if (cached) issueCache = JSON.parse(cached);
+    const ssData = localStorage.getItem('jira_screenshots');
+    if (ssData) screenshotStore = JSON.parse(ssData);
   } catch (err) {
     console.warn('State parse error. Resetting to defaults.', err);
     saveState(); // Overwrite corrupted state with current defaults
@@ -59,6 +62,7 @@ function loadState() {
 function saveState() {
   localStorage.setItem('jira_state', JSON.stringify(state));
   localStorage.setItem('jira_issue_cache', JSON.stringify(issueCache));
+  localStorage.setItem('jira_screenshots', JSON.stringify(screenshotStore));
 }
 
 function getGroup(id) { return state.groups.find(g => g.id === id) || state.groups[0]; }
@@ -452,12 +456,46 @@ function renderReading() {
     html += '</div>';
   }
   content.innerHTML = html;
-  document.getElementById('notes-text').value = state.notes[key] || '';
+  const notesTextEl = document.getElementById('notes-text');
+  notesTextEl.value = state.notes[key] || '';
+  bindPasteHandler(notesTextEl, 'ticket_' + key);
   bindAuthImages(content);
 }
 
 function toggleNotes() { document.getElementById('notes-pane').classList.toggle('open'); }
 function saveNotes(val) { if (state.activeKey) { state.notes[state.activeKey] = val; saveState(); } }
+
+// ── SCREENSHOT PASTE HANDLER ──────────────────────────────────────────────────
+function handleImagePaste(e, textarea, contextKey) {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = item.getAsFile();
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imgId = 'img_' + Date.now();
+        screenshotStore[imgId] = reader.result;
+        const marker = '\n![screenshot](' + imgId + ')\n';
+        const pos = textarea.selectionStart;
+        const before = textarea.value.substring(0, pos);
+        const after = textarea.value.substring(textarea.selectionEnd);
+        textarea.value = before + marker + after;
+        textarea.selectionStart = textarea.selectionEnd = pos + marker.length;
+        textarea.dispatchEvent(new Event('input'));
+        saveState();
+        toast('Screenshot pasted', 'success');
+      };
+      reader.readAsDataURL(file);
+      break;
+    }
+  }
+}
+
+function bindPasteHandler(textarea, contextKey) {
+  textarea.addEventListener('paste', (e) => handleImagePaste(e, textarea, contextKey));
+}
 
 window.moveTicket = function (key, newGroupId) {
   const oldG = getGroup(state.activeGroupId);
@@ -766,6 +804,7 @@ function renderNoteEditor() {
       note.updated = Date.now();
       saveState();
     };
+    bindPasteHandler(ta, 'note_' + note.id);
   }
   if (dd) {
     dd.textContent = new Date(note.updated).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
