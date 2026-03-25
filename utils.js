@@ -2,7 +2,17 @@
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function normalise(raw) {
-  const t = raw.trim().toUpperCase();
+  let t = raw.trim();
+  // Handle full Jira URLs: https://site.atlassian.net/browse/PROJ-123
+  try {
+    if (t.startsWith('http')) {
+      const url = new URL(t);
+      const browsePath = url.pathname.match(/\/browse\/([A-Za-z][A-Za-z0-9]+-\d+)/);
+      if (browsePath) return browsePath[1].toUpperCase();
+    }
+  } catch { /* not a valid URL, continue with normal parsing */ }
+  
+  t = t.toUpperCase();
   if (/^\d+$/.test(t)) return cfg.defaultProject + '-' + t;
   if (/^[A-Z][A-Z0-9]+-\d+$/.test(t)) return t;
   const m = t.match(/^([A-Z][A-Z0-9]+)(\d+)$/);
