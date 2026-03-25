@@ -26,9 +26,9 @@
 .lbl-add { background: transparent; border: 1px dashed var(--border); color: var(--text-secondary); padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; cursor: pointer; }
 
 /* Modals & Overlays */
-#settings-overlay, #f2-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-#settings-overlay.hidden, #f2-modal.hidden { display: none; }
-#settings-modal, #f2-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+#settings-overlay, #f2-modal, #filter-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+#settings-overlay.hidden, #f2-modal.hidden, #filter-overlay.hidden { display: none; }
+#settings-modal, #f2-box, #filter-modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 #f2-box { border-color: var(--accent); width: 340px; }
 
 /* Toasts */

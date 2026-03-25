@@ -32,8 +32,12 @@
       Light Jira
     </div>
     <form id="search-form">
-      <input id="search-input" type="text" placeholder="Type key... (e.g. 1234 or OSA-42)" />
+      <input id="search-input" type="text" placeholder="Key, URL, or number... (e.g. 1234 or https://...)" />
       <button type="submit" id="search-btn">Open Ticket</button>
+      <button type="button" id="filter-btn" class="top-btn" title="Load by Filter/JQL" style="font-size:11px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        Filter
+      </button>
     </form>
 
 
@@ -204,6 +208,31 @@
   </div>
 
   <div id="toast"></div>
+
+  <!-- FILTER MODAL -->
+  <div id="filter-overlay" class="hidden">
+    <div id="filter-modal">
+      <div class="modal-header">
+        Load Filter / JQL
+        <button class="modal-close" id="filter-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Filter URL, Filter ID, or JQL Query</label>
+          <input class="form-input" id="filter-input" type="text" placeholder="e.g. https://site.atlassian.net/issues/?filter=12345" />
+          <div style="font-size:11px;opacity:0.6;margin-top:6px;">Supports: Filter URL, Filter ID (number), or raw JQL query</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Group Name (optional)</label>
+          <input class="form-input" id="filter-group-name" type="text" placeholder="Auto-detected from filter name" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="top-btn" id="filter-cancel">Cancel</button>
+        <button class="top-btn" style="background:var(--accent);color:#000;" id="filter-load">Load Tickets</button>
+      </div>
+    </div>
+  </div>
 
   <!-- LIBRARIES & APP -->
   <script src="api.js"></script>
