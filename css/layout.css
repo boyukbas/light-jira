@@ -1,0 +1,43 @@
+/* TOP BAR */
+#topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  display: flex; align-items: center; gap: 12px;
+  height: 52px; flex-shrink: 0;
+}
+#logo {
+  font-weight: 700; font-size: 15px; color: var(--accent);
+  letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px;
+  width: auto;
+}
+
+/* 3-PANE LAYOUT */
+#app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+#app-body.resizing { cursor: col-resize; user-select: none; }
+#app-body.resizing * { pointer-events: none !important; }
+
+/* Resizer Handles */
+.resizer {
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  z-index: 100;
+  position: relative;
+  margin: 0 -2px;
+}
+.resizer::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: -2px; right: -2px;
+}
+.resizer:hover, .resizer.active {
+  background: var(--accent);
+}
