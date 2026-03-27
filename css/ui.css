@@ -1,5 +1,60 @@
-/* UI Elements */
-#search-form { display: flex; gap: 8px; flex: 1; max-width: 400px; }
+/* ── BUTTON SYSTEM ── */
+
+/* Base ghost button — secondary actions */
+.top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.top-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+/* Primary action button */
+.top-btn.primary {
+  background: var(--accent);
+  color: #0d1117;
+  border-color: transparent;
+  font-weight: 600;
+}
+.top-btn.primary:hover {
+  background: #b36be0;
+  color: #0d1117;
+  border-color: transparent;
+}
+
+/* Icon-only button — no label, square, borderless until hover */
+.top-btn.icon-only {
+  padding: 5px;
+  width: 28px;
+  height: 28px;
+  justify-content: center;
+  border-color: transparent;
+  color: var(--text-tertiary);
+}
+.top-btn.icon-only:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: transparent;
+}
+
+/* ── SEARCH BAR ── */
+#search-form { display: flex; gap: 8px; flex: 1; max-width: 580px; }
 #search-input {
   flex: 1; background: var(--bg); border: 1px solid var(--border);
   border-radius: 6px; color: var(--text-primary);
@@ -12,7 +67,7 @@
   border: none; border-radius: 6px; padding: 6px 14px;
   font-weight: 600; font-size: 12px; cursor: pointer; transition: var(--transition);
 }
-#search-btn:hover { background: #79b8ff; }
+#search-btn:hover { background: #b36be0; }
 
 /* Context Menu */
 .ctx-menu { position: fixed; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px; z-index: 4000; box-shadow: 0 8px 24px rgba(0,0,0,0.5); display: none; flex-direction: column; min-width: 140px;}

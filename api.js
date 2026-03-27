@@ -1,10 +1,9 @@
 'use strict';
 
-const DEFAULTS = { 
-  baseUrl:'https://site.atlassian.net', 
-  email:'', 
-  token:'', 
-  defaultProject:'PROJ',
+const DEFAULTS = {
+  baseUrl:'https://site.atlassian.net',
+  email:'',
+  token:'',
   historyLimit: 100,
   proxyUrl: ''
 };
@@ -90,7 +89,7 @@ async function fetchBlob(url) {
 
 // ── JQL SEARCH ────────────────────────────────────────────────────────────────
 async function fetchByJql(jql, maxResults = 50) {
-  const url = apiBase() + '/rest/api/3/search?jql=' + encodeURIComponent(jql) + '&maxResults=' + maxResults + '&fields=summary,status,assignee,issuetype,parent,created,updated,reporter&expand=renderedFields';
+  const url = apiBase() + '/rest/api/3/search/jql?jql=' + encodeURIComponent(jql) + '&maxResults=' + maxResults + '&fields=summary,status,assignee,issuetype,parent,created,updated,reporter&expand=renderedFields';
   const r = await fetch(url, { headers: commonHeaders() });
   if (!r.ok) {
     let msg = r.status + ' ' + r.statusText;

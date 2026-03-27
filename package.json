@@ -1,0 +1,17 @@
+{
+  "name": "light-jira",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "npm run lint:css && npm run lint:classes && npm run lint:format",
+    "lint:css": "stylelint \"css/**/*.css\" \"style.css\"",
+    "lint:classes": "node check-classes.js",
+    "lint:format": "prettier --check \"**/*.{html,css,js}\" --ignore-path .prettierignore",
+    "format": "prettier --write \"**/*.{html,css,js}\" --ignore-path .prettierignore"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "stylelint": "^16.9.0",
+    "stylelint-config-standard": "^36.0.1"
+  }
+}

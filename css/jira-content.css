@@ -10,7 +10,7 @@
 .description code { font-family: var(--mono); font-size: 13px; background: rgba(110,118,129,0.15); padding: 2px 6px; border-radius: 4px; color: var(--orange); }
 
 .description blockquote { border-left: 4px solid var(--accent); padding: 8px 16px; margin: 12px 0; background: var(--accent-muted); border-radius: 0 8px 8px 0; color: var(--text-secondary); }
-.description a { color: var(--accent); text-decoration: none; }
+.description a { color: var(--accent); text-decoration: none; white-space: nowrap; }
 .description a:hover { text-decoration: underline; }
 .description img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); margin: 12px 0; display: block; background: var(--surface); }
 .description table { border-collapse: collapse; width: 100%; margin-bottom: 16px; font-size: 13px; }
@@ -95,4 +95,3 @@
 .description .ak-status-macro-img,
 .description img[src*="favicon"] { display: none !important; }
 .description a img { display: none !important; }
-.description a { white-space: nowrap; }
