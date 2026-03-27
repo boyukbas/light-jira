@@ -1,0 +1,9 @@
+{
+  "id": "12345",
+  "name": "My Test Filter",
+  "description": "A test filter for automation",
+  "owner": { "displayName": "John Smith" },
+  "jql": "project = PROJ ORDER BY updated DESC",
+  "viewUrl": "https://site.atlassian.net/issues/?filter=12345",
+  "searchUrl": "https://site.atlassian.net/rest/api/3/search/jql?jql=project+%3D+PROJ+ORDER+BY+updated+DESC"
+}
