@@ -1,0 +1,49 @@
+{
+  "total": 3,
+  "maxResults": 50,
+  "startAt": 0,
+  "issues": [
+    {
+      "id": "10001",
+      "key": "PROJ-1",
+      "fields": {
+        "summary": "First filtered ticket",
+        "status": { "name": "To Do", "statusCategory": { "key": "new", "name": "To Do" } },
+        "issuetype": { "name": "Story", "iconUrl": "" },
+        "assignee": null,
+        "reporter": { "displayName": "John Smith" },
+        "created": "2026-01-10T09:00:00.000+0000",
+        "updated": "2026-03-01T12:00:00.000+0000",
+        "parent": null
+      }
+    },
+    {
+      "id": "10002",
+      "key": "PROJ-2",
+      "fields": {
+        "summary": "Second filtered ticket",
+        "status": { "name": "In Progress", "statusCategory": { "key": "indeterminate", "name": "In Progress" } },
+        "issuetype": { "name": "Bug", "iconUrl": "" },
+        "assignee": { "displayName": "Jane Doe" },
+        "reporter": { "displayName": "John Smith" },
+        "created": "2026-01-12T09:00:00.000+0000",
+        "updated": "2026-03-10T12:00:00.000+0000",
+        "parent": null
+      }
+    },
+    {
+      "id": "10003",
+      "key": "PROJ-3",
+      "fields": {
+        "summary": "Third filtered ticket",
+        "status": { "name": "Done", "statusCategory": { "key": "done", "name": "Done" } },
+        "issuetype": { "name": "Task", "iconUrl": "" },
+        "assignee": { "displayName": "Bob Builder" },
+        "reporter": { "displayName": "Jane Doe" },
+        "created": "2026-02-01T09:00:00.000+0000",
+        "updated": "2026-03-15T12:00:00.000+0000",
+        "parent": null
+      }
+    }
+  ]
+}
