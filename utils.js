@@ -13,7 +13,6 @@ function normalise(raw) {
   } catch { /* not a valid URL, continue with normal parsing */ }
   
   t = t.toUpperCase();
-  if (/^\d+$/.test(t)) return cfg.defaultProject + '-' + t;
   if (/^[A-Z][A-Z0-9]+-\d+$/.test(t)) return t;
   const m = t.match(/^([A-Z][A-Z0-9]+)(\d+)$/);
   return m ? m[1] + '-' + m[2] : t;

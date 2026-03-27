@@ -119,6 +119,7 @@ body[data-app-mode="notes"] #notes-editor-pane {
 
 /* ── NOTES LIST IN SIDEBAR ── */
 .note-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 10px 12px;
@@ -227,10 +228,6 @@ body[data-app-mode="notes"] #notes-editor-pane {
   border-radius: 4px;
   font-size: 12px;
   line-height: 1;
-}
-
-.note-item {
-  position: relative;
 }
 
 .note-item:hover .note-delete-btn {

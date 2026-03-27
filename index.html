@@ -32,9 +32,9 @@
       Light Jira
     </div>
     <form id="search-form">
-      <input id="search-input" type="text" placeholder="Key, URL, or number... (e.g. 1234 or https://...)" />
+      <input id="search-input" type="text" placeholder="Ticket key or URL (e.g. PROJ-123 or https://...)" />
       <button type="submit" id="search-btn">Open Ticket</button>
-      <button type="button" id="filter-btn" class="top-btn" title="Load by Filter/JQL" style="font-size:11px;">
+      <button type="button" id="filter-btn" class="top-btn" title="Load by Filter/JQL">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
         Filter
       </button>
@@ -75,8 +75,7 @@
       <div class="middle-header" style="justify-content:space-between;padding:12px 10px;">
         <span
           style="font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-tertiary)">Lists</span>
-        <button class="top-btn icon-only collapse-btn" onclick="toggleCollapse('sidebar')" title="Collapse Sidebar"
-          style="border:none;padding:2px;">
+        <button class="top-btn icon-only collapse-btn" onclick="toggleCollapse('sidebar')" title="Collapse Sidebar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="11 17 6 12 11 7" />
             <polyline points="18 17 13 12 18 7" />
@@ -98,14 +97,14 @@
     <div id="middle">
       <div class="middle-header">
         <button class="top-btn icon-only collapse-btn" id="middle-collapse-btn" onclick="toggleCollapse('middle')"
-          title="Collapse Items" style="border:none;padding:2px;margin-right:8px;">
+          title="Collapse Items">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="11 17 6 12 11 7" />
             <polyline points="18 17 13 12 18 7" />
           </svg>
         </button>
         <span id="current-group-name" style="flex:1">Inbox</span>
-        <button class="top-btn icon-only" id="refresh-all-btn" title="Refresh List" style="border:none;padding:4px;">
+        <button class="top-btn icon-only" id="refresh-all-btn" title="Refresh List">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10" />
             <path d="M20.49 15a9 9 0 1 1-2.38-7.72" />
@@ -146,9 +145,7 @@
     <div id="notes-pane">
       <div class="middle-header" style="border-bottom: 1px solid var(--border-subtle);background:var(--card);">
         Notes
-        <button
-          style="float:right;background:transparent;border:none;color:var(--text-tertiary);cursor:pointer;font-size:16px;line-height:1;"
-          onclick="toggleNotes()">&times;</button>
+        <button class="modal-close" onclick="toggleNotes()">&times;</button>
       </div>
       <textarea id="notes-text" placeholder="Type personal notes here... Saved automatically to your browser."
         oninput="saveNotes(this.value)"></textarea>
@@ -172,8 +169,6 @@
             type="password" /></div>
         <div class="form-group"><label class="form-label">Jira URL</label><input class="form-input" id="cfg-url"
             type="text" placeholder="https://your-domain.atlassian.net" /></div>
-        <div class="form-group"><label class="form-label">Default Project Prefix</label><input class="form-input"
-            id="cfg-project" type="text" /></div>
         <div class="form-group"><label class="form-label">History Limit (Max Items)</label><input class="form-input"
             id="cfg-hist-limit" type="number" min="10" max="1000" placeholder="e.g. 100" /></div>
         <div class="form-group" style="margin-top:16px; border-top:1px solid var(--border); padding-top:12px;">
@@ -184,7 +179,7 @@
       </div>
       <div class="modal-footer">
         <button class="top-btn" id="settings-cancel">Cancel</button>
-        <button class="top-btn" style="background:var(--accent);color:#000;" id="settings-save">Save</button>
+        <button class="top-btn primary" id="settings-save">Save</button>
       </div>
     </div>
   </div>
@@ -229,7 +224,7 @@
       </div>
       <div class="modal-footer">
         <button class="top-btn" id="filter-cancel">Cancel</button>
-        <button class="top-btn" style="background:var(--accent);color:#000;" id="filter-load">Load Tickets</button>
+        <button class="top-btn primary" id="filter-load">Load Tickets</button>
       </div>
     </div>
   </div>

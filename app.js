@@ -230,10 +230,15 @@ function handleRenameGroup() {
 function handleDeleteGroup() {
   if (!ctxGroupId) return;
   if (ctxGroupId === 'inbox' || ctxGroupId === 'history') { toast('Cannot delete system list', 'error'); return; }
-  if (confirm('Delete this group? Any active tickets in it will be dumped back to Inbox.')) {
-    const g = getGroup(ctxGroupId);
-    const inbox = getGroup('inbox');
-    inbox.keys.push(...g.keys);
+  const g = getGroup(ctxGroupId);
+  const msg = g.isFilter
+    ? 'Delete this filter group? Tickets will not be moved to Inbox (they came from a query).'
+    : 'Delete this group? Any active tickets in it will be moved back to Inbox.';
+  if (confirm(msg)) {
+    if (!g.isFilter) {
+      const inbox = getGroup('inbox');
+      inbox.keys.push(...g.keys);
+    }
     state.groups = state.groups.filter(x => x.id !== ctxGroupId);
     if (state.activeGroupId === ctxGroupId) state.activeGroupId = 'inbox';
     saveState(); updateViewMode();
@@ -404,19 +409,19 @@ function renderReading() {
 
   if (issue.renderedFields) {
     const HIDDEN_FIELDS = [
-      'last viewed', 'updated', 'status category changed', 
-      '[chart] date of first response', 'created', 'parent key', 
+      'last viewed', 'updated', 'status category changed',
+      '[chart] date of first response', 'created', 'parent key',
       'ticket score', 'service offering'
     ];
-    
+
     if (issue.renderedFields.description) {
-        // Aggressive strip of Smart Link icons and Jira-injected decorators
-        let cleanDesc = issue.renderedFields.description;
-        cleanDesc = cleanDesc.replace(/<img[^>]*lightbulb[^>]*>/gi, '');
-        cleanDesc = cleanDesc.replace(/<img[^>]*favicon[^>]*>/gi, '');
-        cleanDesc = cleanDesc.replace(/<span[^>]*ak-link-icon[^>]*>.*?<\/span>/gi, '');
-        cleanDesc = cleanDesc.replace(/<img[^>]*info-modeler[^>]*>/gi, '');
-        html += '<div class="section-title">Description</div><div class="description">' + cleanDesc + '</div>';
+      // Aggressive strip of Smart Link icons and Jira-injected decorators
+      let cleanDesc = issue.renderedFields.description;
+      cleanDesc = cleanDesc.replace(/<img[^>]*lightbulb[^>]*>/gi, '');
+      cleanDesc = cleanDesc.replace(/<img[^>]*favicon[^>]*>/gi, '');
+      cleanDesc = cleanDesc.replace(/<span[^>]*ak-link-icon[^>]*>.*?<\/span>/gi, '');
+      cleanDesc = cleanDesc.replace(/<img[^>]*info-modeler[^>]*>/gi, '');
+      html += '<div class="section-title">Description</div><div class="description">' + cleanDesc + '</div>';
     }
     for (const [keyField, val] of Object.entries(issue.renderedFields)) {
       if (keyField === 'description' || keyField === 'comment' || !val || typeof val !== 'string') continue;
@@ -519,7 +524,7 @@ function addLabel(key) {
   const allLabels = Object.keys(state.labelColors);
   const currentLabels = state.labels[key] || [];
   const suggestions = allLabels.filter(l => !currentLabels.includes(l));
-  
+
   // Show label picker modal
   showLabelPicker(key, suggestions);
 }
@@ -528,12 +533,12 @@ function showLabelPicker(key, suggestions) {
   // Remove existing picker if any
   const existing = document.getElementById('label-picker');
   if (existing) existing.remove();
-  
+
   let html = '<div id="label-picker" class="label-picker-overlay">' +
     '<div class="label-picker-box">' +
     '<div class="label-picker-header">Add Label<button class="modal-close" onclick="closeLabelPicker()">&times;</button></div>' +
     '<input type="text" id="label-picker-input" class="form-input" placeholder="Type a label name..." autocomplete="off" />';
-  
+
   html += '<div class="label-picker-suggestions" id="label-picker-list">';
   for (const lbl of suggestions) {
     const c = state.labelColors[lbl] || '#6e7681';
@@ -544,14 +549,14 @@ function showLabelPicker(key, suggestions) {
     html += '<div style="padding:8px;color:var(--text-tertiary);font-size:12px;text-align:center;">No existing labels. Type to create one.</div>';
   }
   html += '</div></div></div>';
-  
+
   document.body.insertAdjacentHTML('beforeend', html);
-  
+
   const input = document.getElementById('label-picker-input');
   const listEl = document.getElementById('label-picker-list');
-  
+
   input.focus();
-  
+
   // Filter suggestions as you type
   input.addEventListener('input', () => {
     const val = input.value.trim().toLowerCase();
@@ -559,7 +564,7 @@ function showLabelPicker(key, suggestions) {
       item.style.display = item.dataset.label.toLowerCase().includes(val) ? '' : 'none';
     });
   });
-  
+
   // Enter to create new label
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -572,7 +577,7 @@ function showLabelPicker(key, suggestions) {
     }
     if (e.key === 'Escape') closeLabelPicker();
   });
-  
+
   // Click suggestion to apply
   listEl.querySelectorAll('.label-picker-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -580,7 +585,7 @@ function showLabelPicker(key, suggestions) {
       closeLabelPicker();
     });
   });
-  
+
   // Click overlay to close
   document.getElementById('label-picker').addEventListener('click', (e) => {
     if (e.target.id === 'label-picker') closeLabelPicker();
@@ -619,7 +624,7 @@ window.viewByLabel = function (label) {
     toast('No tickets found with label "' + label + '"', 'error');
     return;
   }
-  
+
   // Create or find a group with this label name
   let groupId = 'lbl_' + label.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   let group = state.groups.find(g => g.id === groupId);
@@ -637,6 +642,33 @@ window.viewByLabel = function (label) {
 };
 
 // ── FILTER & JQL MODE ─────────────────────────────────────────────────────────
+async function runFilterLoad(rawInput, customName = '') {
+  const parsed = parseFilterInput(rawInput);
+  let jql = '';
+  let groupName = customName || 'Filter Results';
+
+  if (parsed.type === 'filterId') {
+    const filter = await fetchFilterById(parsed.value);
+    jql = filter.jql;
+    if (!customName) groupName = filter.name;
+  } else {
+    jql = parsed.value;
+  }
+
+  const results = await fetchByJql(jql);
+  const issues = results.issues || [];
+  if (!issues.length) { toast('No tickets found for this query', 'error'); return; }
+
+  const keys = issues.map(iss => { issueCache[iss.key] = iss; return iss.key; });
+  const id = 'filter_' + Date.now();
+  state.groups.push({ id, name: groupName, keys, query: jql, isFilter: true });
+  state.activeGroupId = id;
+  state.activeKey = keys[0];
+  saveState();
+  updateViewMode();
+  toast('Loaded ' + keys.length + ' tickets into "' + groupName + '"', 'success');
+}
+
 async function handleLoadFilter() {
   const input = document.getElementById('filter-input').value.trim();
   const customName = document.getElementById('filter-group-name').value.trim();
@@ -644,46 +676,9 @@ async function handleLoadFilter() {
 
   const btn = document.getElementById('filter-load');
   btn.disabled = true; btn.textContent = 'Loading...';
-
   try {
-    const parsed = parseFilterInput(input);
-    let jql = '';
-    let groupName = customName || 'Filter Results';
-
-    if (parsed.type === 'filterId') {
-      const filter = await fetchFilterById(parsed.value);
-      jql = filter.jql;
-      if (!customName) groupName = filter.name;
-    } else {
-      jql = parsed.value;
-    }
-
-    const results = await fetchByJql(jql);
-    const issues = results.issues || [];
-    if (!issues.length) {
-      toast('No tickets found for this query', 'error');
-    } else {
-      const keys = issues.map(iss => {
-        issueCache[iss.key] = iss;
-        return iss.key;
-      });
-
-      const id = 'filter_' + Date.now();
-      state.groups.push({ 
-        id, 
-        name: groupName, 
-        keys, 
-        query: jql, // Save for refresh
-        isFilter: true 
-      });
-      state.activeGroupId = id;
-      state.activeKey = keys[0];
-      
-      saveState();
-      updateViewMode();
-      toast('Loaded ' + keys.length + ' tickets into "' + groupName + '"', 'success');
-      closeFilterModal();
-    }
+    await runFilterLoad(input, customName);
+    closeFilterModal();
   } catch (err) {
     console.error('Filter load error:', err);
     toast('Error loading filter: ' + err.message, 'error');
@@ -727,7 +722,7 @@ async function bindAuthImages(container) {
     let src = img.getAttribute('src');
     if (src && !src.startsWith('data:') && !src.startsWith('blob:') && (src.startsWith('/') || src.includes(cfg.baseUrl.split('//')[1]))) {
       img.dataset.authSrc = src.startsWith('/') ? cfg.baseUrl + src : src;
-      img.removeAttribute('src'); 
+      img.removeAttribute('src');
     }
   });
   container.querySelectorAll('img[data-auth-src]').forEach(async img => {
@@ -742,7 +737,7 @@ function openTicketByKey(val) {
   const key = normalise(val);
   addToHistory(key);
   let g = getActiveGroup();
-  if (g.id === 'history') { state.activeGroupId = 'inbox'; g = getGroup('inbox'); }
+  if (g.id === 'history' || g.isFilter) { state.activeGroupId = 'inbox'; g = getGroup('inbox'); }
   if (!g.keys.includes(key)) g.keys.unshift(key);
   state.activeKey = key; saveState(); updateViewMode();
 }
@@ -876,16 +871,16 @@ function renderNotesSidebar() {
   const list = document.getElementById('group-list');
   if (!list) return;
   const search = document.getElementById('notes-search-val') || '';
-  
+
   let html = '';
   const notes = state.standAloneNotes;
-  
+
   for (const note of notes) {
     const active = state.activeNoteId === note.id ? ' active' : '';
     const title = note.title || 'Untitled Note';
     const preview = (note.body || '').replace(/\n/g, ' ').substring(0, 60);
     const dateStr = relDate(new Date(note.updated));
-    
+
     html += '<div class="note-item' + active + '" data-note-id="' + esc(note.id) + '">' +
       '<span class="note-item-title">' + esc(title) + '</span>' +
       '<span class="note-item-preview">' + esc(preview || 'Empty note') + '</span>' +
@@ -893,13 +888,13 @@ function renderNotesSidebar() {
       '<button class="note-delete-btn" data-delete-id="' + esc(note.id) + '" title="Delete Note">✕</button>' +
       '</div>';
   }
-  
+
   if (!notes.length) {
     html = '<div style="padding:16px;text-align:center;color:var(--text-tertiary);font-size:12px;">No notes yet.<br>Click + to create one.</div>';
   }
-  
+
   list.innerHTML = html;
-  
+
   // Bind click events
   list.querySelectorAll('.note-item').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -909,7 +904,7 @@ function renderNotesSidebar() {
       updateViewMode();
     });
   });
-  
+
   list.querySelectorAll('.note-delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -933,7 +928,7 @@ function renderNoteEditor() {
   const titleInput = document.getElementById('note-title-input');
   const textarea = document.getElementById('note-editor-textarea');
   const dateDisplay = document.getElementById('note-date-display');
-  
+
   if (!pane) return;
 
   const note = getActiveNote();
@@ -954,11 +949,11 @@ function renderNoteEditor() {
       '<span class="note-date" id="note-date-display"></span></div>' +
       '<textarea id="note-editor-textarea" placeholder="Start writing..."></textarea>';
   }
-  
+
   const ti = document.getElementById('note-title-input');
   const ta = document.getElementById('note-editor-textarea');
   const dd = document.getElementById('note-date-display');
-  
+
   if (ti) {
     ti.value = note.title;
     ti.oninput = () => {
@@ -980,7 +975,7 @@ function renderNoteEditor() {
     bindPasteHandler(ta, 'note_' + note.id);
   }
   if (dd) {
-    dd.textContent = new Date(note.updated).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    dd.textContent = new Date(note.updated).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 }
 
@@ -997,9 +992,28 @@ function init() {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  document.getElementById('search-form').addEventListener('submit', e => {
-    e.preventDefault(); const val = document.getElementById('search-input').value.trim();
-    openTicketByKey(val); document.getElementById('search-input').value = '';
+  document.getElementById('search-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const input = document.getElementById('search-input');
+    const val = input.value.trim();
+    if (!val) return;
+
+    const parsed = parseFilterInput(val);
+    if (parsed.type === 'filterId' || (val.startsWith('http') && parsed.type === 'jql')) {
+      const btn = document.getElementById('search-btn');
+      btn.disabled = true; btn.textContent = 'Loading...';
+      try {
+        await runFilterLoad(val);
+        input.value = '';
+      } catch (err) {
+        toast('Error loading filter: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Open Ticket';
+      }
+    } else {
+      openTicketByKey(val);
+      input.value = '';
+    }
   });
 
   window.addEventListener('keydown', e => {
@@ -1016,8 +1030,8 @@ function init() {
 
   document.getElementById('refresh-all-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.5';
-    const g = getActiveGroup(); 
-    
+    const g = getActiveGroup();
+
     if (g.isFilter && g.query) {
       try {
         const results = await fetchByJql(g.query);
@@ -1035,7 +1049,7 @@ function init() {
       await loadAllGroupTickets();
       toast('List refreshed');
     }
-    
+
     btn.style.pointerEvents = ''; btn.style.opacity = '1';
     renderMiddle();
     if (state.activeKey) renderReading();
@@ -1063,7 +1077,6 @@ function init() {
     document.getElementById('cfg-url').value = cfg.baseUrl;
     document.getElementById('cfg-email').value = cfg.email;
     document.getElementById('cfg-token').value = cfg.token;
-    document.getElementById('cfg-project').value = cfg.defaultProject;
     document.getElementById('cfg-hist-limit').value = cfg.historyLimit || 100;
     document.getElementById('cfg-proxy-url').value = cfg.proxyUrl || '';
     document.getElementById('settings-overlay').classList.remove('hidden');
@@ -1075,7 +1088,6 @@ function init() {
     cfg.baseUrl = (document.getElementById('cfg-url').value || DEFAULTS.baseUrl).replace(/\/$/, '');
     cfg.email = document.getElementById('cfg-email').value.trim();
     cfg.token = document.getElementById('cfg-token').value.trim();
-    cfg.defaultProject = document.getElementById('cfg-project').value.trim().toUpperCase() || DEFAULTS.defaultProject;
     cfg.historyLimit = parseInt(document.getElementById('cfg-hist-limit').value) || 100;
     cfg.proxyUrl = (document.getElementById('cfg-proxy-url').value || '').trim().replace(/\/$/, '');
     saveConfig(); closeCfg(); toast('Settings saved');
