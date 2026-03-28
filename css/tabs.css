@@ -35,28 +35,48 @@
 .tab-btn.active {
   background: var(--accent-muted);
   color: var(--accent);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .tab-btn svg {
   flex-shrink: 0;
 }
 
-/* ── NOTES MODE LAYOUT ── */
-body[data-app-mode="notes"] #app-body > #middle,
-body[data-app-mode="notes"] #resizer-middle,
-body[data-app-mode="notes"] #reading,
-body[data-app-mode="notes"] #resizer-notes,
-body[data-app-mode="notes"] #notes-pane,
-body[data-app-mode="notes"] #history-pane {
+/* ── HISTORY TAB LAYOUT ── */
+body[data-app-mode='history'] #sidebar,
+body[data-app-mode='history'] #resizer-sidebar,
+body[data-app-mode='history'] #middle,
+body[data-app-mode='history'] #resizer-middle,
+body[data-app-mode='history'] #reading,
+body[data-app-mode='history'] #resizer-notes,
+body[data-app-mode='history'] #notes-pane,
+body[data-app-mode='history'] #notes-editor-pane {
   display: none !important;
 }
 
-body[data-app-mode="notes"] #sidebar {
+body[data-app-mode='history'] #history-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── NOTES MODE LAYOUT ── */
+body[data-app-mode='notes'] #app-body > #middle,
+body[data-app-mode='notes'] #resizer-middle,
+body[data-app-mode='notes'] #reading,
+body[data-app-mode='notes'] #resizer-notes,
+body[data-app-mode='notes'] #notes-pane,
+body[data-app-mode='notes'] #history-pane {
+  display: none !important;
+}
+
+body[data-app-mode='notes'] #sidebar {
   border-right: none;
 }
 
-body[data-app-mode="notes"] #notes-editor-pane {
+body[data-app-mode='notes'] #notes-editor-pane {
   display: flex !important;
 }
 
@@ -236,7 +256,7 @@ body[data-app-mode="notes"] #notes-editor-pane {
 
 .note-delete-btn:hover {
   opacity: 1 !important;
-  background: rgba(248,81,73,0.1);
+  background: rgba(248, 81, 73, 0.1);
 }
 
 /* Empty note state */
