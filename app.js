@@ -194,21 +194,27 @@ function renderSidebar() {
         esc(g.id) +
         '\')" ondragleave="handleDragLeave(event)"';
 
-    // Inline action buttons — only for user-created, non-system groups, when active
-    const actions =
-      !isSystem && isActive
-        ? '<span class="g-actions">' +
-          '<button class="g-action-btn" data-action="rename" data-id="' +
-          esc(g.id) +
-          '" title="Rename">' +
-          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-          '</button>' +
-          '<button class="g-action-btn" data-action="delete" data-id="' +
-          esc(g.id) +
-          '" title="Delete">' +
-          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
-          '</button></span>'
-        : '';
+    // Inline action buttons — shown when active
+    const renameBtn =
+      '<button class="g-action-btn" data-action="rename" data-id="' +
+      esc(g.id) +
+      '" title="Rename">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+      '</button>';
+    const deleteBtn =
+      '<button class="g-action-btn" data-action="delete" data-id="' +
+      esc(g.id) +
+      '" title="Delete">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+      '</button>';
+    let actions = '';
+    if (isActive) {
+      if (g.id === 'inbox') {
+        actions = '<span class="g-actions">' + renameBtn + '</span>';
+      } else {
+        actions = '<span class="g-actions">' + renameBtn + deleteBtn + '</span>';
+      }
+    }
 
     html +=
       '<div class="group-item' +
@@ -272,7 +278,7 @@ function renderSidebar() {
 }
 
 function renameGroup(id) {
-  if (id === 'inbox' || id === 'history') return;
+  if (id === 'history') return;
   const g = getGroup(id);
   const newName = prompt('Rename list:', g.name);
   if (newName && newName.trim()) {
@@ -286,12 +292,13 @@ function deleteGroup(id) {
   if (id === 'inbox' || id === 'history') return;
   const g = getGroup(id);
   const msg = g.isFilter
-    ? 'Delete this filter group? Tickets will not be moved to Inbox (they came from a query).'
-    : 'Delete this group? Any active tickets in it will be moved back to Inbox.';
+    ? 'Delete this filter group? (Filter tickets are not moved to History.)'
+    : 'Delete this group? Tickets will be moved to History.';
   if (confirm(msg)) {
     if (!g.isFilter) {
-      const inbox = getGroup('inbox');
-      inbox.keys.push(...g.keys);
+      for (const key of g.keys) {
+        addToHistory(key);
+      }
     }
     state.groups = state.groups.filter((x) => x.id !== id);
     if (state.activeGroupId === id) state.activeGroupId = 'inbox';
@@ -383,7 +390,6 @@ function renderMiddle() {
         openFromHistory(el.dataset.key);
       } else {
         state.activeKey = el.dataset.key;
-        addToHistory(state.activeKey);
         saveState();
         updateViewMode();
       }
@@ -568,6 +574,7 @@ function renderReading() {
   content.style.display = 'block';
 
   const key = state.activeKey;
+  addToHistory(key); // record view — deduplicates silently, updates timestamp
   const issue = issueCache[key];
   if (!issue) {
     content.innerHTML =
@@ -1168,7 +1175,6 @@ async function bindAuthImages(container) {
 function openTicketByKey(val) {
   if (!val) return;
   const key = normalise(val);
-  addToHistory(key);
   let g = getActiveGroup();
   if (g.id === 'history' || g.isFilter) {
     state.activeGroupId = 'inbox';
@@ -1200,7 +1206,6 @@ window.openFromHistory = function (key) {
   state.appMode = 'jira';
   state.activeGroupId = g.id;
   state.activeKey = key;
-  addToHistory(key);
   saveState();
   updateViewMode();
 };
