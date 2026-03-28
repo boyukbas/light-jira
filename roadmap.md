@@ -17,12 +17,14 @@
 - **Unified Search Bar** — Single smart input handles ticket keys, filter IDs, JQL, and URLs; button label adapts in real-time
 - **Group Rework** — Inbox deletable like any group; colored avatar icons; count pinned to far right; `getDefaultGroup()` fallback replaces hardcoded inbox
 - **Load from Filter/JQL** — Create groups from Jira query results (integrated into search bar)
+- **Filter Group Full Details** — Filter-loaded tickets transparently upgrade to full detail on open; partial JQL cache never blocks the reading pane
+- **Keyboard Navigation** — Arrow up/down navigates ticket list; F2 focuses search input
+- **Group Ordering** — Drag-handle (6-dot grip) on each group item to reorder in the sidebar
+- **Search within Group** — Inline filter input in the middle pane; clears on group switch
+- **Filter Group Visual** — Filter groups use a funnel badge instead of the avatar icon for instant recognition
 
 ## Backlog
 
 - **Filter Group Refresh** — Reload filter/JQL results in-place without deleting and re-adding the group
 - **Mock Atlassian Server** — Develop and test fully offline with simulated API responses
-- **Keyboard Navigation** — Arrow keys to navigate ticket list; Enter to open
 - **Bulk Actions** — Select multiple tickets and move/label/delete in one action
-- **Group Ordering** — Drag to reorder groups in the sidebar
-- **Search within Group** — Filter visible tickets in middle pane by keyword
