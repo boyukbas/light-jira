@@ -23,27 +23,51 @@ const initConfig = () => {
 
 // Route helpers — url param in page.route() is a URL object, use .toString()
 function mockIssueRoute(page, issueData) {
-  page.route(url => url.toString().includes('/rest/api/3/issue/'), async route => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(issueData) });
-  });
+  page.route(
+    (url) => url.toString().includes('/rest/api/3/issue/'),
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(issueData),
+      });
+    }
+  );
 }
 
 function mockFieldsRoute(page) {
-  page.route(url => url.toString().includes('/rest/api/3/field'), async route => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-  });
+  page.route(
+    (url) => url.toString().includes('/rest/api/3/field'),
+    async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    }
+  );
 }
 
 function mockJqlRoute(page, data) {
-  page.route(url => url.toString().includes('/rest/api/3/search/jql'), async route => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) });
-  });
+  page.route(
+    (url) => url.toString().includes('/rest/api/3/search/jql'),
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(data),
+      });
+    }
+  );
 }
 
 function mockFilterRoute(page, data) {
-  page.route(url => url.toString().includes('/rest/api/3/filter/'), async route => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) });
-  });
+  page.route(
+    (url) => url.toString().includes('/rest/api/3/filter/'),
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(data),
+      });
+    }
+  );
 }
 
 // ── 1. LAYOUT ─────────────────────────────────────────────────────────────────
@@ -145,14 +169,18 @@ test.describe('Tickets', () => {
 
     await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#reading-content')).toContainText('PROJ-123');
-    await expect(page.locator('#reading-content')).toContainText('Test ticket summary for automation');
+    await expect(page.locator('#reading-content')).toContainText(
+      'Test ticket summary for automation'
+    );
   });
 
   test('ticket key is normalised from lowercase input', async ({ page }) => {
     await page.fill('#search-input', 'proj-123');
     await page.click('#search-btn');
 
-    await expect(page.locator('#ticket-list .list-card').first()).toContainText('PROJ-123', { timeout: 5000 });
+    await expect(page.locator('#ticket-list .list-card').first()).toContainText('PROJ-123', {
+      timeout: 5000,
+    });
   });
 
   test('opening ticket via F2 shortcut works', async ({ page }) => {
@@ -162,7 +190,9 @@ test.describe('Tickets', () => {
     await page.fill('#f2-input', 'PROJ-123');
     await page.keyboard.press('Enter');
 
-    await expect(page.locator('#ticket-list .list-card').first()).toContainText('PROJ-123', { timeout: 5000 });
+    await expect(page.locator('#ticket-list .list-card').first()).toContainText('PROJ-123', {
+      timeout: 5000,
+    });
   });
 
   test('ticket added to Inbox shows count of 1 in sidebar', async ({ page }) => {
@@ -186,31 +216,30 @@ test.describe('Filters', () => {
     await page.goto('/');
   });
 
-  test('filter modal opens and closes', async ({ page }) => {
-    await page.click('#filter-btn');
-    await expect(page.locator('#filter-overlay')).not.toHaveClass(/hidden/);
+  test('button label changes to Load Filter when JQL is typed', async ({ page }) => {
+    await page.fill('#search-input', 'project = PROJ ORDER BY updated DESC');
+    await expect(page.locator('#search-btn')).toContainText('Load Filter');
 
-    await page.click('#filter-cancel');
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/);
+    await page.fill('#search-input', 'PROJ-123');
+    await expect(page.locator('#search-btn')).toContainText('Open');
   });
 
-  test('loading JQL creates a filter group with 3 tickets', async ({ page }) => {
-    await page.click('#filter-btn');
-    await page.fill('#filter-input', 'project = PROJ ORDER BY updated DESC');
-    await page.click('#filter-load');
+  test('loading JQL via search bar creates a filter group with 3 tickets', async ({ page }) => {
+    await page.fill('#search-input', 'project = PROJ ORDER BY updated DESC');
+    await page.click('#search-btn');
 
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/, { timeout: 5000 });
-    await expect(page.locator('#group-list .group-item')).toHaveCount(2); // Inbox + filter group
+    // Inbox + filter group = 2
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(3);
   });
 
   test('loading by filter ID uses filter name as group name', async ({ page }) => {
-    await page.click('#filter-btn');
-    await page.fill('#filter-input', '12345');
-    await page.click('#filter-load');
+    await page.fill('#search-input', '12345');
+    await page.click('#search-btn');
 
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/, { timeout: 5000 });
-    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Test Filter');
+    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Test Filter', {
+      timeout: 5000,
+    });
   });
 
   test('pasting filter URL in search bar loads tickets', async ({ page }) => {
@@ -221,11 +250,10 @@ test.describe('Filters', () => {
   });
 
   test('filter tickets do not appear in Inbox after switching to it', async ({ page }) => {
-    await page.click('#filter-btn');
-    await page.fill('#filter-input', 'project = PROJ');
-    await page.click('#filter-load');
+    await page.fill('#search-input', 'project = PROJ');
+    await page.click('#search-btn');
 
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/, { timeout: 5000 });
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
 
     // Switch to Inbox
     await page.locator('#group-list .group-item').first().click();
@@ -241,22 +269,24 @@ test.describe('Groups', () => {
   });
 
   test('can create a new group', async ({ page }) => {
-    page.once('dialog', dialog => dialog.accept('My New List'));
+    page.once('dialog', (dialog) => dialog.accept('My New List'));
     await page.click('#add-group-btn');
 
-    await expect(page.locator('#group-list .group-item')).toHaveCount(2); // Inbox + new
+    // Inbox + new group = 2 (History is now its own tab, not a sidebar group)
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2);
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My New List');
   });
 
-  test('can rename a group via context menu', async ({ page }) => {
-    page.once('dialog', dialog => dialog.accept('Original Name'));
+  test('can rename a group via inline action button', async ({ page }) => {
+    page.once('dialog', (dialog) => dialog.accept('Original Name'));
     await page.click('#add-group-btn');
 
-    await page.locator('#group-list .group-item').nth(1).click({ button: 'right' });
-    await expect(page.locator('#ctx-menu')).toBeVisible();
+    // Click the group to activate it (shows action buttons)
+    await page.locator('#group-list .group-item').nth(1).click();
 
-    page.once('dialog', dialog => dialog.accept('Renamed List'));
-    await page.click('#ctx-rename');
+    // Rename button appears on active group
+    page.once('dialog', (dialog) => dialog.accept('Renamed List'));
+    await page.locator('.g-action-btn[data-action="rename"]').click();
 
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('Renamed List');
   });
@@ -281,7 +311,7 @@ test.describe('Notes', () => {
 
     // The Jira-mode addEventListener fires first (shows prompt), then onclick=createNote fires.
     // Dismiss the prompt to let createNote run.
-    page.once('dialog', dialog => dialog.dismiss());
+    page.once('dialog', (dialog) => dialog.dismiss());
     await page.click('#add-group-btn');
 
     // Notes sidebar renders .note-item elements (not .group-item)
@@ -298,9 +328,10 @@ test.describe('History', () => {
     await page.goto('/');
   });
 
-  test('clicking history button activates history view', async ({ page }) => {
-    await page.click('#history-toggle-btn');
-    await expect(page.locator('body')).toHaveAttribute('data-active-view', 'history');
+  test('clicking history tab switches to history mode', async ({ page }) => {
+    await page.click('#tab-history');
+    await expect(page.locator('#tab-history')).toHaveClass(/active/);
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'history');
   });
 
   test('opening a ticket persists it in history state', async ({ page }) => {
@@ -312,7 +343,7 @@ test.describe('History', () => {
     // Check history group in localStorage
     const histCount = await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
-      const hist = (s.groups || []).find(g => g.id === 'history');
+      const hist = (s.groups || []).find((g) => g.id === 'history');
       return hist ? hist.keys.length : 0;
     });
     expect(histCount).toBeGreaterThan(0);

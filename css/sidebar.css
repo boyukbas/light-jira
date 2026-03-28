@@ -3,35 +3,126 @@
   width: 240px;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  flex-shrink: 0; padding: 0 8px 12px 0; gap: 4px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 0 8px 12px 0;
+  gap: 4px;
   overflow: hidden;
   transition: width 0.1s ease;
 }
-#sidebar.collapsed { width: 48px !important; padding-right: 0; }
-#sidebar.collapsed .g-name, 
-#sidebar.collapsed .count, 
+#sidebar.collapsed {
+  width: 48px !important;
+  padding-right: 0;
+}
+#sidebar.collapsed .g-name,
+#sidebar.collapsed .count,
 #sidebar.collapsed .middle-header span:not(.collapse-btn),
-#sidebar.collapsed #add-group-btn span { display: none; }
-#sidebar.collapsed .collapse-btn { transform: rotate(180deg); margin: 0 auto; }
-#sidebar.collapsed .group-item { justify-content: center; padding: 8px 0; }
+#sidebar.collapsed #add-group-btn span {
+  display: none;
+}
+#sidebar.collapsed .collapse-btn {
+  transform: rotate(180deg);
+  margin: 0 auto;
+}
+#sidebar.collapsed .group-item {
+  justify-content: center;
+  padding: 8px 0;
+}
 
 .group-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; border-radius: 6px; cursor: pointer;
-  color: var(--text-secondary); font-size: 14px; font-weight: 500;
-  user-select: none; transition: var(--transition); border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+  transition: var(--transition);
+  border: 2px solid transparent;
 }
-.group-item .count { background: rgba(110,118,129,0.2); font-size: 11px; padding: 2px 6px; border-radius: 10px; }
-.group-item.drag-over { border-color: var(--accent); background: var(--surface-hover); }
-.group-item:hover { background: var(--bg); color: var(--text-primary); }
-.group-item.active { background: var(--accent-muted); color: var(--accent); font-weight: 600; }
-.group-item.active .count { background: var(--accent); color: #0d1117; }
+.group-item .av-badge {
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.g-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-item .count {
+  background: rgba(110, 118, 129, 0.2);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.group-item.drag-over {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+.group-item:hover {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+.group-item.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-weight: 600;
+}
+.group-item.active .count {
+  background: var(--accent);
+  color: #0d1117;
+}
+
+.g-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.g-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: var(--transition);
+}
+.g-action-btn:hover {
+  opacity: 1;
+  background: var(--surface-hover);
+}
+.g-action-btn[data-action='delete']:hover {
+  color: var(--red);
+}
 
 #add-group-btn {
-  background: transparent; border: 1px dashed var(--border); color: var(--text-tertiary);
-  margin-top: 12px; padding: 10px; border-radius: 6px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: var(--transition); width: 100%;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-tertiary);
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  width: 100%;
 }
-#add-group-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); background: var(--bg); }
+#add-group-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg);
+}
