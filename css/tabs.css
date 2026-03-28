@@ -42,17 +42,17 @@
   flex-shrink: 0;
 }
 
-/* ── HISTORY VIEW LAYOUT ── */
-body[data-active-view='history'] #middle,
-body[data-active-view='history'] #resizer-middle,
-body[data-active-view='history'] #reading,
-body[data-active-view='history'] #resizer-notes,
-body[data-active-view='history'] #notes-pane,
-body[data-active-view='history'] #notes-editor-pane {
+/* ── HISTORY TAB LAYOUT ── */
+body[data-app-mode='history'] #middle,
+body[data-app-mode='history'] #resizer-middle,
+body[data-app-mode='history'] #reading,
+body[data-app-mode='history'] #resizer-notes,
+body[data-app-mode='history'] #notes-pane,
+body[data-app-mode='history'] #notes-editor-pane {
   display: none !important;
 }
 
-body[data-active-view='history'] #history-pane {
+body[data-app-mode='history'] #history-pane {
   flex: 1;
   display: flex;
   flex-direction: column;

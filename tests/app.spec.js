@@ -230,8 +230,8 @@ test.describe('Filters', () => {
     await page.click('#filter-load');
 
     await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/, { timeout: 5000 });
-    // Inbox + filter group + History = 3
-    await expect(page.locator('#group-list .group-item')).toHaveCount(3);
+    // Inbox + filter group = 2 (History is now its own tab, not a sidebar group)
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2);
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(3);
   });
 
@@ -275,8 +275,8 @@ test.describe('Groups', () => {
     page.once('dialog', (dialog) => dialog.accept('My New List'));
     await page.click('#add-group-btn');
 
-    // Inbox + new group + History = 3
-    await expect(page.locator('#group-list .group-item')).toHaveCount(3);
+    // Inbox + new group = 2 (History is now its own tab, not a sidebar group)
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2);
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My New List');
   });
 
@@ -331,10 +331,10 @@ test.describe('History', () => {
     await page.goto('/');
   });
 
-  test('clicking history button selects the History group', async ({ page }) => {
-    await page.click('#history-toggle-btn');
-    // History group becomes the active group in the sidebar
-    await expect(page.locator('#group-list .group-item.active')).toContainText('History');
+  test('clicking history tab switches to history mode', async ({ page }) => {
+    await page.click('#tab-history');
+    await expect(page.locator('#tab-history')).toHaveClass(/active/);
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'history');
   });
 
   test('opening a ticket persists it in history state', async ({ page }) => {
