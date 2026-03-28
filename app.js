@@ -1090,32 +1090,6 @@ async function runFilterLoad(rawInput, customName = '') {
   toast('Loaded ' + keys.length + ' tickets into "' + groupName + '"', 'success');
 }
 
-async function handleLoadFilter() {
-  const input = document.getElementById('filter-input').value.trim();
-  const customName = document.getElementById('filter-group-name').value.trim();
-  if (!input) return toast('Please enter a filter URL or JQL', 'error');
-
-  const btn = document.getElementById('filter-load');
-  btn.disabled = true;
-  btn.textContent = 'Loading...';
-  try {
-    await runFilterLoad(input, customName);
-    closeFilterModal();
-  } catch (err) {
-    console.error('Filter load error:', err);
-    toast('Error loading filter: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Load Tickets';
-  }
-}
-
-function closeFilterModal() {
-  document.getElementById('filter-overlay').classList.add('hidden');
-  document.getElementById('filter-input').value = '';
-  document.getElementById('filter-group-name').value = '';
-}
-
 // ── DRAG AND DROP ─────────────────────────────────────────────────────────────
 window.handleDragStart = (e, key) => {
   draggedKey = key;
@@ -1399,29 +1373,52 @@ function init() {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
+  const searchInput = document.getElementById('search-input');
+  const searchBtn = document.getElementById('search-btn');
+
+  function classifySearchInput(val) {
+    const t = val.trim();
+    if (!t) return 'open';
+    if (/^\d+$/.test(t)) return 'filter'; // numeric filter ID
+    if (t.startsWith('http')) {
+      try {
+        const u = new URL(t);
+        if (u.searchParams.get('filter') || u.searchParams.get('jql')) return 'filter';
+      } catch {}
+      return 'open'; // browse URL → single ticket
+    }
+    const upper = t.toUpperCase();
+    if (/^[A-Z][A-Z0-9]+-\d+$/.test(upper)) return 'open'; // ticket key
+    return 'filter'; // everything else is JQL
+  }
+
+  searchInput.addEventListener('input', () => {
+    const kind = classifySearchInput(searchInput.value);
+    searchBtn.textContent = kind === 'filter' ? 'Load Filter' : 'Open';
+  });
+
   document.getElementById('search-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const input = document.getElementById('search-input');
-    const val = input.value.trim();
+    const val = searchInput.value.trim();
     if (!val) return;
 
-    const parsed = parseFilterInput(val);
-    if (parsed.type === 'filterId' || (val.startsWith('http') && parsed.type === 'jql')) {
-      const btn = document.getElementById('search-btn');
-      btn.disabled = true;
-      btn.textContent = 'Loading...';
+    if (classifySearchInput(val) === 'filter') {
+      searchBtn.disabled = true;
+      searchBtn.textContent = 'Loading…';
       try {
         await runFilterLoad(val);
-        input.value = '';
+        searchInput.value = '';
+        searchBtn.textContent = 'Open';
       } catch (err) {
         toast('Error loading filter: ' + err.message, 'error');
+        searchBtn.textContent = 'Load Filter';
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Open Ticket';
+        searchBtn.disabled = false;
       }
     } else {
       openTicketByKey(val);
-      input.value = '';
+      searchInput.value = '';
+      searchBtn.textContent = 'Open';
     }
   });
 
@@ -1469,19 +1466,6 @@ function init() {
     btn.style.opacity = '1';
     renderMiddle();
     if (state.activeKey) renderReading();
-  });
-
-  // Filter Modal
-  document.getElementById('filter-btn').addEventListener('click', () => {
-    document.getElementById('filter-overlay').classList.remove('hidden');
-    document.getElementById('filter-input').focus();
-  });
-  document.getElementById('filter-close').addEventListener('click', closeFilterModal);
-  document.getElementById('filter-cancel').addEventListener('click', closeFilterModal);
-  document.getElementById('filter-load').addEventListener('click', handleLoadFilter);
-  document.getElementById('filter-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleLoadFilter();
-    if (e.key === 'Escape') closeFilterModal();
   });
 
   document.getElementById('settings-btn').addEventListener('click', () => {

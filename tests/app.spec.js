@@ -216,32 +216,30 @@ test.describe('Filters', () => {
     await page.goto('/');
   });
 
-  test('filter modal opens and closes', async ({ page }) => {
-    await page.click('#filter-btn');
-    await expect(page.locator('#filter-overlay')).not.toHaveClass(/hidden/);
+  test('button label changes to Load Filter when JQL is typed', async ({ page }) => {
+    await page.fill('#search-input', 'project = PROJ ORDER BY updated DESC');
+    await expect(page.locator('#search-btn')).toContainText('Load Filter');
 
-    await page.click('#filter-cancel');
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/);
+    await page.fill('#search-input', 'PROJ-123');
+    await expect(page.locator('#search-btn')).toContainText('Open');
   });
 
-  test('loading JQL creates a filter group with 3 tickets', async ({ page }) => {
-    await page.click('#filter-btn');
-    await page.fill('#filter-input', 'project = PROJ ORDER BY updated DESC');
-    await page.click('#filter-load');
+  test('loading JQL via search bar creates a filter group with 3 tickets', async ({ page }) => {
+    await page.fill('#search-input', 'project = PROJ ORDER BY updated DESC');
+    await page.click('#search-btn');
 
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/, { timeout: 5000 });
-    // Inbox + filter group = 2 (History is now its own tab, not a sidebar group)
-    await expect(page.locator('#group-list .group-item')).toHaveCount(2);
+    // Inbox + filter group = 2
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(3);
   });
 
   test('loading by filter ID uses filter name as group name', async ({ page }) => {
-    await page.click('#filter-btn');
-    await page.fill('#filter-input', '12345');
-    await page.click('#filter-load');
+    await page.fill('#search-input', '12345');
+    await page.click('#search-btn');
 
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/, { timeout: 5000 });
-    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Test Filter');
+    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Test Filter', {
+      timeout: 5000,
+    });
   });
 
   test('pasting filter URL in search bar loads tickets', async ({ page }) => {
@@ -252,11 +250,10 @@ test.describe('Filters', () => {
   });
 
   test('filter tickets do not appear in Inbox after switching to it', async ({ page }) => {
-    await page.click('#filter-btn');
-    await page.fill('#filter-input', 'project = PROJ');
-    await page.click('#filter-load');
+    await page.fill('#search-input', 'project = PROJ');
+    await page.click('#search-btn');
 
-    await expect(page.locator('#filter-overlay')).toHaveClass(/hidden/, { timeout: 5000 });
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
 
     // Switch to Inbox
     await page.locator('#group-list .group-item').first().click();
