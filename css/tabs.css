@@ -43,6 +43,8 @@
 }
 
 /* ── HISTORY TAB LAYOUT ── */
+body[data-app-mode='history'] #sidebar,
+body[data-app-mode='history'] #resizer-sidebar,
 body[data-app-mode='history'] #middle,
 body[data-app-mode='history'] #resizer-middle,
 body[data-app-mode='history'] #reading,
