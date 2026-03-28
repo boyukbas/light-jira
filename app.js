@@ -53,7 +53,10 @@ function loadState() {
       };
     if (!state.appMode) state.appMode = 'jira';
     // History is now a tab — activeGroupId should never be 'history'
-    if (state.activeGroupId === 'history') state.activeGroupId = 'inbox';
+    if (state.activeGroupId === 'history') {
+      const first = state.groups.find((g) => g.id !== 'history');
+      state.activeGroupId = first ? first.id : 'inbox';
+    }
     if (!state.standAloneNotes) state.standAloneNotes = [];
     if (state.activeNoteId === undefined) state.activeNoteId = null;
 
@@ -78,6 +81,14 @@ function getGroup(id) {
 }
 function getActiveGroup() {
   return getGroup(state.activeGroupId);
+}
+// First non-history, non-filter group — the safe fallback for any "home" operation
+function getDefaultGroup() {
+  return (
+    state.groups.find((g) => g.id !== 'history' && !g.isFilter) ||
+    state.groups.find((g) => g.id !== 'history') ||
+    state.groups[0]
+  );
 }
 
 function updateViewMode() {
@@ -176,25 +187,16 @@ function renderSidebar() {
   for (const g of state.groups) {
     if (g.id === 'history') continue; // history is now its own tab
     const isActive = state.activeGroupId === g.id;
-    const isSystem = g.id === 'inbox';
     const activeClass = isActive ? ' active' : '';
-    const keyCount = g.id === 'history' ? g.keys.length : g.keys.length;
 
-    // Icon: clock for history, letter badge for all others
-    const icon =
-      g.id === 'history'
-        ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-right:8px;"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>'
-        : '<span class="av-badge av-sm" style="background:var(--border);color:var(--text-tertiary);margin-right:8px;font-size:10px;">' +
-          g.name[0].toUpperCase() +
-          '</span>';
+    const icon = avBadge(g.name, 'av-sm');
 
-    const dragAttrs = isSystem
-      ? ''
-      : 'ondragover="handleDragOver(event)" ondrop="handleDropToGroup(event, \'' +
-        esc(g.id) +
-        '\')" ondragleave="handleDragLeave(event)"';
+    const dragAttrs =
+      'ondragover="handleDragOver(event)" ondrop="handleDropToGroup(event, \'' +
+      esc(g.id) +
+      '\')" ondragleave="handleDragLeave(event)"';
 
-    // Inline action buttons — shown when active
+    // Inline action buttons (rename + delete) — shown when active
     const renameBtn =
       '<button class="g-action-btn" data-action="rename" data-id="' +
       esc(g.id) +
@@ -207,15 +209,9 @@ function renderSidebar() {
       '" title="Delete">' +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
       '</button>';
-    let actions = '';
-    if (isActive) {
-      if (g.id === 'inbox') {
-        actions = '<span class="g-actions">' + renameBtn + '</span>';
-      } else {
-        actions = '<span class="g-actions">' + renameBtn + deleteBtn + '</span>';
-      }
-    }
+    const actions = isActive ? '<span class="g-actions">' + renameBtn + deleteBtn + '</span>' : '';
 
+    // order: icon | name [flex] | actions | count — count always at far right
     html +=
       '<div class="group-item' +
       activeClass +
@@ -228,10 +224,10 @@ function renderSidebar() {
       '<span class="g-name">' +
       esc(g.name) +
       '</span>' +
-      '<span class="count">' +
-      keyCount +
-      '</span>' +
       actions +
+      '<span class="count">' +
+      g.keys.length +
+      '</span>' +
       '</div>';
   }
   list.innerHTML = html;
@@ -278,7 +274,6 @@ function renderSidebar() {
 }
 
 function renameGroup(id) {
-  if (id === 'history') return;
   const g = getGroup(id);
   const newName = prompt('Rename list:', g.name);
   if (newName && newName.trim()) {
@@ -289,7 +284,7 @@ function renameGroup(id) {
 }
 
 function deleteGroup(id) {
-  if (id === 'inbox' || id === 'history') return;
+  if (id === 'history') return;
   const g = getGroup(id);
   const msg = g.isFilter
     ? 'Delete this filter group? (Filter tickets are not moved to History.)'
@@ -301,7 +296,9 @@ function deleteGroup(id) {
       }
     }
     state.groups = state.groups.filter((x) => x.id !== id);
-    if (state.activeGroupId === id) state.activeGroupId = 'inbox';
+    if (state.activeGroupId === id) {
+      state.activeGroupId = getDefaultGroup()?.id || state.groups[0]?.id;
+    }
     saveState();
     updateViewMode();
   }
@@ -1151,8 +1148,8 @@ function openTicketByKey(val) {
   const key = normalise(val);
   let g = getActiveGroup();
   if (g.id === 'history' || g.isFilter) {
-    state.activeGroupId = 'inbox';
-    g = getGroup('inbox');
+    g = getDefaultGroup();
+    state.activeGroupId = g.id;
   }
   if (g.keys.includes(key)) {
     toast(key + ' is already in this list');
@@ -1175,7 +1172,7 @@ window.addToHistory = function (key) {
 };
 
 window.openFromHistory = function (key) {
-  let g = state.groups.find((x) => x.id !== 'history' && x.keys.includes(key)) || getGroup('inbox');
+  let g = state.groups.find((x) => x.id !== 'history' && x.keys.includes(key)) || getDefaultGroup();
   if (!g.keys.includes(key)) g.keys.unshift(key);
   state.appMode = 'jira';
   state.activeGroupId = g.id;

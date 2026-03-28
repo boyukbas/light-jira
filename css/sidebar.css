@@ -33,7 +33,6 @@
 .group-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -44,11 +43,24 @@
   transition: var(--transition);
   border: 2px solid transparent;
 }
+.group-item .av-badge {
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.g-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .group-item .count {
   background: rgba(110, 118, 129, 0.2);
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 10px;
+  margin-left: 4px;
+  flex-shrink: 0;
 }
 .group-item.drag-over {
   border-color: var(--accent);
