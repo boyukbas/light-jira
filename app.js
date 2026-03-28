@@ -79,7 +79,9 @@ function getActiveGroup() {
 }
 
 function updateViewMode() {
+  const isHist = state.appMode !== 'notes' && state.activeGroupId === 'history';
   document.body.setAttribute('data-app-mode', state.appMode);
+  document.body.setAttribute('data-active-view', isHist ? 'history' : 'normal');
 
   // Update tab bar
   document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
@@ -108,8 +110,12 @@ function updateViewMode() {
     renderNoteEditor();
   } else {
     renderSidebar();
-    renderMiddle();
-    renderReading();
+    if (isHist) {
+      renderHistoryTable();
+    } else {
+      renderMiddle();
+      renderReading();
+    }
   }
 }
 
@@ -396,6 +402,136 @@ function removeTicket(key) {
   if (state.activeKey === key) state.activeKey = null;
   saveState();
   updateViewMode();
+}
+
+// ── RENDER HISTORY TABLE ──────────────────────────────────────────────────────
+function renderHistoryTable() {
+  const pane = document.getElementById('history-pane');
+  if (!pane) return;
+  const hist = getGroup('history');
+  const cfg = loadConfig();
+  const limit = parseInt(cfg.historyLimit) || 100;
+  const entries = hist.keys.slice(0, limit);
+
+  if (!entries.length) {
+    pane.innerHTML =
+      '<div class="ht-empty">' +
+      '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="color:var(--text-tertiary)">' +
+      '<path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>' +
+      '</svg>' +
+      '<h3>No history yet</h3>' +
+      '<p>Open tickets to build your history.</p>' +
+      '</div>';
+    return;
+  }
+
+  const cfg2 = loadConfig();
+  const shown = entries.length;
+  const total = hist.keys.length;
+  const headerRight =
+    total > shown ? shown + ' of ' + total + ' shown' : shown + ' item' + (shown === 1 ? '' : 's');
+
+  let html =
+    '<div class="middle-header">' +
+    '<span>History</span>' +
+    '<span style="font-size:11px;color:var(--text-tertiary);font-weight:400;">' +
+    esc(headerRight) +
+    '</span>' +
+    '</div>' +
+    '<div class="ht-scroll">' +
+    '<table class="ht-table">' +
+    '<thead><tr>' +
+    '<th class="ht-col-key">Key</th>' +
+    '<th class="ht-col-summary">Summary</th>' +
+    '<th class="ht-col-status">Status</th>' +
+    '<th class="ht-col-priority">Priority</th>' +
+    '<th class="ht-col-assignee">Assignee</th>' +
+    '<th class="ht-col-viewed">Viewed</th>' +
+    '<th class="ht-col-remove"></th>' +
+    '</tr></thead>' +
+    '<tbody>';
+
+  for (const entry of entries) {
+    const key = typeof entry === 'string' ? entry : entry.key;
+    const added = typeof entry === 'object' ? entry.added : null;
+    const issue = issueCache[key];
+    const f = issue ? issue.fields || {} : null;
+    const loaded = f !== null;
+
+    const summary = loaded ? f.summary || '—' : 'Loading…';
+    const status = loaded ? (f.status ? f.status.name : '—') : '';
+    const priority = loaded ? (f.priority ? f.priority.name : '—') : '';
+    const assignee = loaded ? (f.assignee ? f.assignee.displayName : '—') : '';
+    const viewed = added ? relDate(added) : '';
+    const statusCls =
+      loaded && f.status ? statusClass(f.status?.statusCategory?.name || status) : '';
+
+    html +=
+      '<tr class="ht-row" data-key="' +
+      esc(key) +
+      '">' +
+      '<td class="ht-cell ht-key-cell"><span class="ht-key-text">' +
+      esc(key) +
+      '</span></td>' +
+      '<td class="ht-cell ht-summary-cell">' +
+      (loaded ? esc(summary) : '<span class="ht-loading">' + esc(summary) + '</span>') +
+      '</td>' +
+      '<td class="ht-cell">' +
+      (status
+        ? '<span class="status-badge ' + statusCls + '">' + esc(status) + '</span>'
+        : loaded
+          ? '—'
+          : '<span class="ht-loading">…</span>') +
+      '</td>' +
+      '<td class="ht-cell">' +
+      esc(priority) +
+      '</td>' +
+      '<td class="ht-cell">' +
+      esc(assignee) +
+      '</td>' +
+      '<td class="ht-cell ht-viewed-cell">' +
+      esc(viewed) +
+      '</td>' +
+      '<td class="ht-cell ht-remove-cell"><button class="ht-remove-btn" data-key="' +
+      esc(key) +
+      '" title="Remove from history">✕</button></td>' +
+      '</tr>';
+  }
+
+  html += '</tbody></table></div>';
+  pane.innerHTML = html;
+
+  pane.querySelectorAll('.ht-row').forEach((row) => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.ht-remove-btn')) return;
+      openFromHistory(row.dataset.key);
+    });
+  });
+
+  pane.querySelectorAll('.ht-remove-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeTicket(btn.dataset.key);
+    });
+  });
+
+  // Fetch uncached items asynchronously, then refresh table when each arrives
+  const uncached = entries.filter((e) => {
+    const k = typeof e === 'string' ? e : e.key;
+    return !issueCache[k];
+  });
+  uncached.forEach(async (entry) => {
+    const key = typeof entry === 'string' ? entry : entry.key;
+    try {
+      await fetchIssue(key);
+      saveState();
+      if (state.activeGroupId === 'history' && state.appMode !== 'notes') {
+        renderHistoryTable();
+      }
+    } catch (_) {
+      // leave the row as "Loading…" — network may be unavailable
+    }
+  });
 }
 
 async function loadAllGroupTickets() {
