@@ -2,7 +2,7 @@
 
 **A high-performance, minimalist Jira client built for speed and deep productivity.**
 
-Light Jira is a PWA designed to replace heavy Jira tabs with a streamlined three-pane interface. Organise tickets into custom groups, keep private notes, load from JQL filters, and maintain a history of everything you view — all cached locally for offline access.
+Light Jira is a PWA designed to replace heavy Jira tabs with a streamlined three-pane interface. Organise tickets into custom groups, keep private notes, load from JQL filters, and maintain a full browsing history — all cached locally for offline access.
 
 ---
 
@@ -10,14 +10,16 @@ Light Jira is a PWA designed to replace heavy Jira tabs with a streamlined three
 
 - **Performance-First** — Pure vanilla JS. No framework overhead, instant loads.
 - **Three-Pane Layout** — Sidebar groups → ticket list → reading pane.
-- **Grouped Workflow** — Inbox, custom lists, and filter-loaded groups.
-- **Filter & JQL Loading** — Paste a filter URL or write JQL to populate a group.
-- **Standalone Notes** — A separate note-taking mode with title, body, and screenshots.
-- **Label Intelligence** — Tag tickets; click a label to view all tagged tickets.
+- **Smart Search Bar** — Single input handles ticket keys, filter IDs, JQL queries, and Jira URLs. Button label adapts in real-time: `Open` vs `Load Filter`.
+- **Flexible Groups** — Create, rename, and delete custom lists. Any group (including Inbox) can be deleted; its tickets move to History automatically.
+- **Filter & JQL Loading** — Paste a filter URL, enter a filter ID, or write raw JQL to populate a group.
+- **History Tab** — Full-width grid table of every ticket you've viewed, with Status, Assignee, Created, and Last Viewed columns. Populated only when a ticket is actually opened — filter loads don't pollute it.
+- **Standalone Notes** — A separate note-taking mode with title, body, auto-save, and screenshot paste (Ctrl+V).
+- **Label Intelligence** — Tag tickets; click a label to view all tickets with that label.
 - **Ticket Hierarchy** — Parent chain displayed up to the top-level Epic.
-- **History Tracking** — Every opened ticket is tracked as a sidebar group.
+- **Linked Tickets** — Linked issues open inside the app; external Jira link available per ticket.
 - **Offline Persistence** — All ticket data, notes, and screenshots cached in localStorage.
-- **Quick Open (F2)** — Press `F2` to open any ticket by key, URL, or filter.
+- **Quick Open (F2)** — Press `F2` to jump to any ticket by key, URL, or filter.
 - **PWA Ready** — Install as a desktop or mobile app.
 
 ---
@@ -43,15 +45,15 @@ Click the **gear icon** and enter:
 - **Jira URL** — e.g. `https://company.atlassian.net`
 
 ### Cloud Deployment (GitHub Pages)
-Use the included `lambda_handler.js` + `main.tf` to deploy a CORS-bridging AWS Lambda, then paste the Function URL into **Cloud Proxy URL** in settings.
+Use the included `lambda_handler.mjs` + `main.tf` to deploy a CORS-bridging AWS Lambda, then paste the Function URL into **Cloud Proxy URL** in settings.
 
 ---
 
 ## Development
 
 ```bash
-npm run lint        # all checks (CSS + classes + format)
-npm test            # Playwright E2E tests (26 tests, API mocked)
+npm run lint        # all checks (CSS + class names + formatting)
+npm test            # Playwright E2E tests (26 tests, all API calls mocked)
 npm run test:ui     # Playwright with interactive UI
 npm run format      # auto-fix formatting
 ```
@@ -61,8 +63,8 @@ npm run format      # auto-fix formatting
 ## Stack
 
 - **Core** — Vanilla JavaScript / HTML5 / CSS3
-- **Storage** — `localStorage` (state, cache, screenshots)
-- **Proxy** — Node.js `http` module (`proxy.js`)
+- **Storage** — `localStorage` (state, issue cache, screenshots)
+- **Proxy** — Node.js `http` module (`proxy.js`) or AWS Lambda (`lambda_handler.mjs`)
 - **Tests** — Playwright E2E
 
 ---
