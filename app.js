@@ -1162,6 +1162,19 @@ async function runFilterLoad(rawInput, customName = '') {
     if (issueCache[iss.key]?.fields?.description === undefined) issueCache[iss.key] = iss;
     return iss.key;
   });
+
+  // Duplicate check: if a filter group with the same JQL already exists, reload it
+  const existing = state.groups.find((g) => g.isFilter && g.query === jql);
+  if (existing) {
+    existing.keys = keys;
+    state.activeGroupId = existing.id;
+    state.activeKey = keys[0];
+    saveState();
+    updateViewMode();
+    toast('Filter reloaded: ' + keys.length + ' tickets in "' + existing.name + '"', 'success');
+    return;
+  }
+
   const id = 'filter_' + Date.now();
   insertGroupBeforeHistory({ id, name: groupName, keys, query: jql, isFilter: true });
   state.activeGroupId = id;
