@@ -158,3 +158,159 @@
   opacity: 1 !important;
   background: rgba(248, 81, 73, 0.1);
 }
+
+/* ── HISTORY TABLE ── */
+#history-pane {
+  display: none;
+  overflow: hidden;
+}
+
+.ht-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.ht-empty h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ht-empty p {
+  margin: 0;
+}
+
+.ht-scroll {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ht-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ht-table thead th {
+  background: var(--surface);
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.ht-col-key {
+  width: 100px;
+}
+
+.ht-col-summary {
+  min-width: 200px;
+}
+
+.ht-col-status {
+  width: 120px;
+}
+
+.ht-col-priority {
+  width: 90px;
+}
+
+.ht-col-assignee {
+  width: 140px;
+}
+
+.ht-col-viewed {
+  width: 90px;
+}
+
+.ht-col-remove {
+  width: 36px;
+}
+
+.ht-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.1s;
+}
+
+.ht-row:hover {
+  background: var(--surface);
+}
+
+.ht-cell {
+  padding: 10px 12px;
+  vertical-align: middle;
+  overflow: hidden;
+}
+
+.ht-key-cell {
+  white-space: nowrap;
+}
+
+.ht-key-text {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ht-summary-cell {
+  max-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.ht-viewed-cell {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ht-remove-cell {
+  text-align: center;
+}
+
+.ht-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  opacity: 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.ht-row:hover .ht-remove-btn {
+  opacity: 0.6;
+}
+
+.ht-remove-btn:hover {
+  opacity: 1 !important;
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.ht-loading {
+  color: var(--text-tertiary);
+  font-style: italic;
+}

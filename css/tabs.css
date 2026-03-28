@@ -35,28 +35,46 @@
 .tab-btn.active {
   background: var(--accent-muted);
   color: var(--accent);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .tab-btn svg {
   flex-shrink: 0;
 }
 
-/* ── NOTES MODE LAYOUT ── */
-body[data-app-mode="notes"] #app-body > #middle,
-body[data-app-mode="notes"] #resizer-middle,
-body[data-app-mode="notes"] #reading,
-body[data-app-mode="notes"] #resizer-notes,
-body[data-app-mode="notes"] #notes-pane,
-body[data-app-mode="notes"] #history-pane {
+/* ── HISTORY VIEW LAYOUT ── */
+body[data-active-view='history'] #middle,
+body[data-active-view='history'] #resizer-middle,
+body[data-active-view='history'] #reading,
+body[data-active-view='history'] #resizer-notes,
+body[data-active-view='history'] #notes-pane,
+body[data-active-view='history'] #notes-editor-pane {
   display: none !important;
 }
 
-body[data-app-mode="notes"] #sidebar {
+body[data-active-view='history'] #history-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── NOTES MODE LAYOUT ── */
+body[data-app-mode='notes'] #app-body > #middle,
+body[data-app-mode='notes'] #resizer-middle,
+body[data-app-mode='notes'] #reading,
+body[data-app-mode='notes'] #resizer-notes,
+body[data-app-mode='notes'] #notes-pane,
+body[data-app-mode='notes'] #history-pane {
+  display: none !important;
+}
+
+body[data-app-mode='notes'] #sidebar {
   border-right: none;
 }
 
-body[data-app-mode="notes"] #notes-editor-pane {
+body[data-app-mode='notes'] #notes-editor-pane {
   display: flex !important;
 }
 
@@ -236,7 +254,7 @@ body[data-app-mode="notes"] #notes-editor-pane {
 
 .note-delete-btn:hover {
   opacity: 1 !important;
-  background: rgba(248,81,73,0.1);
+  background: rgba(248, 81, 73, 0.1);
 }
 
 /* Empty note state */
