@@ -14,7 +14,8 @@
 }
 #middle.collapsed #current-group-name,
 #middle.collapsed #ticket-list,
-#middle.collapsed #refresh-all-btn {
+#middle.collapsed #refresh-all-btn,
+#middle.collapsed #group-search-bar {
   display: none;
 }
 #middle.collapsed .middle-header {
@@ -48,6 +49,33 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+#group-search-bar {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+#group-search-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+#group-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+#group-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
 #ticket-list {
   flex: 1;
   overflow-y: auto;

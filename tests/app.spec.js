@@ -183,11 +183,11 @@ test.describe('Tickets', () => {
     });
   });
 
-  test('opening ticket via F2 shortcut works', async ({ page }) => {
+  test('F2 focuses the search input and opening a ticket works', async ({ page }) => {
     await page.keyboard.press('F2');
-    await expect(page.locator('#f2-modal')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#search-input')).toBeFocused();
 
-    await page.fill('#f2-input', 'PROJ-123');
+    await page.fill('#search-input', 'PROJ-123');
     await page.keyboard.press('Enter');
 
     await expect(page.locator('#ticket-list .list-card').first()).toContainText('PROJ-123', {

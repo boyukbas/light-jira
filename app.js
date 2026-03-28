@@ -20,7 +20,9 @@ let state = {
   activeNoteId: null,
 };
 
-let draggedKey = null; // for drag & drop
+let draggedKey = null; // for ticket drag & drop
+let draggedGroupId = null; // for group reordering drag
+let groupSearchQuery = ''; // current keyword filter in the middle pane
 let screenshotStore = {}; // id -> data URL (stored separately from state to manage size)
 
 function loadState() {
@@ -189,7 +191,21 @@ function renderSidebar() {
     const isActive = state.activeGroupId === g.id;
     const activeClass = isActive ? ' active' : '';
 
-    const icon = avBadge(g.name, 'av-sm');
+    const dragHandle =
+      '<span class="g-drag-handle" draggable="true" ondragstart="handleGroupDragStart(event, \'' +
+      esc(g.id) +
+      '\')" title="Drag to reorder">' +
+      '<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">' +
+      '<circle cx="3" cy="2" r="1.2"/><circle cx="7" cy="2" r="1.2"/>' +
+      '<circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/>' +
+      '<circle cx="3" cy="12" r="1.2"/><circle cx="7" cy="12" r="1.2"/>' +
+      '</svg></span>';
+
+    const icon = g.isFilter
+      ? '<span class="g-filter-badge" title="Filter group">' +
+        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
+        '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span>'
+      : avBadge(g.name, 'av-sm');
 
     const dragAttrs =
       'ondragover="handleDragOver(event)" ondrop="handleDropToGroup(event, \'' +
@@ -211,7 +227,7 @@ function renderSidebar() {
       '</button>';
     const actions = isActive ? '<span class="g-actions">' + renameBtn + deleteBtn + '</span>' : '';
 
-    // order: icon | name [flex] | actions | count — count always at far right
+    // order: drag-handle | icon | name [flex] | actions | count
     html +=
       '<div class="group-item' +
       activeClass +
@@ -220,6 +236,7 @@ function renderSidebar() {
       '" ' +
       dragAttrs +
       '>' +
+      dragHandle +
       icon +
       '<span class="g-name">' +
       esc(g.name) +
@@ -234,7 +251,11 @@ function renderSidebar() {
 
   list.querySelectorAll('.group-item').forEach((el) => {
     el.addEventListener('click', (e) => {
-      if (e.target.closest('.g-action-btn')) return; // handled separately
+      if (e.target.closest('.g-action-btn') || e.target.closest('.g-drag-handle')) return;
+      // Clear middle-pane search when switching groups
+      groupSearchQuery = '';
+      const gsi = document.getElementById('group-search-input');
+      if (gsi) gsi.value = '';
       state.appMode = 'jira';
       state.activeGroupId = el.dataset.id;
       const g = getGroup(state.activeGroupId);
@@ -330,14 +351,26 @@ function renderMiddle() {
 
   const list = document.getElementById('ticket-list');
   if (!list) return;
-  if (!group.keys.length) {
-    list.innerHTML =
-      '<div class="empty-msg">No tickets in this list.<br>Search a key to add one.</div>';
+
+  const q = groupSearchQuery.toLowerCase().trim();
+  const visibleKeys = q
+    ? group.keys.filter((entry) => {
+        const key = typeof entry === 'string' ? entry : entry.key;
+        if (key.toLowerCase().includes(q)) return true;
+        const summary = issueCache[key]?.fields?.summary || '';
+        return summary.toLowerCase().includes(q);
+      })
+    : group.keys;
+
+  if (!visibleKeys.length) {
+    list.innerHTML = q
+      ? '<div class="empty-msg">No tickets match "<strong>' + esc(q) + '</strong>".</div>'
+      : '<div class="empty-msg">No tickets in this list.<br>Search a key to add one.</div>';
     return;
   }
 
   let html = '';
-  for (const entry of group.keys) {
+  for (const entry of visibleKeys) {
     const key = typeof entry === 'string' ? entry : entry.key;
     const addedDate = typeof entry === 'object' && entry.added ? relDate(entry.added) : null;
     const active = state.activeKey === key ? ' active' : '';
@@ -1141,6 +1174,13 @@ async function runFilterLoad(rawInput, customName = '') {
 // ── DRAG AND DROP ─────────────────────────────────────────────────────────────
 window.handleDragStart = (e, key) => {
   draggedKey = key;
+  draggedGroupId = null;
+};
+window.handleGroupDragStart = (e, groupId) => {
+  draggedGroupId = groupId;
+  draggedKey = null;
+  e.dataTransfer.effectAllowed = 'move';
+  e.stopPropagation(); // don't bubble to any parent drag handlers
 };
 window.handleDragOver = (e) => {
   e.preventDefault();
@@ -1150,8 +1190,20 @@ window.handleDragLeave = (e) => {
   e.currentTarget.classList.remove('drag-over');
 };
 window.handleDropToGroup = (e, gId) => {
+  e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
-  if (draggedKey) {
+  if (draggedGroupId && draggedGroupId !== gId) {
+    // Reorder groups: move draggedGroupId to the position of gId
+    const fromIdx = state.groups.findIndex((g) => g.id === draggedGroupId);
+    const toIdx = state.groups.findIndex((g) => g.id === gId);
+    if (fromIdx !== -1 && toIdx !== -1) {
+      const [moved] = state.groups.splice(fromIdx, 1);
+      state.groups.splice(toIdx, 0, moved);
+      saveState();
+      renderSidebar();
+    }
+    draggedGroupId = null;
+  } else if (draggedKey) {
     const oldG = state.groups.find((x) => x.keys.includes(draggedKey));
     if (oldG && oldG.id !== gId) window.moveTicket(draggedKey, gId);
   }
@@ -1498,18 +1550,50 @@ function init() {
   window.addEventListener('keydown', (e) => {
     if (e.key === 'F2') {
       e.preventDefault();
-      const modal = document.getElementById('f2-modal');
-      modal.classList.remove('hidden');
-      setTimeout(() => document.getElementById('f2-input').focus(), 50);
-    } else if (e.key === 'Escape') document.getElementById('f2-modal').classList.add('hidden');
+      const si = document.getElementById('search-input');
+      if (si) {
+        si.focus();
+        si.select();
+      }
+      return;
+    }
+
+    // Arrow-key navigation in the ticket list (skip when an input is focused)
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const tag = document.activeElement?.tagName;
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        document.activeElement?.contentEditable === 'true'
+      )
+        return;
+      if (state.appMode !== 'jira') return;
+      e.preventDefault();
+      const group = getActiveGroup();
+      const keys = group.keys.map((k) => (typeof k === 'string' ? k : k.key));
+      if (!keys.length) return;
+      const idx = state.activeKey ? keys.indexOf(state.activeKey) : -1;
+      const newIdx =
+        e.key === 'ArrowDown' ? Math.min(idx + 1, keys.length - 1) : Math.max(idx - 1, 0);
+      if (newIdx !== idx && newIdx >= 0) {
+        state.activeKey = keys[newIdx];
+        saveState();
+        updateViewMode();
+        setTimeout(
+          () => document.querySelector('.list-card.active')?.scrollIntoView({ block: 'nearest' }),
+          0
+        );
+      }
+    }
   });
 
-  document.getElementById('f2-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    openTicketByKey(document.getElementById('f2-input').value.trim());
-    document.getElementById('f2-modal').classList.add('hidden');
-    document.getElementById('f2-input').value = '';
-  });
+  const groupSearchInput = document.getElementById('group-search-input');
+  if (groupSearchInput) {
+    groupSearchInput.addEventListener('input', () => {
+      groupSearchQuery = groupSearchInput.value;
+      renderMiddle();
+    });
+  }
 
   document.getElementById('refresh-all-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;

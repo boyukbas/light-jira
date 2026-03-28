@@ -193,6 +193,14 @@
             </svg>
           </button>
         </div>
+        <div id="group-search-bar">
+          <input
+            id="group-search-input"
+            type="text"
+            placeholder="Filter tickets..."
+            autocomplete="off"
+          />
+        </div>
         <div id="ticket-list"></div>
       </div>
 
@@ -360,26 +368,6 @@
           <button class="top-btn" id="settings-cancel">Cancel</button>
           <button class="top-btn primary" id="settings-save">Save</button>
         </div>
-      </div>
-    </div>
-
-    <!-- F2 MODAL -->
-    <div id="f2-modal" class="hidden">
-      <div id="f2-box">
-        <div
-          style="
-            font-size: 12px;
-            color: var(--text-tertiary);
-            margin-bottom: 6px;
-            font-weight: 600;
-            text-transform: uppercase;
-          "
-        >
-          Quick Open Ticket
-        </div>
-        <form id="f2-form">
-          <input type="text" id="f2-input" placeholder="e.g. WRK-12345" autocomplete="off" />
-        </form>
       </div>
     </div>
 

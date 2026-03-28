@@ -29,6 +29,43 @@
   justify-content: center;
   padding: 8px 0;
 }
+#sidebar.collapsed .g-drag-handle {
+  display: none;
+}
+
+.g-drag-handle {
+  opacity: 0;
+  cursor: grab;
+  color: var(--text-tertiary);
+  padding: 0 4px 0 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s;
+}
+.group-item:hover .g-drag-handle {
+  opacity: 0.45;
+}
+.g-drag-handle:hover {
+  opacity: 1 !important;
+}
+.g-drag-handle:active {
+  cursor: grabbing;
+}
+
+.g-filter-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(88, 166, 255, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
 
 .group-item {
   display: flex;

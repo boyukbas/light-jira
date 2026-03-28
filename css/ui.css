@@ -141,7 +141,6 @@
 
 /* Modals & Overlays */
 #settings-overlay,
-#f2-modal,
 #filter-overlay {
   position: fixed;
   inset: 0;
@@ -153,12 +152,10 @@
   justify-content: center;
 }
 #settings-overlay.hidden,
-#f2-modal.hidden,
 #filter-overlay.hidden {
   display: none;
 }
 #settings-modal,
-#f2-box,
 #filter-modal {
   background: var(--card);
   border: 1px solid var(--border);
@@ -166,10 +163,6 @@
   width: 100%;
   max-width: 440px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-#f2-box {
-  border-color: var(--accent);
-  width: 340px;
 }
 
 /* Toasts */
