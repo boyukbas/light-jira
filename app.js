@@ -409,7 +409,6 @@ function renderHistoryTable() {
   const pane = document.getElementById('history-pane');
   if (!pane) return;
   const hist = getGroup('history');
-  const cfg = loadConfig();
   const limit = parseInt(cfg.historyLimit) || 100;
   const entries = hist.keys.slice(0, limit);
 
@@ -425,7 +424,6 @@ function renderHistoryTable() {
     return;
   }
 
-  const cfg2 = loadConfig();
   const shown = entries.length;
   const total = hist.keys.length;
   const headerRight =
