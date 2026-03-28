@@ -10,16 +10,17 @@ Light Jira is a PWA designed to replace heavy Jira tabs with a streamlined three
 
 - **Performance-First** — Pure vanilla JS. No framework overhead, instant loads.
 - **Three-Pane Layout** — Sidebar groups → ticket list → reading pane.
-- **Smart Search Bar** — Single input handles ticket keys, filter IDs, JQL queries, and Jira URLs. Button label adapts in real-time: `Open` vs `Load Filter`.
-- **Flexible Groups** — Create, rename, and delete custom lists. Any group (including Inbox) can be deleted; its tickets move to History automatically.
-- **Filter & JQL Loading** — Paste a filter URL, enter a filter ID, or write raw JQL to populate a group.
+- **Smart Search Bar** — Single input handles ticket keys, filter IDs, JQL queries, and Jira URLs. Button label adapts in real-time: `Open` vs `Load Filter`. Press `F2` from anywhere to focus it instantly.
+- **Flexible Groups** — Create, rename, and delete custom lists. Any group (including Inbox) can be deleted; its tickets move to History automatically. Drag the grip handle to reorder groups.
+- **Filter & JQL Loading** — Paste a filter URL, enter a filter ID, or write raw JQL to populate a group. Filter groups are visually distinct (funnel badge) and always open tickets with full detail.
+- **Search within Group** — Inline keyword filter in the ticket list; matches key and summary.
+- **Keyboard Navigation** — Arrow up/down moves through the ticket list without touching the mouse.
 - **History Tab** — Full-width grid table of every ticket you've viewed, with Status, Assignee, Created, and Last Viewed columns. Populated only when a ticket is actually opened — filter loads don't pollute it.
-- **Standalone Notes** — A separate note-taking mode with title, body, auto-save, and screenshot paste (Ctrl+V).
+- **Rich Notes** — A separate note-taking mode with title, formatting toolbar (bold, italic, lists), inline image paste/drag-drop, and auto-save. Text and images flow together naturally.
 - **Label Intelligence** — Tag tickets; click a label to view all tickets with that label.
 - **Ticket Hierarchy** — Parent chain displayed up to the top-level Epic.
 - **Linked Tickets** — Linked issues open inside the app; external Jira link available per ticket.
 - **Offline Persistence** — All ticket data, notes, and screenshots cached in localStorage.
-- **Quick Open (F2)** — Press `F2` to jump to any ticket by key, URL, or filter.
 - **PWA Ready** — Install as a desktop or mobile app.
 
 ---
