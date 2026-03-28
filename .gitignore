@@ -3,3 +3,15 @@ node_modules/
 memory/
 test-results/
 playwright-report/
+
+# Claude Code project instructions (local to each developer)
+CLAUDE.md
+
+# Terraform state and working directory (may contain AWS account details)
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfplan
+
+# Generated Lambda deployment artifact
+lambda_function.zip
