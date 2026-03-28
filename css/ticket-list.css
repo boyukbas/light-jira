@@ -231,7 +231,11 @@
 }
 
 .ht-col-assignee {
-  width: 140px;
+  width: 160px;
+}
+
+.ht-col-created {
+  width: 90px;
 }
 
 .ht-col-viewed {
@@ -282,6 +286,13 @@
 .ht-viewed-cell {
   color: var(--text-tertiary);
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.ht-assignee-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
 }
 

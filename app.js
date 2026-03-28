@@ -52,6 +52,8 @@ function loadState() {
         middleCollapsed: false,
       };
     if (!state.appMode) state.appMode = 'jira';
+    // History is now a tab — activeGroupId should never be 'history'
+    if (state.activeGroupId === 'history') state.activeGroupId = 'inbox';
     if (!state.standAloneNotes) state.standAloneNotes = [];
     if (state.activeNoteId === undefined) state.activeNoteId = null;
 
@@ -79,9 +81,7 @@ function getActiveGroup() {
 }
 
 function updateViewMode() {
-  const isHist = state.appMode !== 'notes' && state.activeGroupId === 'history';
   document.body.setAttribute('data-app-mode', state.appMode);
-  document.body.setAttribute('data-active-view', isHist ? 'history' : 'normal');
 
   // Update tab bar
   document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
@@ -108,14 +108,13 @@ function updateViewMode() {
   if (state.appMode === 'notes') {
     renderNotesSidebar();
     renderNoteEditor();
+  } else if (state.appMode === 'history') {
+    renderSidebar();
+    renderHistoryTable();
   } else {
     renderSidebar();
-    if (isHist) {
-      renderHistoryTable();
-    } else {
-      renderMiddle();
-      renderReading();
-    }
+    renderMiddle();
+    renderReading();
   }
 }
 
@@ -175,8 +174,9 @@ function renderSidebar() {
   let html = '';
 
   for (const g of state.groups) {
+    if (g.id === 'history') continue; // history is now its own tab
     const isActive = state.activeGroupId === g.id;
-    const isSystem = g.id === 'inbox' || g.id === 'history';
+    const isSystem = g.id === 'inbox';
     const activeClass = isActive ? ' active' : '';
     const keyCount = g.id === 'history' ? g.keys.length : g.keys.length;
 
@@ -233,12 +233,11 @@ function renderSidebar() {
   list.querySelectorAll('.group-item').forEach((el) => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('.g-action-btn')) return; // handled separately
+      state.appMode = 'jira';
       state.activeGroupId = el.dataset.id;
       const g = getGroup(state.activeGroupId);
-      const activeKeys =
-        g.id === 'history' ? g.keys.map((k) => (typeof k === 'string' ? k : k.key)) : g.keys;
-      if (!state.activeKey || !activeKeys.includes(state.activeKey)) {
-        state.activeKey = activeKeys[0] || null;
+      if (!state.activeKey || !g.keys.includes(state.activeKey)) {
+        state.activeKey = g.keys[0] || null;
       }
       saveState();
       updateViewMode();
@@ -442,8 +441,8 @@ function renderHistoryTable() {
     '<th class="ht-col-key">Key</th>' +
     '<th class="ht-col-summary">Summary</th>' +
     '<th class="ht-col-status">Status</th>' +
-    '<th class="ht-col-priority">Priority</th>' +
     '<th class="ht-col-assignee">Assignee</th>' +
+    '<th class="ht-col-created">Created</th>' +
     '<th class="ht-col-viewed">Viewed</th>' +
     '<th class="ht-col-remove"></th>' +
     '</tr></thead>' +
@@ -458,11 +457,20 @@ function renderHistoryTable() {
 
     const summary = loaded ? f.summary || '—' : 'Loading…';
     const status = loaded ? (f.status ? f.status.name : '—') : '';
-    const priority = loaded ? (f.priority ? f.priority.name : '—') : '';
-    const assignee = loaded ? (f.assignee ? f.assignee.displayName : '—') : '';
+    const assigneeName = loaded ? (f.assignee ? f.assignee.displayName : null) : null;
+    const created = loaded ? (f.created ? relDate(f.created) : '—') : '';
     const viewed = added ? relDate(added) : '';
     const statusCls =
       loaded && f.status ? statusClass(f.status?.statusCategory?.name || status) : '';
+    const assigneeHtml = loaded
+      ? assigneeName
+        ? '<div class="ht-assignee-cell">' +
+          avBadge(assigneeName, 'av-sm') +
+          '<span>' +
+          esc(assigneeName) +
+          '</span></div>'
+        : '—'
+      : '<span class="ht-loading">…</span>';
 
     html +=
       '<tr class="ht-row" data-key="' +
@@ -482,10 +490,10 @@ function renderHistoryTable() {
           : '<span class="ht-loading">…</span>') +
       '</td>' +
       '<td class="ht-cell">' +
-      esc(priority) +
+      assigneeHtml +
       '</td>' +
-      '<td class="ht-cell">' +
-      esc(assignee) +
+      '<td class="ht-cell ht-viewed-cell">' +
+      (loaded ? esc(created) : '<span class="ht-loading">…</span>') +
       '</td>' +
       '<td class="ht-cell ht-viewed-cell">' +
       esc(viewed) +
@@ -1189,6 +1197,7 @@ window.addToHistory = function (key) {
 window.openFromHistory = function (key) {
   let g = state.groups.find((x) => x.id !== 'history' && x.keys.includes(key)) || getGroup('inbox');
   if (!g.keys.includes(key)) g.keys.unshift(key);
+  state.appMode = 'jira';
   state.activeGroupId = g.id;
   state.activeKey = key;
   addToHistory(key);
@@ -1468,12 +1477,6 @@ function init() {
   document.getElementById('filter-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleLoadFilter();
     if (e.key === 'Escape') closeFilterModal();
-  });
-
-  document.getElementById('history-toggle-btn').addEventListener('click', () => {
-    state.activeGroupId = state.activeGroupId === 'history' ? 'inbox' : 'history';
-    saveState();
-    updateViewMode();
   });
 
   document.getElementById('settings-btn').addEventListener('click', () => {
