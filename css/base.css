@@ -1,4 +1,10 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   --bg: #0d1117;
@@ -15,7 +21,7 @@
   --font: 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Consolas, monospace;
   --transition: all 0.15s ease;
-  
+
   --green: #3fb950;
   --red: #f85149;
   --orange: #f0883e;
@@ -32,6 +38,14 @@ body {
   font-size: 14px;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}

@@ -121,13 +121,57 @@ body[data-app-mode='notes'] #notes-editor-pane {
   white-space: nowrap;
 }
 
-#note-editor-textarea {
+.note-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 32px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.note-tool-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  transition: var(--transition);
+}
+
+.note-tool-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.note-tool-btn.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.note-toolbar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.note-editor-body {
   flex: 1;
   border: none;
   background: transparent;
   color: var(--text-primary);
   padding: 24px 32px;
-  resize: none;
   font-family: var(--font);
   font-size: 15px;
   line-height: 1.8;
@@ -135,6 +179,23 @@ body[data-app-mode='notes'] #notes-editor-pane {
   max-width: 860px;
   width: 100%;
   margin: 0 auto;
+  overflow-y: auto;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.note-editor-body:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.note-inline-img {
+  max-width: 100%;
+  border-radius: 6px;
+  display: block;
+  margin: 8px 0;
+  cursor: default;
 }
 
 /* ── NOTES LIST IN SIDEBAR ── */
