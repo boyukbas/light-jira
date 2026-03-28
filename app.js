@@ -573,7 +573,10 @@ function renderReading() {
   const key = state.activeKey;
   addToHistory(key); // record view — deduplicates silently, updates timestamp
   const issue = issueCache[key];
-  if (!issue) {
+  // Partial cache entries (from JQL search) only have a few fields — description is never included.
+  // A full fetchIssue (fields=*all) always has description present (even if null).
+  // This check correctly catches both new partial entries and old ones that had renderedFields.
+  if (!issue || issue.fields?.description === undefined) {
     content.innerHTML =
       '<div class="loading-spinner"><div class="spinner"></div>Loading ' + esc(key) + '...</div>';
     fetchIssue(key)
@@ -864,36 +867,84 @@ function saveNotes(val) {
   }
 }
 
-// ── SCREENSHOT PASTE HANDLER ──────────────────────────────────────────────────
-function handleImagePaste(e, textarea, contextKey) {
-  const items = e.clipboardData?.items;
-  if (!items) return;
-  for (const item of items) {
-    if (item.type.startsWith('image/')) {
-      e.preventDefault();
-      const file = item.getAsFile();
-      const reader = new FileReader();
-      reader.onload = () => {
-        const imgId = 'img_' + Date.now();
-        screenshotStore[imgId] = reader.result;
-        const marker = '\n![screenshot](' + imgId + ')\n';
-        const pos = textarea.selectionStart;
-        const before = textarea.value.substring(0, pos);
-        const after = textarea.value.substring(textarea.selectionEnd);
-        textarea.value = before + marker + after;
-        textarea.selectionStart = textarea.selectionEnd = pos + marker.length;
-        textarea.dispatchEvent(new Event('input'));
-        saveState();
-        toast('Screenshot pasted', 'success');
-      };
-      reader.readAsDataURL(file);
-      break;
-    }
-  }
+// ── RICH NOTES EDITOR HELPERS ─────────────────────────────────────────────────
+function noteBodyToHtml(body) {
+  if (!body) return '';
+  // Already HTML — return as-is
+  if (/<[a-z][\s\S]*>/i.test(body)) return body;
+  // Plain text with optional ![screenshot](img_xxx) markers → convert to HTML
+  return body
+    .split('\n')
+    .map((line) => {
+      const m = line.match(/^!\[screenshot\]\((img_\d+)\)$/);
+      if (m) return '<img data-img-id="' + m[1] + '" class="note-inline-img">';
+      return '<p>' + (line ? esc(line) : '<br>') + '</p>';
+    })
+    .join('');
 }
 
-function bindPasteHandler(textarea, contextKey) {
-  textarea.addEventListener('paste', (e) => handleImagePaste(e, textarea, contextKey));
+function serializeEditorBody(el) {
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('img[data-img-id]').forEach((img) => img.removeAttribute('src'));
+  return clone.innerHTML;
+}
+
+function resolveImages(el) {
+  el.querySelectorAll('img[data-img-id]').forEach((img) => {
+    const id = img.getAttribute('data-img-id');
+    if (screenshotStore[id]) img.src = screenshotStore[id];
+  });
+}
+
+function insertImageAtCursor(file, editorEl) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const imgId = 'img_' + Date.now();
+    screenshotStore[imgId] = reader.result;
+    editorEl.focus();
+    const img = document.createElement('img');
+    img.setAttribute('data-img-id', imgId);
+    img.src = reader.result;
+    img.className = 'note-inline-img';
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(img);
+      range.setStartAfter(img);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      editorEl.appendChild(img);
+    }
+    editorEl.dispatchEvent(new Event('input'));
+    saveState();
+    toast('Screenshot pasted', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function bindPasteHandler(editorEl) {
+  editorEl.addEventListener('paste', (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        insertImageAtCursor(item.getAsFile(), editorEl);
+        return;
+      }
+    }
+  });
+  editorEl.addEventListener('dragover', (e) => e.preventDefault());
+  editorEl.addEventListener('drop', (e) => {
+    const file = e.dataTransfer?.files[0];
+    if (file && file.type.startsWith('image/')) {
+      e.preventDefault();
+      insertImageAtCursor(file, editorEl);
+    }
+  });
 }
 
 window.moveTicket = function (key, newGroupId) {
@@ -1075,7 +1126,7 @@ async function runFilterLoad(rawInput, customName = '') {
   }
 
   const keys = issues.map((iss) => {
-    issueCache[iss.key] = iss;
+    if (issueCache[iss.key]?.fields?.description === undefined) issueCache[iss.key] = iss;
     return iss.key;
   });
   const id = 'filter_' + Date.now();
@@ -1229,7 +1280,9 @@ function renderNotesSidebar() {
   for (const note of notes) {
     const active = state.activeNoteId === note.id ? ' active' : '';
     const title = note.title || 'Untitled Note';
-    const preview = (note.body || '').replace(/\n/g, ' ').substring(0, 60);
+    const preview = stripHtml(note.body || '')
+      .trim()
+      .substring(0, 60);
     const dateStr = relDate(new Date(note.updated));
 
     html +=
@@ -1290,10 +1343,6 @@ function renderNotesSidebar() {
 
 function renderNoteEditor() {
   const pane = document.getElementById('notes-editor-pane');
-  const titleInput = document.getElementById('note-title-input');
-  const textarea = document.getElementById('note-editor-textarea');
-  const dateDisplay = document.getElementById('note-date-display');
-
   if (!pane) return;
 
   const note = getActiveNote();
@@ -1309,17 +1358,28 @@ function renderNoteEditor() {
   }
 
   // Restore the editor structure if it was replaced by empty state
-  if (!titleInput) {
+  if (!document.getElementById('note-title-input')) {
     pane.innerHTML =
       '<div class="notes-editor-header">' +
       '<input type="text" class="note-title-input" id="note-title-input" placeholder="Untitled Note" />' +
       '<span class="note-date" id="note-date-display"></span></div>' +
-      '<textarea id="note-editor-textarea" placeholder="Start writing..."></textarea>';
+      '<div class="note-toolbar" id="note-toolbar">' +
+      '<button class="note-tool-btn" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>' +
+      '<button class="note-tool-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>' +
+      '<div class="note-toolbar-sep"></div>' +
+      '<button class="note-tool-btn" data-cmd="insertUnorderedList" title="Bullet List">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>' +
+      '</button>' +
+      '<button class="note-tool-btn" data-cmd="insertOrderedList" title="Numbered List">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 5h1v4" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M4 9h2" stroke="currentColor" stroke-width="1.5"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>' +
+      '</button></div>' +
+      '<div id="note-editor-body" class="note-editor-body" contenteditable="true" data-placeholder="Start writing..."></div>';
   }
 
   const ti = document.getElementById('note-title-input');
-  const ta = document.getElementById('note-editor-textarea');
+  const body = document.getElementById('note-editor-body');
   const dd = document.getElementById('note-date-display');
+  const toolbar = document.getElementById('note-toolbar');
 
   if (ti) {
     ti.value = note.title;
@@ -1327,22 +1387,38 @@ function renderNoteEditor() {
       note.title = ti.value;
       note.updated = Date.now();
       saveState();
-      // Update sidebar title without full re-render
       const sidebarItem = document.querySelector(
         '.note-item[data-note-id="' + note.id + '"] .note-item-title'
       );
       if (sidebarItem) sidebarItem.textContent = note.title || 'Untitled Note';
     };
   }
-  if (ta) {
-    ta.value = note.body;
-    ta.oninput = () => {
-      note.body = ta.value;
+
+  if (body) {
+    body.innerHTML = noteBodyToHtml(note.body);
+    resolveImages(body);
+    body.oninput = () => {
+      note.body = serializeEditorBody(body);
       note.updated = Date.now();
       saveState();
+      const sidebarItem = document.querySelector(
+        '.note-item[data-note-id="' + note.id + '"] .note-item-preview'
+      );
+      if (sidebarItem)
+        sidebarItem.textContent = stripHtml(note.body).trim().substring(0, 60) || 'Empty note';
     };
-    bindPasteHandler(ta, 'note_' + note.id);
+    bindPasteHandler(body);
   }
+
+  if (toolbar) {
+    toolbar.querySelectorAll('.note-tool-btn[data-cmd]').forEach((btn) => {
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        document.execCommand(btn.dataset.cmd, false, null);
+      });
+    });
+  }
+
   if (dd) {
     dd.textContent = new Date(note.updated).toLocaleDateString(undefined, {
       year: 'numeric',
@@ -1446,7 +1522,7 @@ function init() {
         const results = await fetchByJql(g.query);
         const issues = results.issues || [];
         g.keys = issues.map((iss) => {
-          issueCache[iss.key] = iss;
+          if (issueCache[iss.key]?.fields?.description === undefined) issueCache[iss.key] = iss;
           return iss.key;
         });
         toast('Filter refreshed (' + g.keys.length + ' items)');

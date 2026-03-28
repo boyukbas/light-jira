@@ -105,7 +105,9 @@ function extractReferencedClasses(files) {
 const cssFiles = findFiles(ROOT, '.css');
 const sourceFiles = [
   ...findFiles(ROOT, '.html'),
-  ...findFiles(ROOT, '.js').filter((f) => !f.includes('node_modules') && !f.includes('check-classes')),
+  ...findFiles(ROOT, '.js').filter(
+    (f) => !f.includes('node_modules') && !f.includes('check-classes')
+  ),
 ];
 
 const defined = extractDefinedClasses(cssFiles);

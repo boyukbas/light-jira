@@ -1,27 +1,102 @@
 /* Description & Typography (Native Jira HTML) */
-.description { font-size: 14.5px; line-height: 1.7; color: var(--text-primary); margin-bottom: 40px; }
-.description p { margin-bottom: 12px; }
-.description p:last-child { margin-bottom: 0; }
-.description h1 { font-size: 20px; margin: 24px 0 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;}
-.description h2 { font-size: 18px; margin: 20px 0 10px; }
-.description h3 { font-size: 16px; margin: 16px 0 8px; font-weight: 600; }
-.description ul, .description ol { padding-left: 24px; margin-bottom: 12px; }
-.description li { margin-bottom: 4px; }
-.description code { font-family: var(--mono); font-size: 13px; background: rgba(110,118,129,0.15); padding: 2px 6px; border-radius: 4px; color: var(--orange); }
+.description {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  margin-bottom: 40px;
+}
+.description p {
+  margin-bottom: 12px;
+}
+.description p:last-child {
+  margin-bottom: 0;
+}
+.description h1 {
+  font-size: 20px;
+  margin: 24px 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+}
+.description h2 {
+  font-size: 18px;
+  margin: 20px 0 10px;
+}
+.description h3 {
+  font-size: 16px;
+  margin: 16px 0 8px;
+  font-weight: 600;
+}
+.description ul,
+.description ol {
+  padding-left: 24px;
+  margin-bottom: 12px;
+}
+.description li {
+  margin-bottom: 4px;
+}
+.description code {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: rgba(110, 118, 129, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--orange);
+}
 
-.description blockquote { border-left: 4px solid var(--accent); padding: 8px 16px; margin: 12px 0; background: var(--accent-muted); border-radius: 0 8px 8px 0; color: var(--text-secondary); }
-.description a { color: var(--accent); text-decoration: none; white-space: nowrap; }
-.description a:hover { text-decoration: underline; }
-.description img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); margin: 12px 0; display: block; background: var(--surface); }
-.description table { border-collapse: collapse; width: 100%; margin-bottom: 16px; font-size: 13px; }
-.description th, .description td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
-.description th { background: var(--surface); font-weight: 600; }
-.description tr:nth-child(even) td { background: rgba(110,118,129,0.04); }
-.description .adf-mention { background: var(--accent-muted); color: var(--accent); border-radius: 4px; padding: 0 4px; display: inline-block; }
+.description blockquote {
+  border-left: 4px solid var(--accent);
+  padding: 8px 16px;
+  margin: 12px 0;
+  background: var(--accent-muted);
+  border-radius: 0 8px 8px 0;
+  color: var(--text-secondary);
+}
+.description a {
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.description a:hover {
+  text-decoration: underline;
+}
+.description img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin: 12px 0;
+  display: block;
+  background: var(--surface);
+}
+.description table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.description th,
+.description td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+.description th {
+  background: var(--surface);
+  font-weight: 600;
+}
+.description tr:nth-child(even) td {
+  background: rgba(110, 118, 129, 0.04);
+}
+.description .adf-mention {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 0 4px;
+  display: inline-block;
+}
 
 /* ── IMPROVED CODE BLOCKS & PANELS ── */
-.description .panel, 
-.description .code-panel, 
+.description .panel,
+.description .code-panel,
 .description .codeContent,
 .description pre {
   margin: 16px 0 !important;
@@ -29,10 +104,10 @@
   border-radius: 8px !important;
   overflow: hidden !important;
   background: #161b22 !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
-.description .panelHeader, 
+.description .panelHeader,
 .description .codeHeader {
   padding: 8px 14px !important;
   font-weight: 700 !important;
@@ -40,11 +115,11 @@
   letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
   color: var(--text-secondary) !important;
-  background: rgba(110,118,129,0.1) !important;
+  background: rgba(110, 118, 129, 0.1) !important;
   border-bottom: 1px solid var(--border) !important;
 }
 
-.description .panelContent, 
+.description .panelContent,
 .description .codeContent pre,
 .description pre {
   padding: 14px !important;
@@ -57,11 +132,11 @@
   border: none !important;
 }
 
-.description .line-numbers, 
+.description .line-numbers,
 .description .line-number,
-.description td[style*="border-right"],
+.description td[style*='border-right'],
 .description .code-panel td:first-child {
-  background: rgba(110,118,129,0.05) !important;
+  background: rgba(110, 118, 129, 0.05) !important;
   color: var(--text-tertiary) !important;
   border-right: 1px solid var(--border) !important;
   padding: 4px 12px !important;
@@ -86,12 +161,16 @@
 }
 
 /* Hide Jira "Smart Link" lightbulbs */
-.description img[src*="info-modeler"], 
-.description img[src*="lightbulb"],
+.description img[src*='info-modeler'],
+.description img[src*='lightbulb'],
 .description img[data-smart-link-favicon],
 .description .ak-editor-extension,
 .description .ak-extension-view-node,
 .description .ak-link-icon,
 .description .ak-status-macro-img,
-.description img[src*="favicon"] { display: none !important; }
-.description a img { display: none !important; }
+.description img[src*='favicon'] {
+  display: none !important;
+}
+.description a img {
+  display: none !important;
+}
