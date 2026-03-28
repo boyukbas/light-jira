@@ -51,3 +51,32 @@ All buttons use the `.top-btn` class defined in `css/ui.css`. Three variants:
 1. Pick the right CSS file from the map above.
 2. Define the class there before using it in HTML or JS.
 3. Run `npm run lint` to confirm everything is clean.
+
+## State and data model
+
+Key `state` fields (persisted in `localStorage` as `jira_state`):
+- `state.groups` — array of group objects `{ id, name, keys[], isFilter?, query? }`
+- `state.activeGroupId` — currently selected group id
+- `state.activeKey` — currently selected ticket key
+- `state.appMode` — `'jira'` or `'notes'`
+- `state.labels` — `{ [ticketKey]: string[] }`
+- `state.standAloneNotes` — array of note objects
+
+Special group ids: `'inbox'` (always present), `'history'` (always present, keys are `{key, added}` objects).
+
+`issueCache` (in-memory, not persisted) maps ticket key → full Jira API response.
+
+## Rendering pipeline
+
+`updateViewMode()` is the single entry point for all re-renders. Call it after any state change. It:
+1. Sets `body[data-app-mode]` and `body[data-active-view]` attributes
+2. Calls `renderSidebar()`, `renderMiddle()`, `renderReading()` in jira mode
+3. Calls `renderNotesSidebar()`, `renderNoteEditor()` in notes mode
+
+## Testing
+
+Run `npm test` after any change to confirm no regressions. Tests live in `tests/app.spec.js` and use Playwright with mocked API routes (no real Jira needed). Add tests for new user-facing behaviour.
+
+## Commit discipline
+
+Commit after each logical change. Push only when all changes for a session are complete.
