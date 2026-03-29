@@ -9,7 +9,7 @@ window.handleDragStart = (e, key) => {
 window.handleGroupDragStart = (e, groupId) => {
   draggedGroupId = groupId;
   draggedKey = null;
-  e.dataTransfer.effectAllowed = 'move';
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
   e.stopPropagation();
 };
 

@@ -434,3 +434,192 @@ test.describe('Bulk Actions', () => {
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
   });
 });
+
+// ── 8. ERROR PATHS ────────────────────────────────────────────────────────────
+test.describe('Error Paths', () => {
+  test.beforeEach(async ({ page }) => {
+    mockFieldsRoute(page);
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+  });
+
+  test('401 from fetchIssue shows error in reading pane', async ({ page }) => {
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/'),
+      async (route) => {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: '{"message":"Unauthorized"}',
+        });
+      }
+    );
+
+    await page.fill('#search-input', 'PROJ-401');
+    await page.click('#search-btn');
+
+    // Select the ticket to trigger renderReading
+    await page.locator('#ticket-list .list-card').first().click();
+
+    // Reading pane should show an error message, not a spinner
+    await expect(page.locator('#reading-content')).toContainText(/error/i, { timeout: 5000 });
+    await expect(page.locator('#reading-content .loading-spinner')).toHaveCount(0);
+  });
+
+  test('network failure during filter load shows toast error', async ({ page }) => {
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/search/jql'),
+      async (route) => {
+        await route.abort('failed');
+      }
+    );
+
+    await page.fill('#search-input', 'project = FAIL');
+    await page.click('#search-btn');
+
+    await expect(page.locator('#toast')).toContainText(/error/i, { timeout: 5000 });
+  });
+
+  test('corrupted localStorage is recovered gracefully', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('jira_state', '{bad json{{');
+    });
+    await page.goto('/');
+
+    // App should still render — sidebar and middle pane present
+    await expect(page.locator('#sidebar')).toBeVisible();
+    await expect(page.locator('#middle')).toBeVisible();
+  });
+
+  test('XSS in ticket summary is escaped in ticket list', async ({ page }) => {
+    const xssIssue = {
+      ...require('./fixtures/issue.json'),
+      key: 'PROJ-99',
+      fields: {
+        ...require('./fixtures/issue.json').fields,
+        summary: '<img src=x onerror="window.__xss=1">',
+        description: undefined,
+      },
+    };
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/'),
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(xssIssue),
+        });
+      }
+    );
+
+    await page.fill('#search-input', 'PROJ-99');
+    await page.click('#search-btn');
+
+    // Wait for ticket to appear in list
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+
+    // XSS payload must not execute
+    const xssRan = await page.evaluate(() => window.__xss);
+    expect(xssRan).toBeFalsy();
+
+    // Raw HTML must not appear unescaped in the DOM
+    const cardHtml = await page.locator('#ticket-list .list-card').innerHTML();
+    expect(cardHtml).not.toContain('<img src=x');
+  });
+
+  test('settings URL validation rejects invalid Jira URL', async ({ page }) => {
+    await page.click('#settings-btn');
+    await page.fill('#cfg-url', 'not-a-valid-url');
+    await page.click('#settings-save');
+
+    // Error message should appear; overlay must stay open
+    await expect(page.locator('#settings-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('.field-error')).toBeVisible();
+  });
+
+  test('settings URL validation accepts valid Jira URL', async ({ page }) => {
+    mockIssueRoute(page, issueFixture);
+    await page.click('#settings-btn');
+    await page.fill('#cfg-url', 'https://company.atlassian.net');
+    await page.fill('#cfg-email', 'user@company.com');
+    await page.fill('#cfg-token', 'mytoken');
+    await page.click('#settings-save');
+
+    // Overlay should close on valid input
+    await expect(page.locator('#settings-overlay')).toHaveClass(/hidden/);
+  });
+});
+
+// ── 9. DRAG AND DROP ──────────────────────────────────────────────────────────
+test.describe('Drag and Drop', () => {
+  test.beforeEach(async ({ page }) => {
+    mockFieldsRoute(page);
+    mockIssueRoute(page, issueFixture);
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+
+    // Add two tickets to Inbox
+    await page.fill('#search-input', 'PROJ-1');
+    await page.click('#search-btn');
+    await page.fill('#search-input', 'PROJ-2');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 3000 });
+  });
+
+  test('dragging a ticket card reorders it within the group', async ({ page }) => {
+    const cards = page.locator('#ticket-list .list-card');
+    const firstKey = await cards.nth(0).getAttribute('data-key');
+    const secondKey = await cards.nth(1).getAttribute('data-key');
+
+    // Simulate drag: dragstart on first card, drop on second card
+    await cards.nth(0).dispatchEvent('dragstart');
+    await cards.nth(1).dispatchEvent('dragover');
+    await cards.nth(1).dispatchEvent('drop');
+
+    // Order should be reversed
+    await expect(cards.nth(0)).toHaveAttribute('data-key', secondKey);
+    await expect(cards.nth(1)).toHaveAttribute('data-key', firstKey);
+  });
+
+  test('dragging a ticket to another group moves it', async ({ page }) => {
+    // Create a second group
+    page.once('dialog', (dialog) => dialog.accept('Target'));
+    await page.click('#add-group-btn');
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
+
+    // Switch back to Inbox (first group) so the source cards are visible
+    await page.locator('#group-list .group-item').first().click();
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 3000 });
+
+    const sourceCard = page.locator('#ticket-list .list-card').first();
+    const targetGroup = page.locator('#group-list .group-item').nth(1);
+
+    await sourceCard.dispatchEvent('dragstart');
+    await targetGroup.dispatchEvent('dragover');
+    await targetGroup.dispatchEvent('drop');
+
+    // Inbox should now have 1 ticket
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+  });
+
+  test('dragging a group reorders groups in the sidebar', async ({ page }) => {
+    // Create a second group
+    page.once('dialog', (dialog) => dialog.accept('Second'));
+    await page.click('#add-group-btn');
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
+
+    const groups = page.locator('#group-list .group-item');
+    const firstGroupId = await groups.nth(0).getAttribute('data-id');
+    const secondGroupId = await groups.nth(1).getAttribute('data-id');
+
+    // Drag second group handle to first group slot
+    const handle = groups.nth(1).locator('.g-drag-handle');
+    await handle.dispatchEvent('dragstart');
+    await groups.nth(0).dispatchEvent('dragover');
+    await groups.nth(0).dispatchEvent('drop');
+
+    // Groups should be reordered
+    await expect(groups.nth(0)).toHaveAttribute('data-id', secondGroupId);
+    await expect(groups.nth(1)).toHaveAttribute('data-id', firstGroupId);
+  });
+});
