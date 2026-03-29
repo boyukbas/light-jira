@@ -73,10 +73,17 @@ function renderMiddle() {
   }
 
   // ── Fast path: if only activeKey/selection changed, skip full rebuild ────────
+  // Each card carries data-cached="false" when rendered without field data. If any
+  // such card now has data in issueCache, the fast path must be skipped so the
+  // "Loading..." placeholder gets replaced with real content.
   const existingCards = list.querySelectorAll('.list-card');
   const currentKeyList = visibleKeys.map(entryKey);
   const existingKeyList = Array.from(existingCards, (el) => el.dataset.key);
+  const anyStaleCard = Array.from(existingCards).some(
+    (el) => el.dataset.cached === 'false' && issueCache[el.dataset.key]?.fields,
+  );
   if (
+    !anyStaleCard &&
     currentKeyList.length === existingKeyList.length &&
     currentKeyList.every((k, i) => k === existingKeyList[i])
   ) {
@@ -105,6 +112,8 @@ function renderMiddle() {
       selected +
       '" data-key="' +
       esc(key) +
+      '" data-cached="' +
+      (f.summary ? 'true' : 'false') +
       '" draggable="true">' +
       '<div class="lc-key-row">' +
       (stat
