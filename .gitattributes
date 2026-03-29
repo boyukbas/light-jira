@@ -1,0 +1,13 @@
+# Normalise all text files to LF in the repo.
+# Git converts to native line endings on checkout, but no warnings on Windows.
+* text=auto eol=lf
+
+# Force binary files to never be mangled.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg binary
+*.zip binary
