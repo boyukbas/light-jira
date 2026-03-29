@@ -76,10 +76,31 @@ npm run mock        # start server with mock Atlassian API (no real Jira needed)
 
 ## Stack
 
-- **Core** — Vanilla JavaScript / HTML5 / CSS3
+- **Core** — Vanilla JavaScript / HTML5 / CSS3 (no build step, no framework)
 - **Storage** — `localStorage` (state, issue cache, screenshots)
 - **Proxy** — Node.js `http` module (`proxy.js`) or AWS Lambda (`lambda_handler.mjs`)
 - **Tests** — Playwright E2E
+
+### JS module layout
+
+The app is split into 12 focused files loaded via plain `<script>` tags:
+
+| File | Responsibility |
+|---|---|
+| `api.js` | Jira API calls, config, auth |
+| `utils.js` | `esc()`, `relDate()`, `avBadge()`, `normalise()`, constants |
+| `js/state.js` | App state, `loadState`/`saveState`, group helpers |
+| `js/layout.js` | `updateViewMode`, pane collapse, resizer drag |
+| `js/sidebar.js` | Group list rendering, rename, delete |
+| `js/middle.js` | Ticket list, bulk select mode |
+| `js/history.js` | History table, batch-fetch with error states |
+| `js/reading.js` | Ticket detail pane, hierarchy, auth images |
+| `js/labels.js` | Label picker, apply, remove, viewByLabel |
+| `js/notes.js` | Standalone notes editor, rich text |
+| `js/drag-drop.js` | All drag-and-drop handlers |
+| `js/filters.js` | JQL/filter load logic |
+| `js/tickets.js` | Open ticket, move, history helpers |
+| `js/init.js` | DOM event wiring, app startup |
 
 ---
 

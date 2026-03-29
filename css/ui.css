@@ -304,6 +304,15 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-muted);
 }
+.form-input.input-error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px color-mix(in sRGB, var(--red) 20%, transparent);
+}
+.field-error {
+  color: var(--red);
+  font-size: 11px;
+  margin-top: 4px;
+}
 .form-group {
   margin-bottom: 12px;
 }

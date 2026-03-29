@@ -208,16 +208,16 @@ function renderNoteEditor() {
       '<input type="text" class="note-title-input" id="note-title-input" placeholder="Untitled Note" />' +
       '<span class="note-date" id="note-date-display"></span></div>' +
       '<div class="note-toolbar" id="note-toolbar">' +
-      '<button class="note-tool-btn" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>' +
-      '<button class="note-tool-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>' +
+      '<button class="note-tool-btn" data-cmd="bold" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>' +
+      '<button class="note-tool-btn" data-cmd="italic" title="Italic (Ctrl+I)" aria-label="Italic"><i>I</i></button>' +
       '<div class="note-toolbar-sep"></div>' +
-      '<button class="note-tool-btn" data-cmd="insertUnorderedList" title="Bullet List">' +
+      '<button class="note-tool-btn" data-cmd="insertUnorderedList" title="Bullet List" aria-label="Bullet List">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>' +
       '</button>' +
-      '<button class="note-tool-btn" data-cmd="insertOrderedList" title="Numbered List">' +
+      '<button class="note-tool-btn" data-cmd="insertOrderedList" title="Numbered List" aria-label="Numbered List">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 5h1v4" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M4 9h2" stroke="currentColor" stroke-width="1.5"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>' +
       '</button></div>' +
-      '<div id="note-editor-body" class="note-editor-body" contenteditable="true" data-placeholder="Start writing..."></div>';
+      '<div id="note-editor-body" class="note-editor-body" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note body" data-placeholder="Start writing..."></div>';
   }
 
   const ti = document.getElementById('note-title-input');
