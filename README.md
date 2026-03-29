@@ -14,6 +14,7 @@ Light Jira is a PWA designed to replace heavy Jira tabs with a streamlined three
 - **Flexible Groups** — Create, rename, and delete custom lists. Any group (including Inbox) can be deleted; its tickets move to History automatically. Drag the grip handle to reorder groups.
 - **Filter & JQL Loading** — Paste a filter URL, enter a filter ID, or write raw JQL to populate a group. Filter groups are visually distinct (funnel badge) and always open tickets with full detail.
 - **Filter Group Refresh** — Reload a filter/JQL group in-place with the refresh button. Results update without deleting and re-adding the group.
+- **Inline Group Editing** — Create and rename groups with an inline input field. Enter confirms, Escape cancels. No browser dialogs.
 - **Bulk Actions** — Enter select mode to check multiple tickets, then move them to another group or delete them in one action.
 - **Search within Group** — Inline keyword filter in the ticket list; matches key and summary.
 - **Keyboard Navigation** — Arrow up/down moves through the ticket list without touching the mouse.
@@ -66,7 +67,7 @@ Use the included `lambda_handler.mjs` + `main.tf` to deploy a CORS-bridging AWS 
 
 ```bash
 npm run lint        # all checks (CSS + class names + formatting)
-npm test            # Playwright E2E tests (31 tests, all API calls mocked)
+npm test            # Playwright E2E tests (41 tests, all API calls mocked)
 npm run test:ui     # Playwright with interactive UI
 npm run format      # auto-fix formatting
 npm run mock        # start server with mock Atlassian API (no real Jira needed)

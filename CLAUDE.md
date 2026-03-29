@@ -110,9 +110,35 @@ Every group item has a `.g-drag-handle` (6-dot grip icon). Dragging from that ha
 
 `proxy.js` supports `MOCK=1` env var (or `--mock` CLI flag). When active, `/api/jira/rest/api/3/*` requests are intercepted by `serveMock()` — no real Jira is needed. Ten pre-built `DEMO-*` issues are defined in `MOCK_ISSUES`; any other key generates a placeholder. Start with `npm run mock`. In the browser, set Jira URL to `http://localhost:3000` with any email/token.
 
+## History entry keys
+
+History group keys are `{key, added}` objects; all other groups use plain strings. Always use `entryKey(e)` (defined in `js/state.js`) to extract the plain string — never inline `typeof e === 'string' ? e : e.key`.
+
+## Group inline editing
+
+`startInlineGroupCreate()` (in `js/sidebar.js`) appends a `.group-item-new` row with a `.g-name-input` to the group list. `renameGroup(id)` swaps the `.g-name` span with a `.g-name-input` in-place. Both use a `done` boolean flag to prevent the `blur` handler from committing after keyboard cancel (Escape fires blur, which would otherwise re-save).
+
+## Drag handlers
+
+All `ondragstart`/`ondragover`/`ondrop`/`ondragleave` handlers are attached via `addEventListener` in the post-render `querySelectorAll` loop — not as inline HTML attributes. This matches the pattern used for click handlers. `handleGroupDragStart` guards `e.dataTransfer` before writing `effectAllowed` (synthetic events in tests have null dataTransfer).
+
+## renderMiddle() fast path
+
+When the visible key list hasn't changed, `renderMiddle()` skips the full innerHTML rebuild and only toggles `.active`/`.selected` on existing DOM nodes. Full rebuild still runs for data changes (refresh, filter, search, drag reorder). The comparison uses `Array.from(cards, el => el.dataset.key)` vs `visibleKeys.map(entryKey)`.
+
+## Settings validation
+
+The settings-save handler validates `cfg-url` and `cfg-proxy-url` with `new URL()` before saving. On failure it shows a `.field-error` div and adds `.input-error` to the input. `clearSettingsErrors()` removes both before each save attempt. Focus moves into the modal on open and returns to `#settings-btn` on close.
+
+## Accessibility
+
+All 5 icon-only buttons have `aria-label` matching their `title`. The settings modal has `role="dialog"`, `aria-modal="true"`, and `aria-labelledby="settings-modal-title"`. The note editor `contenteditable` has `role="textbox"`, `aria-multiline="true"`, and `aria-label="Note body"`. All 4 toolbar buttons have `aria-label`.
+
 ## Testing
 
-Run `npm test` after any change to confirm no regressions. Tests live in `tests/app.spec.js` and use Playwright with mocked API routes (no real Jira needed). 31 tests covering layout, settings, tickets, filters, groups, notes, history, tabs, and bulk actions. Add tests for new user-facing behaviour.
+Run `npm test` after any change to confirm no regressions. Tests live in `tests/app.spec.js` and use Playwright with mocked API routes (no real Jira needed). 41 tests covering layout, settings, tickets, filters, groups (inline create/rename/Escape), notes, history, tabs, bulk actions, error paths (401, network abort, corrupted localStorage, XSS, URL validation), and drag-and-drop. Add tests for new user-facing behaviour.
+
+Use `createGroup(page, name)` helper (defined at the top of the test file) whenever a test needs a second group — it clicks `#add-group-btn`, fills `.g-name-input`, and presses Enter. Never use `page.once('dialog', ...)` for group operations.
 
 ## Commit discipline
 
