@@ -103,27 +103,102 @@ function renderSidebar() {
   if (sidebarHeader) sidebarHeader.textContent = 'Lists';
   const addBtn = document.getElementById('add-group-btn');
   if (addBtn) {
-    addBtn.onclick = () => {
-      const name = prompt('New List Name:');
-      if (name && name.trim()) {
-        const id = 'g_' + Date.now();
-        insertGroupBeforeHistory({ id, name: name.trim(), keys: [] });
-        state.activeGroupId = id;
-        saveState();
-        updateViewMode();
-      }
-    };
+    addBtn.onclick = () => startInlineGroupCreate();
   }
 }
 
-function renameGroup(id) {
-  const g = getGroup(id);
-  const newName = prompt('Rename list:', g.name);
-  if (newName && newName.trim()) {
-    g.name = newName.trim();
-    saveState();
+function startInlineGroupCreate() {
+  const list = document.getElementById('group-list');
+  if (!list) return;
+  // Don't stack multiple inputs
+  if (list.querySelector('.group-item-new')) return;
+
+  const row = document.createElement('div');
+  row.className = 'group-item-new';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'g-name-input';
+  input.placeholder = 'List name…';
+  row.appendChild(input);
+  list.appendChild(row);
+  input.focus();
+
+  let done = false;
+
+  function commit() {
+    if (done) return;
+    done = true;
+    const name = input.value.trim();
+    row.remove();
+    if (name) {
+      const id = 'g_' + Date.now();
+      insertGroupBeforeHistory({ id, name, keys: [] });
+      state.activeGroupId = id;
+      saveState();
+    }
     updateViewMode();
   }
+
+  function cancel() {
+    if (done) return;
+    done = true;
+    row.remove();
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    } else if (e.key === 'Escape') {
+      cancel();
+    }
+  });
+  input.addEventListener('blur', commit);
+}
+
+function renameGroup(id) {
+  const item = document.querySelector('.group-item[data-id="' + id + '"]');
+  if (!item) return;
+  const nameSpan = item.querySelector('.g-name');
+  if (!nameSpan) return;
+
+  const current = nameSpan.textContent;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'g-name-input';
+  input.value = current;
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+
+  function commit() {
+    if (done) return;
+    done = true;
+    const trimmed = input.value.trim();
+    if (trimmed && trimmed !== current) {
+      getGroup(id).name = trimmed;
+      saveState();
+    }
+    updateViewMode();
+  }
+
+  function cancel() {
+    if (done) return;
+    done = true;
+    updateViewMode(); // restore sidebar without saving
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    } else if (e.key === 'Escape') {
+      cancel();
+    }
+  });
+  input.addEventListener('blur', commit);
 }
 
 function deleteGroup(id) {
