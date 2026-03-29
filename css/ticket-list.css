@@ -106,8 +106,13 @@
 
 .lc-key-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2px;
+}
+.lc-assignee {
+  display: flex;
+  align-items: center;
 }
 .status-badge {
   font-size: 10px;
