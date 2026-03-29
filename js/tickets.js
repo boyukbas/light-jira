@@ -41,7 +41,7 @@ window.forceRefreshReading = async function () {
 window.addToHistory = function (key) {
   const h = getGroup('history');
   if (h) {
-    h.keys = h.keys.filter((k) => (typeof k === 'string' ? k !== key : k.key !== key));
+    h.keys = h.keys.filter((k) => entryKey(k) !== key);
     h.keys.unshift({ key, added: Date.now() });
     const limit = parseInt(cfg.historyLimit) || 100;
     if (h.keys.length > limit) h.keys = h.keys.slice(0, limit);

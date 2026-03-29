@@ -46,7 +46,7 @@ function renderHistoryTable() {
     '<tbody>';
 
   for (const entry of entries) {
-    const key = typeof entry === 'string' ? entry : entry.key;
+    const key = entryKey(entry);
     const added = typeof entry === 'object' ? entry.added : null;
     const issue = issueCache[key];
     // _error sentinel is set when a fetch fails — distinguish from not-yet-loaded
@@ -130,10 +130,7 @@ function renderHistoryTable() {
 
   // ── B3 fix: fetch uncached entries in batches of 5; surface errors ───────
   const BATCH = 5;
-  const uncached = entries.filter((e) => {
-    const k = typeof e === 'string' ? e : e.key;
-    return !issueCache[k];
-  });
+  const uncached = entries.filter((e) => !issueCache[entryKey(e)]);
 
   if (!uncached.length) return;
 
@@ -142,7 +139,7 @@ function renderHistoryTable() {
       const batch = uncached.slice(i, i + BATCH);
       await Promise.all(
         batch.map(async (entry) => {
-          const key = typeof entry === 'string' ? entry : entry.key;
+          const key = entryKey(entry);
           try {
             issueCache[key] = await fetchIssue(key);
             saveState();
