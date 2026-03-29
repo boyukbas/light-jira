@@ -115,19 +115,17 @@ function renderMiddle() {
       '" data-cached="' +
       (f.summary ? 'true' : 'false') +
       '" draggable="true">' +
-      '<div class="lc-key-row">' +
-      '<span class="lc-assignee">' +
-      (f.assignee ? avBadge(f.assignee.displayName, 'av-sm') : '') +
-      '</span>' +
       (stat
-        ? '<span class="status-badge ' +
+        ? '<div class="lc-key-row">' +
+          '<span class="status-badge ' +
           statusClass(f.status?.statusCategory?.name || stat) +
           '">' +
           esc(stat) +
-          '</span>'
+          '</span>' +
+          '</div>'
         : '') +
-      '</div>' +
       '<div class="lc-title-row">' +
+      (f.assignee ? avBadge(f.assignee.displayName, 'av-rg') : '') +
       '<span class="lc-summary">' +
       '<span style="color:var(--accent);">' +
       esc(key) +
