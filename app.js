@@ -24,6 +24,8 @@ let draggedKey = null; // for ticket drag & drop
 let draggedGroupId = null; // for group reordering drag
 let groupSearchQuery = ''; // current keyword filter in the middle pane
 let screenshotStore = {}; // id -> data URL (stored separately from state to manage size)
+let bulkSelectMode = false; // whether the middle pane is in multi-select mode
+let selectedKeys = new Set(); // keys currently checked in bulk mode
 
 function loadState() {
   try {
@@ -252,10 +254,11 @@ function renderSidebar() {
   list.querySelectorAll('.group-item').forEach((el) => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('.g-action-btn') || e.target.closest('.g-drag-handle')) return;
-      // Clear middle-pane search when switching groups
+      // Clear middle-pane search and bulk mode when switching groups
       groupSearchQuery = '';
       const gsi = document.getElementById('group-search-input');
       if (gsi) gsi.value = '';
+      if (bulkSelectMode) exitBulkMode();
       state.appMode = 'jira';
       state.activeGroupId = el.dataset.id;
       const g = getGroup(state.activeGroupId);
@@ -343,6 +346,48 @@ document.getElementById('add-group-btn').addEventListener('click', () => {
   }
 });
 
+// ── BULK SELECT ───────────────────────────────────────────────────────────────
+function enterBulkMode() {
+  bulkSelectMode = true;
+  selectedKeys.clear();
+  document.getElementById('middle').classList.add('bulk-mode');
+  document.getElementById('bulk-select-btn').classList.add('active');
+  document.getElementById('bulk-toolbar').classList.add('visible');
+  updateBulkToolbar();
+  renderMiddle();
+}
+
+function exitBulkMode() {
+  bulkSelectMode = false;
+  selectedKeys.clear();
+  document.getElementById('middle').classList.remove('bulk-mode');
+  document.getElementById('bulk-select-btn').classList.remove('active');
+  document.getElementById('bulk-toolbar').classList.remove('visible');
+  renderMiddle();
+}
+
+function updateBulkToolbar() {
+  const count = selectedKeys.size;
+  document.getElementById('bulk-count').textContent =
+    count === 0 ? 'Select tickets' : count + ' selected';
+
+  const deleteBtn = document.getElementById('bulk-delete-btn');
+  deleteBtn.disabled = count === 0;
+  deleteBtn.textContent = count > 0 ? 'Delete (' + count + ')' : 'Delete';
+
+  const moveSelect = document.getElementById('bulk-move-select');
+  const currentGroup = getActiveGroup();
+  const targets = state.groups.filter((g) => g.id !== currentGroup.id && g.id !== 'history');
+  moveSelect.innerHTML = '<option value="">Move to\u2026</option>';
+  for (const g of targets) {
+    const opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = g.name;
+    moveSelect.appendChild(opt);
+  }
+  moveSelect.disabled = count === 0 || targets.length === 0;
+}
+
 // ── RENDER MIDDLE ─────────────────────────────────────────────────────────────
 function renderMiddle() {
   const group = getActiveGroup();
@@ -374,6 +419,7 @@ function renderMiddle() {
     const key = typeof entry === 'string' ? entry : entry.key;
     const addedDate = typeof entry === 'object' && entry.added ? relDate(entry.added) : null;
     const active = state.activeKey === key ? ' active' : '';
+    const selected = bulkSelectMode && selectedKeys.has(key) ? ' selected' : '';
     const issue = issueCache[key] || {};
     const f = issue.fields || {};
     let sum = f.summary || 'Loading...';
@@ -382,6 +428,7 @@ function renderMiddle() {
     html +=
       '<div class="list-card' +
       active +
+      selected +
       '" data-key="' +
       esc(key) +
       '" draggable="true" ' +
@@ -416,6 +463,14 @@ function renderMiddle() {
   list.innerHTML = html;
   list.querySelectorAll('.list-card').forEach((el) => {
     el.addEventListener('click', () => {
+      if (bulkSelectMode) {
+        const k = el.dataset.key;
+        if (selectedKeys.has(k)) selectedKeys.delete(k);
+        else selectedKeys.add(k);
+        el.classList.toggle('selected', selectedKeys.has(k));
+        updateBulkToolbar();
+        return;
+      }
       if (group.id === 'history') {
         openFromHistory(el.dataset.key);
       } else {
@@ -1636,6 +1691,48 @@ function init() {
     btn.style.opacity = '1';
     renderMiddle();
     if (state.activeKey) renderReading();
+  });
+
+  document.getElementById('bulk-select-btn').addEventListener('click', () => {
+    if (bulkSelectMode) exitBulkMode();
+    else enterBulkMode();
+  });
+
+  document.getElementById('bulk-done-btn').addEventListener('click', exitBulkMode);
+
+  document.getElementById('bulk-delete-btn').addEventListener('click', () => {
+    if (!selectedKeys.size) return;
+    const group = getActiveGroup();
+    const count = selectedKeys.size;
+    group.keys = group.keys.filter((k) => !selectedKeys.has(typeof k === 'string' ? k : k.key));
+    if (selectedKeys.has(state.activeKey)) state.activeKey = null;
+    selectedKeys.clear();
+    saveState();
+    toast(count + ' ticket' + (count === 1 ? '' : 's') + ' removed');
+    exitBulkMode();
+    updateViewMode();
+  });
+
+  document.getElementById('bulk-move-select').addEventListener('change', (e) => {
+    const targetId = e.target.value;
+    if (!targetId || !selectedKeys.size) return;
+    const sourceGroup = getActiveGroup();
+    const targetGroup = getGroup(targetId);
+    if (!targetGroup) return;
+    const count = selectedKeys.size;
+    for (const key of selectedKeys) {
+      if (!targetGroup.keys.includes(key)) targetGroup.keys.push(key);
+      sourceGroup.keys = sourceGroup.keys.filter(
+        (k) => (typeof k === 'string' ? k : k.key) !== key
+      );
+    }
+    if (selectedKeys.has(state.activeKey)) state.activeKey = null;
+    selectedKeys.clear();
+    e.target.value = '';
+    saveState();
+    toast(count + ' ticket' + (count === 1 ? '' : 's') + ' moved to ' + targetGroup.name);
+    exitBulkMode();
+    updateViewMode();
   });
 
   document.getElementById('settings-btn').addEventListener('click', () => {

@@ -15,6 +15,7 @@
 #middle.collapsed #current-group-name,
 #middle.collapsed #ticket-list,
 #middle.collapsed #refresh-all-btn,
+#middle.collapsed #bulk-select-btn,
 #middle.collapsed #group-search-bar {
   display: none;
 }
@@ -352,4 +353,95 @@
 .ht-loading {
   color: var(--text-tertiary);
   font-style: italic;
+}
+
+/* ── BULK ACTIONS ── */
+#bulk-toolbar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+#bulk-toolbar.visible {
+  display: flex;
+}
+#middle.collapsed #bulk-toolbar {
+  display: none !important;
+}
+#bulk-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+}
+.bulk-move-select {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+  max-width: 130px;
+}
+.bulk-move-select:focus {
+  border-color: var(--accent);
+}
+.bulk-move-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+#bulk-select-btn.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-color: var(--accent-muted) !important;
+}
+#middle.bulk-mode .list-card {
+  padding-left: 40px;
+}
+#middle.bulk-mode .list-card.active {
+  padding-left: 37px;
+}
+#middle.bulk-mode .list-card::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
+}
+#middle.bulk-mode .list-card.selected::before {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+#middle.bulk-mode .list-card.selected::after {
+  content: '✓';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #0d1117;
+  text-align: center;
+}
+#middle.bulk-mode .lc-delete {
+  display: none;
 }

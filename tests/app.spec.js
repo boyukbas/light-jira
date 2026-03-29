@@ -371,3 +371,66 @@ test.describe('Tabs', () => {
     await expect(page.locator('#tab-jira')).toHaveClass(/active/);
   });
 });
+
+// ── 9. BULK ACTIONS ───────────────────────────────────────────────────────────
+test.describe('Bulk Actions', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+
+    // Add two tickets to Inbox
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 5000 });
+    await page.fill('#search-input', 'PROJ-456');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 5000 });
+  });
+
+  test('clicking bulk-select-btn enters bulk mode', async ({ page }) => {
+    await page.click('#bulk-select-btn');
+    await expect(page.locator('#middle')).toHaveClass(/bulk-mode/);
+    await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
+  });
+
+  test('clicking bulk-done-btn exits bulk mode', async ({ page }) => {
+    await page.click('#bulk-select-btn');
+    await page.click('#bulk-done-btn');
+    await expect(page.locator('#middle')).not.toHaveClass(/bulk-mode/);
+    await expect(page.locator('#bulk-toolbar')).not.toHaveClass(/visible/);
+  });
+
+  test('clicking a card in bulk mode selects it', async ({ page }) => {
+    await page.click('#bulk-select-btn');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(1);
+    await expect(page.locator('#bulk-count')).toContainText('1 selected');
+  });
+
+  test('bulk delete removes selected tickets', async ({ page }) => {
+    await page.click('#bulk-select-btn');
+    await page.locator('#ticket-list .list-card').first().click();
+    await page.click('#bulk-delete-btn');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+  });
+
+  test('bulk move transfers selected tickets to another group', async ({ page }) => {
+    // Create a second group
+    page.once('dialog', (dialog) => dialog.accept('Target Group'));
+    await page.click('#add-group-btn');
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
+
+    // Switch back to Inbox and enter bulk mode
+    await page.locator('#group-list .group-item').first().click();
+    await page.click('#bulk-select-btn');
+    await page.locator('#ticket-list .list-card').first().click();
+
+    // Move via dropdown
+    await page.selectOption('#bulk-move-select', { label: 'Target Group' });
+
+    // Inbox should now have 1 ticket
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+  });
+});
