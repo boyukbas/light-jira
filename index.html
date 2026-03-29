@@ -179,6 +179,23 @@
             </svg>
           </button>
           <span id="current-group-name" style="flex: 1">Inbox</span>
+          <button class="top-btn icon-only" id="bulk-select-btn" title="Select tickets">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="5" width="4" height="4" rx="0.5" />
+              <line x1="10" y1="7" x2="21" y2="7" />
+              <rect x="3" y="11" width="4" height="4" rx="0.5" />
+              <line x1="10" y1="13" x2="21" y2="13" />
+              <rect x="3" y="17" width="4" height="4" rx="0.5" />
+              <line x1="10" y1="19" x2="21" y2="19" />
+            </svg>
+          </button>
           <button class="top-btn icon-only" id="refresh-all-btn" title="Refresh List">
             <svg
               width="14"
@@ -202,6 +219,14 @@
           />
         </div>
         <div id="ticket-list"></div>
+        <div id="bulk-toolbar">
+          <span id="bulk-count">0 selected</span>
+          <select id="bulk-move-select" class="bulk-move-select">
+            <option value="">Move to…</option>
+          </select>
+          <button class="top-btn primary" id="bulk-delete-btn">Delete</button>
+          <button class="top-btn" id="bulk-done-btn">Done</button>
+        </div>
       </div>
 
       <div class="resizer" id="resizer-middle"></div>
