@@ -70,6 +70,13 @@ function mockFilterRoute(page, data) {
   );
 }
 
+// Helper: create a new group using the inline input (replaces old prompt() flow)
+async function createGroup(page, name) {
+  await page.click('#add-group-btn');
+  await page.fill('.g-name-input', name);
+  await page.keyboard.press('Enter');
+}
+
 // ── 1. LAYOUT ─────────────────────────────────────────────────────────────────
 test.describe('Layout', () => {
   test.beforeEach(async ({ page }) => {
@@ -269,24 +276,32 @@ test.describe('Groups', () => {
   });
 
   test('can create a new group', async ({ page }) => {
-    page.once('dialog', (dialog) => dialog.accept('My New List'));
-    await page.click('#add-group-btn');
+    await createGroup(page, 'My New List');
 
     // Inbox + new group = 2 (History is now its own tab, not a sidebar group)
     await expect(page.locator('#group-list .group-item')).toHaveCount(2);
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My New List');
   });
 
-  test('can rename a group via inline action button', async ({ page }) => {
-    page.once('dialog', (dialog) => dialog.accept('Original Name'));
+  test('pressing Escape while creating a group cancels it', async ({ page }) => {
     await page.click('#add-group-btn');
+    await page.fill('.g-name-input', 'Abandoned');
+    await page.keyboard.press('Escape');
+
+    // Only Inbox should remain
+    await expect(page.locator('#group-list .group-item')).toHaveCount(1);
+  });
+
+  test('can rename a group via inline action button', async ({ page }) => {
+    await createGroup(page, 'Original Name');
 
     // Click the group to activate it (shows action buttons)
     await page.locator('#group-list .group-item').nth(1).click();
 
-    // Rename button appears on active group
-    page.once('dialog', (dialog) => dialog.accept('Renamed List'));
+    // Rename button shows inline input on active group
     await page.locator('.g-action-btn[data-action="rename"]').click();
+    await page.locator('.g-name-input').fill('Renamed List');
+    await page.keyboard.press('Enter');
 
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('Renamed List');
   });
@@ -309,9 +324,7 @@ test.describe('Notes', () => {
     await page.click('#tab-notes');
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'notes');
 
-    // The Jira-mode addEventListener fires first (shows prompt), then onclick=createNote fires.
-    // Dismiss the prompt to let createNote run.
-    page.once('dialog', (dialog) => dialog.dismiss());
+    // In Notes mode #add-group-btn creates a note directly (no prompt)
     await page.click('#add-group-btn');
 
     // Notes sidebar renders .note-item elements (not .group-item)
@@ -418,8 +431,7 @@ test.describe('Bulk Actions', () => {
 
   test('bulk move transfers selected tickets to another group', async ({ page }) => {
     // Create a second group
-    page.once('dialog', (dialog) => dialog.accept('Target Group'));
-    await page.click('#add-group-btn');
+    await createGroup(page, 'Target Group');
     await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
 
     // Switch back to Inbox and enter bulk mode
@@ -583,8 +595,7 @@ test.describe('Drag and Drop', () => {
 
   test('dragging a ticket to another group moves it', async ({ page }) => {
     // Create a second group
-    page.once('dialog', (dialog) => dialog.accept('Target'));
-    await page.click('#add-group-btn');
+    await createGroup(page, 'Target');
     await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
 
     // Switch back to Inbox (first group) so the source cards are visible
@@ -604,8 +615,7 @@ test.describe('Drag and Drop', () => {
 
   test('dragging a group reorders groups in the sidebar', async ({ page }) => {
     // Create a second group
-    page.once('dialog', (dialog) => dialog.accept('Second'));
-    await page.click('#add-group-btn');
+    await createGroup(page, 'Second');
     await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
 
     const groups = page.locator('#group-list .group-item');
