@@ -89,7 +89,7 @@
 
       <div style="flex: 1"></div>
 
-      <button class="top-btn icon-only" id="settings-btn" title="Settings">
+      <button class="top-btn icon-only" id="settings-btn" title="Settings" aria-label="Settings">
         <svg
           width="15"
           height="15"
@@ -125,6 +125,7 @@
             class="top-btn icon-only collapse-btn"
             onclick="toggleCollapse('sidebar')"
             title="Collapse Sidebar"
+            aria-label="Collapse Sidebar"
           >
             <svg
               width="14"
@@ -165,6 +166,7 @@
             id="middle-collapse-btn"
             onclick="toggleCollapse('middle')"
             title="Collapse Items"
+            aria-label="Collapse Items"
           >
             <svg
               width="14"
@@ -179,7 +181,34 @@
             </svg>
           </button>
           <span id="current-group-name" style="flex: 1">Inbox</span>
-          <button class="top-btn icon-only" id="refresh-all-btn" title="Refresh List">
+          <button
+            class="top-btn icon-only"
+            id="bulk-select-btn"
+            title="Select tickets"
+            aria-label="Select tickets"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="3" y="5" width="4" height="4" rx="0.5" />
+              <line x1="10" y1="7" x2="21" y2="7" />
+              <rect x="3" y="11" width="4" height="4" rx="0.5" />
+              <line x1="10" y1="13" x2="21" y2="13" />
+              <rect x="3" y="17" width="4" height="4" rx="0.5" />
+              <line x1="10" y1="19" x2="21" y2="19" />
+            </svg>
+          </button>
+          <button
+            class="top-btn icon-only"
+            id="refresh-all-btn"
+            title="Refresh List"
+            aria-label="Refresh List"
+          >
             <svg
               width="14"
               height="14"
@@ -202,6 +231,14 @@
           />
         </div>
         <div id="ticket-list"></div>
+        <div id="bulk-toolbar">
+          <span id="bulk-count">0 selected</span>
+          <select id="bulk-move-select" class="bulk-move-select">
+            <option value="">Move to…</option>
+          </select>
+          <button class="top-btn primary" id="bulk-delete-btn">Delete</button>
+          <button class="top-btn" id="bulk-done-btn">Done</button>
+        </div>
       </div>
 
       <div class="resizer" id="resizer-middle"></div>
@@ -242,10 +279,24 @@
           <span class="note-date" id="note-date-display"></span>
         </div>
         <div class="note-toolbar" id="note-toolbar">
-          <button class="note-tool-btn" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-          <button class="note-tool-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+          <button class="note-tool-btn" data-cmd="bold" title="Bold (Ctrl+B)" aria-label="Bold">
+            <b>B</b>
+          </button>
+          <button
+            class="note-tool-btn"
+            data-cmd="italic"
+            title="Italic (Ctrl+I)"
+            aria-label="Italic"
+          >
+            <i>I</i>
+          </button>
           <div class="note-toolbar-sep"></div>
-          <button class="note-tool-btn" data-cmd="insertUnorderedList" title="Bullet List">
+          <button
+            class="note-tool-btn"
+            data-cmd="insertUnorderedList"
+            title="Bullet List"
+            aria-label="Bullet List"
+          >
             <svg
               width="14"
               height="14"
@@ -262,7 +313,12 @@
               <circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none" />
             </svg>
           </button>
-          <button class="note-tool-btn" data-cmd="insertOrderedList" title="Numbered List">
+          <button
+            class="note-tool-btn"
+            data-cmd="insertOrderedList"
+            title="Numbered List"
+            aria-label="Numbered List"
+          >
             <svg
               width="14"
               height="14"
@@ -289,6 +345,9 @@
           id="note-editor-body"
           class="note-editor-body"
           contenteditable="true"
+          role="textbox"
+          aria-multiline="true"
+          aria-label="Note body"
           data-placeholder="Start writing..."
         ></div>
       </div>
@@ -314,10 +373,17 @@
 
     <!-- SETTINGS MODAL -->
     <div id="settings-overlay" class="hidden">
-      <div id="settings-modal">
+      <div
+        id="settings-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-modal-title"
+      >
         <div class="modal-header">
-          Jira Connection
-          <button class="modal-close" id="settings-close">&times;</button>
+          <span id="settings-modal-title">Jira Connection</span>
+          <button class="modal-close" id="settings-close" aria-label="Close settings">
+            &times;
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-group">
@@ -376,6 +442,17 @@
     <!-- LIBRARIES & APP -->
     <script src="api.js"></script>
     <script src="utils.js"></script>
-    <script src="app.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/middle.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/reading.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/notes.js"></script>
+    <script src="js/drag-drop.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/tickets.js"></script>
+    <script src="js/init.js"></script>
   </body>
 </html>

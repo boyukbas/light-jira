@@ -304,6 +304,15 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-muted);
 }
+.form-input.input-error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px color-mix(in sRGB, var(--red) 20%, transparent);
+}
+.field-error {
+  color: var(--red);
+  font-size: 11px;
+  margin-top: 4px;
+}
 .form-group {
   margin-bottom: 12px;
 }
@@ -344,4 +353,17 @@
 }
 .modal-close:hover {
   color: var(--text-primary);
+}
+
+/* ── MOCK MODE BADGE ── */
+.mock-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--orange);
+  border: 1px solid var(--orange);
+  border-radius: 4px;
+  padding: 2px 7px;
+  opacity: 0.85;
+  flex-shrink: 0;
 }
