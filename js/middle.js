@@ -72,6 +72,22 @@ function renderMiddle() {
     return;
   }
 
+  // ── Fast path: if only activeKey/selection changed, skip full rebuild ────────
+  const existingCards = list.querySelectorAll('.list-card');
+  const currentKeyList = visibleKeys.map(entryKey);
+  const existingKeyList = Array.from(existingCards, (el) => el.dataset.key);
+  if (
+    currentKeyList.length === existingKeyList.length &&
+    currentKeyList.every((k, i) => k === existingKeyList[i])
+  ) {
+    existingCards.forEach((el) => {
+      const k = el.dataset.key;
+      el.classList.toggle('active', k === state.activeKey);
+      el.classList.toggle('selected', bulkSelectMode && selectedKeys.has(k));
+    });
+    return;
+  }
+
   let html = '';
   for (const entry of visibleKeys) {
     const key = entryKey(entry);
