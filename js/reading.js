@@ -115,13 +115,13 @@ function renderReading() {
     {
       l: 'Assignee',
       v: f.assignee
-        ? avBadge(f.assignee.displayName, 'av-sm') + ' ' + esc(f.assignee.displayName)
+        ? avBadge(f.assignee.displayName, 'av-rg') + ' ' + esc(f.assignee.displayName)
         : 'Unassigned',
     },
     {
       l: 'Reporter',
       v: f.reporter
-        ? avBadge(f.reporter.displayName, 'av-sm') + ' ' + esc(f.reporter.displayName)
+        ? avBadge(f.reporter.displayName, 'av-rg') + ' ' + esc(f.reporter.displayName)
         : '—',
     },
     { l: 'Type', v: f.issuetype?.name || '—' },

@@ -64,7 +64,7 @@ function renderHistoryTable() {
     const assigneeHtml = loaded
       ? assigneeName
         ? '<div class="ht-assignee-cell">' +
-          avBadge(assigneeName, 'av-sm') +
+          avBadge(assigneeName, 'av-rg') +
           '<span>' +
           esc(assigneeName) +
           '</span></div>'
