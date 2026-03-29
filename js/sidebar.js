@@ -12,9 +12,7 @@ function renderSidebar() {
     const activeClass = isActive ? ' active' : '';
 
     const dragHandle =
-      '<span class="g-drag-handle" draggable="true" ondragstart="handleGroupDragStart(event, \'' +
-      esc(g.id) +
-      '\')" title="Drag to reorder">' +
+      '<span class="g-drag-handle" draggable="true" title="Drag to reorder">' +
       '<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">' +
       '<circle cx="3" cy="2" r="1.2"/><circle cx="7" cy="2" r="1.2"/>' +
       '<circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/>' +
@@ -26,11 +24,6 @@ function renderSidebar() {
         '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
         '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span>'
       : avBadge(g.name, 'av-sm');
-
-    const dragAttrs =
-      'ondragover="handleDragOver(event)" ondrop="handleDropToGroup(event, \'' +
-      esc(g.id) +
-      '\')" ondragleave="handleDragLeave(event)"';
 
     // Inline action buttons (rename + delete) — shown when active
     const renameBtn =
@@ -53,9 +46,7 @@ function renderSidebar() {
       activeClass +
       '" data-id="' +
       esc(g.id) +
-      '" ' +
-      dragAttrs +
-      '>' +
+      '">' +
       dragHandle +
       icon +
       '<span class="g-name">' +
@@ -71,6 +62,15 @@ function renderSidebar() {
   list.innerHTML = html;
 
   list.querySelectorAll('.group-item').forEach((el) => {
+    const gId = el.dataset.id;
+
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('dragleave', handleDragLeave);
+    el.addEventListener('drop', (e) => handleDropToGroup(e, gId));
+
+    const handle = el.querySelector('.g-drag-handle');
+    if (handle) handle.addEventListener('dragstart', (e) => handleGroupDragStart(e, gId));
+
     el.addEventListener('click', (e) => {
       if (e.target.closest('.g-action-btn') || e.target.closest('.g-drag-handle')) return;
       // Clear middle-pane search and bulk mode when switching groups

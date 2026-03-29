@@ -89,12 +89,7 @@ function renderMiddle() {
       selected +
       '" data-key="' +
       esc(key) +
-      '" draggable="true" ' +
-      'ondragstart="handleDragStart(event, \'' +
-      esc(key) +
-      '\')" ondragover="handleDragOver(event)" ondrop="handleDropToItem(event, \'' +
-      esc(key) +
-      '\')" ondragleave="handleDragLeave(event)">' +
+      '" draggable="true">' +
       '<div class="lc-key-row">' +
       (stat
         ? '<span class="status-badge ' +
@@ -113,16 +108,15 @@ function renderMiddle() {
       '</span>' +
       '</div>' +
       (addedDate ? '<div class="lc-added">viewed ' + addedDate + '</div>' : '') +
-      '<button class="lc-delete" title="Remove from list" onclick="event.stopPropagation(); removeTicket(\'' +
-      esc(key) +
-      '\')">✕</button>' +
+      '<button class="lc-delete" title="Remove from list">✕</button>' +
       '</div>';
   }
   list.innerHTML = html;
   list.querySelectorAll('.list-card').forEach((el) => {
+    const k = el.dataset.key;
+
     el.addEventListener('click', () => {
       if (bulkSelectMode) {
-        const k = el.dataset.key;
         if (selectedKeys.has(k)) selectedKeys.delete(k);
         else selectedKeys.add(k);
         el.classList.toggle('selected', selectedKeys.has(k));
@@ -130,13 +124,23 @@ function renderMiddle() {
         return;
       }
       if (group.id === 'history') {
-        openFromHistory(el.dataset.key);
+        openFromHistory(k);
       } else {
-        state.activeKey = el.dataset.key;
+        state.activeKey = k;
         saveState();
         updateViewMode();
       }
     });
+
+    el.querySelector('.lc-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeTicket(k);
+    });
+
+    el.addEventListener('dragstart', (e) => handleDragStart(e, k));
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('drop', (e) => handleDropToItem(e, k));
+    el.addEventListener('dragleave', handleDragLeave);
   });
 }
 
