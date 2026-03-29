@@ -80,7 +80,7 @@ function renderMiddle() {
   const currentKeyList = visibleKeys.map(entryKey);
   const existingKeyList = Array.from(existingCards, (el) => el.dataset.key);
   const anyStaleCard = Array.from(existingCards).some(
-    (el) => el.dataset.cached === 'false' && issueCache[el.dataset.key]?.fields,
+    (el) => el.dataset.cached === 'false' && issueCache[el.dataset.key]?.fields
   );
   if (
     !anyStaleCard &&
@@ -116,6 +116,9 @@ function renderMiddle() {
       (f.summary ? 'true' : 'false') +
       '" draggable="true">' +
       '<div class="lc-key-row">' +
+      '<span class="lc-assignee">' +
+      (f.assignee ? avBadge(f.assignee.displayName, 'av-sm') : '') +
+      '</span>' +
       (stat
         ? '<span class="status-badge ' +
           statusClass(f.status?.statusCategory?.name || stat) +
