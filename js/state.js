@@ -80,6 +80,12 @@ function saveState() {
   localStorage.setItem('jira_screenshots', JSON.stringify(screenshotStore));
 }
 
+// Normalise a history-or-plain key entry to a plain key string.
+// History entries are {key, added} objects; all other groups use plain strings.
+function entryKey(e) {
+  return typeof e === 'string' ? e : e.key;
+}
+
 function getGroup(id) {
   return state.groups.find((g) => g.id === id) || state.groups[0];
 }

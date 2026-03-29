@@ -89,7 +89,7 @@ function init() {
       if (state.appMode !== 'jira') return;
       e.preventDefault();
       const group = getActiveGroup();
-      const keys = group.keys.map((k) => (typeof k === 'string' ? k : k.key));
+      const keys = group.keys.map(entryKey);
       if (!keys.length) return;
       const idx = state.activeKey ? keys.indexOf(state.activeKey) : -1;
       const newIdx =
@@ -155,7 +155,7 @@ function init() {
     if (!selectedKeys.size) return;
     const group = getActiveGroup();
     const count = selectedKeys.size;
-    group.keys = group.keys.filter((k) => !selectedKeys.has(typeof k === 'string' ? k : k.key));
+    group.keys = group.keys.filter((k) => !selectedKeys.has(entryKey(k)));
     if (selectedKeys.has(state.activeKey)) state.activeKey = null;
     selectedKeys.clear();
     saveState();
@@ -173,9 +173,7 @@ function init() {
     const count = selectedKeys.size;
     for (const key of selectedKeys) {
       if (!targetGroup.keys.includes(key)) targetGroup.keys.push(key);
-      sourceGroup.keys = sourceGroup.keys.filter(
-        (k) => (typeof k === 'string' ? k : k.key) !== key
-      );
+      sourceGroup.keys = sourceGroup.keys.filter((k) => entryKey(k) !== key);
     }
     if (selectedKeys.has(state.activeKey)) state.activeKey = null;
     selectedKeys.clear();

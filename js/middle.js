@@ -54,7 +54,7 @@ function renderMiddle() {
   const q = groupSearchQuery.toLowerCase().trim();
   const visibleKeys = q
     ? group.keys.filter((entry) => {
-        const key = typeof entry === 'string' ? entry : entry.key;
+        const key = entryKey(entry);
         if (key.toLowerCase().includes(q)) return true;
         const summary = issueCache[key]?.fields?.summary || '';
         return summary.toLowerCase().includes(q);
@@ -74,7 +74,7 @@ function renderMiddle() {
 
   let html = '';
   for (const entry of visibleKeys) {
-    const key = typeof entry === 'string' ? entry : entry.key;
+    const key = entryKey(entry);
     const addedDate = typeof entry === 'object' && entry.added ? relDate(entry.added) : null;
     const active = state.activeKey === key ? ' active' : '';
     const selected = bulkSelectMode && selectedKeys.has(key) ? ' selected' : '';
@@ -143,7 +143,7 @@ function renderMiddle() {
 function removeTicket(key) {
   const group = getActiveGroup();
   if (group.id === 'history') {
-    group.keys = group.keys.filter((k) => (typeof k === 'string' ? k !== key : k.key !== key));
+    group.keys = group.keys.filter((k) => entryKey(k) !== key);
   } else {
     group.keys = group.keys.filter((k) => k !== key);
   }
