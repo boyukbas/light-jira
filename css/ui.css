@@ -345,3 +345,16 @@
 .modal-close:hover {
   color: var(--text-primary);
 }
+
+/* ── MOCK MODE BADGE ── */
+.mock-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--orange);
+  border: 1px solid var(--orange);
+  border-radius: 4px;
+  padding: 2px 7px;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
