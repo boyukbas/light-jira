@@ -6,6 +6,7 @@ function init() {
   if (!isConfigured()) document.getElementById('settings-overlay').classList.remove('hidden');
   loadState();
   initResizing();
+  initMindMap();
   updateViewMode();
   if (isConfigured()) {
     fetchCustomFields();
