@@ -240,7 +240,6 @@ function renderReading() {
   content.innerHTML = html;
   const notesTextEl = document.getElementById('notes-text');
   notesTextEl.value = state.notes[key] || '';
-  bindPasteHandler(notesTextEl, 'ticket_' + key);
   bindAuthImages(content);
   renderHierarchy(key, f.parent);
 }
