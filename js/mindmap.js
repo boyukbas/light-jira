@@ -10,10 +10,89 @@ const MM_DEFAULT_CODE = `sequenceDiagram
 
 let mmRenderTimer = null;
 let mmRenderSeq = 0;
+let mmZoom = 1;
+let mmPanX = 24;
+let mmPanY = 24;
+
+function applyMmTransform() {
+  const el = document.getElementById('mm-preview');
+  if (!el) return;
+  el.style.transform = `translate(${mmPanX}px, ${mmPanY}px) scale(${mmZoom})`;
+}
+
+function resetMmView() {
+  mmZoom = 1;
+  mmPanX = 24;
+  mmPanY = 24;
+  applyMmTransform();
+}
+
+function initMmPanZoom() {
+  const pane = document.querySelector('.mm-preview-pane');
+  if (!pane) return;
+
+  // Wheel → zoom toward cursor
+  pane.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      const rect = pane.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      const newZoom = Math.min(Math.max(mmZoom * factor, 0.1), 10);
+      mmPanX = mouseX - (mouseX - mmPanX) * (newZoom / mmZoom);
+      mmPanY = mouseY - (mouseY - mmPanY) * (newZoom / mmZoom);
+      mmZoom = newZoom;
+      applyMmTransform();
+    },
+    { passive: false }
+  );
+
+  // Drag → pan
+  let dragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let panStartX = 0;
+  let panStartY = 0;
+
+  pane.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    panStartX = mmPanX;
+    panStartY = mmPanY;
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    mmPanX = panStartX + (e.clientX - dragStartX);
+    mmPanY = panStartY + (e.clientY - dragStartY);
+    applyMmTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+  });
+
+  // Zoom buttons
+  document.getElementById('mm-zoom-in-btn')?.addEventListener('click', () => {
+    mmZoom = Math.min(mmZoom * 1.25, 10);
+    applyMmTransform();
+  });
+  document.getElementById('mm-zoom-out-btn')?.addEventListener('click', () => {
+    mmZoom = Math.max(mmZoom / 1.25, 0.1);
+    applyMmTransform();
+  });
+  document.getElementById('mm-zoom-reset-btn')?.addEventListener('click', resetMmView);
+}
 
 function initMindMap() {
   if (typeof mermaid === 'undefined') return;
   mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+  initMmPanZoom();
 
   // Auto-seed a default diagram on first load
   if (!state.mindMaps.length) {
@@ -84,6 +163,7 @@ function renderMindMapSidebar() {
       list.querySelectorAll('.mm-diagram-item').forEach((i) => {
         i.classList.toggle('active', i.dataset.id === state.activeMindMapId);
       });
+      resetMmView();
       renderMindMap();
     });
   });
@@ -150,6 +230,7 @@ async function renderMindMap() {
       const id = 'mm-svg-' + ++mmRenderSeq;
       const { svg } = await mermaid.render(id, code);
       previewEl.innerHTML = svg;
+      applyMmTransform();
     } catch (err) {
       previewEl.innerHTML =
         '<div class="mm-error">' + esc(err.message || 'Invalid diagram syntax') + '</div>';
