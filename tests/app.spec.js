@@ -380,6 +380,79 @@ test.describe('Notes', () => {
   });
 });
 
+// ── 6b. LABELS TAB ───────────────────────────────────────────────────────────
+test.describe('Labels Tab', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('Labels tab is between Jira and Notes', async ({ page }) => {
+    const tabs = await page.locator('#tab-bar .tab-btn').allTextContents();
+    const cleaned = tabs.map((t) => t.trim());
+    const jiraIdx = cleaned.findIndex((t) => t.includes('Jira'));
+    const labelsIdx = cleaned.findIndex((t) => t.includes('Labels'));
+    const notesIdx = cleaned.findIndex((t) => t.includes('Notes'));
+    expect(jiraIdx).toBeLessThan(labelsIdx);
+    expect(labelsIdx).toBeLessThan(notesIdx);
+  });
+
+  test('switching to Labels tab changes app mode', async ({ page }) => {
+    await page.click('#tab-labels');
+    await expect(page.locator('#tab-labels')).toHaveClass(/active/);
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'labels');
+  });
+
+  test('Labels tab shows no-label group when ticket has no labels', async ({ page }) => {
+    // Load a ticket (has no labels by default)
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+
+    await page.click('#tab-labels');
+    await expect(page.locator('#group-list')).toContainText('no-label');
+  });
+
+  test('Labels tab shows labeled ticket under its label group', async ({ page }) => {
+    // Load a ticket and assign a label via state
+    await page.addInitScript(() => {
+      const orig = localStorage.setItem.bind(localStorage);
+      // After app initializes, inject a label
+    });
+
+    // Assign a label programmatically then switch to labels tab
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+
+    // Apply label via JS
+    await page.evaluate(() => {
+      window.applyLabel('PROJ-123', 'bug');
+    });
+
+    await page.click('#tab-labels');
+    await expect(page.locator('#group-list')).toContainText('bug');
+  });
+
+  test('clicking a label group in Labels tab shows its tickets in middle pane', async ({
+    page,
+  }) => {
+    // Load ticket and add label
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.evaluate(() => window.applyLabel('PROJ-123', 'bug'));
+
+    await page.click('#tab-labels');
+    // Click the "bug" label group
+    await page.locator('#group-list .group-item').filter({ hasText: 'bug' }).click();
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#ticket-list .list-card')).toContainText('PROJ-123');
+  });
+});
+
 // ── 7. HISTORY ────────────────────────────────────────────────────────────────
 test.describe('History', () => {
   test.beforeEach(async ({ page }) => {
@@ -432,6 +505,33 @@ test.describe('Tabs', () => {
     await expect(page.locator('#tab-jira')).toHaveClass(/active/);
   });
 
+  test('switching back to Jira with active ticket renders reading pane without errors', async ({
+    page,
+  }) => {
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+
+    const jsErrors = [];
+    page.on('pageerror', (err) => jsErrors.push(err.message));
+
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+
+    // Switch away and back — renderReading must not throw
+    await page.click('#tab-notes');
+    await page.click('#tab-jira');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'jira');
+
+    // No JS errors should have been thrown (catches bindPasteHandler ReferenceError)
+    const referenceErrors = jsErrors.filter(
+      (m) => m.includes('ReferenceError') || m.includes('not defined')
+    );
+    expect(referenceErrors).toHaveLength(0);
+  });
+
   test('Mindmap tab switches to mindmap mode and shows editor/preview panes', async ({ page }) => {
     await page.click('#tab-mindmap');
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'mindmap');
@@ -448,6 +548,18 @@ test.describe('Tabs', () => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.click('#mm-copy-btn');
     await expect(page.locator('#toast')).toContainText('copied', { timeout: 3000 });
+  });
+
+  test('Mindmap refresh button exists and re-renders preview', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-refresh-btn')).toBeVisible();
+    // Clear preview to verify refresh actually re-renders it
+    await page.evaluate(() => {
+      document.getElementById('mm-preview').innerHTML = '';
+    });
+    await page.click('#mm-refresh-btn');
+    // Preview should have content again after refresh
+    await expect(page.locator('#mm-preview')).not.toBeEmpty({ timeout: 3000 });
   });
 });
 
@@ -510,6 +622,121 @@ test.describe('Bulk Actions', () => {
 
     // Inbox should now have 1 ticket
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+  });
+});
+
+// ── 7b. READING PANE — CODE BLOCK COPY ───────────────────────────────────────
+test.describe('Code Block Copy', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    // Return an issue with a code block in the description
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/'),
+      async (route) => {
+        const issueWithCode = {
+          ...require('./fixtures/issue.json'),
+          renderedFields: {
+            description: '<p>Check this code:</p><pre><code>console.log("hello");</code></pre>',
+            comment: { comments: [] },
+          },
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(issueWithCode),
+        });
+      }
+    );
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('code block in reading pane has a copy button', async ({ page }) => {
+    await expect(page.locator('#reading-content .code-copy-btn')).toBeVisible({ timeout: 3000 });
+  });
+
+  test('clicking code copy button shows toast', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.locator('#reading-content .code-copy-btn').first().click();
+    await expect(page.locator('#toast')).toContainText(/cop/i, { timeout: 3000 });
+  });
+});
+
+// ── 7c. JIRA LINK HANDLING ────────────────────────────────────────────────────
+test.describe('Jira Link Handling', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    // Return an issue with Jira links in description
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/PROJ-123'),
+      async (route) => {
+        const issueWithLinks = {
+          ...require('./fixtures/issue.json'),
+          renderedFields: {
+            description:
+              '<p>See <a href="https://site.atlassian.net/browse/ENHANCE-3133">ENHANCE-3133</a></p>' +
+              '<p>Contact <a href="https://site.atlassian.net/jira/people/user123">John Doe</a></p>',
+            comment: { comments: [] },
+          },
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(issueWithLinks),
+        });
+      }
+    );
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('clicking a /browse/ link opens ticket in app', async ({ page }) => {
+    // Mock the linked ticket route
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/ENHANCE-3133'),
+      async (route) => {
+        const f = require('./fixtures/issue.json');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...f, key: 'ENHANCE-3133' }),
+        });
+      }
+    );
+    await page.locator('#reading-content a[href*="/browse/ENHANCE-3133"]').click();
+    await expect(page.locator('#reading-content')).toContainText('ENHANCE-3133', { timeout: 5000 });
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'jira');
+  });
+
+  test('profile links are not intercepted', async ({ page }) => {
+    const link = page.locator('#reading-content a[href*="/jira/people/"]');
+    await expect(link).toBeVisible();
+    // Profile link should open externally — verify it has target="_blank"
+    await expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  test('ctrl+click on browse link opens in browser not app', async ({ page }) => {
+    // Ctrl+click should not trigger in-app navigation
+    const jsErrors = [];
+    page.on('pageerror', (err) => jsErrors.push(err.message));
+    // Record state before
+    const keyBefore = await page.evaluate(() => window.state?.activeKey);
+    await page
+      .locator('#reading-content a[href*="/browse/ENHANCE-3133"]')
+      .click({ modifiers: ['Control'] });
+    // activeKey should not change to ENHANCE-3133 (app-navigation was skipped)
+    const keyAfter = await page.evaluate(() => window.state?.activeKey);
+    expect(keyAfter).toBe(keyBefore);
   });
 });
 

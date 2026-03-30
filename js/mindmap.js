@@ -135,6 +135,11 @@ async function renderMindMap() {
       navigator.clipboard.writeText(diagram.code || '').then(() => toast('Code copied!'));
   }
 
+  const refreshBtn = document.getElementById('mm-refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.onclick = () => doRender();
+  }
+
   doRender();
 
   async function doRender() {

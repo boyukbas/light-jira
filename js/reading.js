@@ -240,9 +240,66 @@ function renderReading() {
   content.innerHTML = html;
   const notesTextEl = document.getElementById('notes-text');
   notesTextEl.value = state.notes[key] || '';
-  bindPasteHandler(notesTextEl, 'ticket_' + key);
   bindAuthImages(content);
+  bindCodeCopyButtons(content);
+  bindJiraLinks(content);
   renderHierarchy(key, f.parent);
+}
+
+function bindCodeCopyButtons(container) {
+  container.querySelectorAll('pre').forEach((pre) => {
+    if (pre.querySelector('.code-copy-btn')) return; // already added
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn top-btn icon-only';
+    btn.title = 'Copy code';
+    btn.setAttribute('aria-label', 'Copy code');
+    btn.innerHTML =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+      '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>' +
+      '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+      '</svg>';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const code = pre.querySelector('code') || pre;
+      navigator.clipboard.writeText(code.textContent || '').then(() => toast('Code copied!'));
+    });
+    pre.style.position = 'relative';
+    pre.appendChild(btn);
+  });
+}
+
+// Pattern for Jira user/profile links — these should not be intercepted
+const JIRA_PROFILE_RE = /\/(jira\/people|jira\/user|profile|users?)\//i;
+// Pattern for /browse/KEY-123 links
+const JIRA_BROWSE_RE = /\/browse\/([A-Z][A-Z0-9_]+-\d+)/i;
+
+function bindJiraLinks(container) {
+  container.querySelectorAll('a[href]').forEach((a) => {
+    const href = a.getAttribute('href') || '';
+
+    // Profile links — ensure they open in a new tab externally, never in app
+    if (JIRA_PROFILE_RE.test(href)) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      return;
+    }
+
+    // Browse links
+    const m = JIRA_BROWSE_RE.exec(href);
+    if (!m) return;
+
+    const linkedKey = m[1].toUpperCase();
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Ctrl/Cmd+click → open in browser
+      if (e.ctrlKey || e.metaKey) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      // Regular click → open in app
+      openFromHistory(linkedKey);
+    });
+  });
 }
 
 async function renderHierarchy(rootKey, directParent) {
