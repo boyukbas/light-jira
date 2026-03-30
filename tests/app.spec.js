@@ -385,6 +385,21 @@ test.describe('Plans URL', () => {
     });
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(3);
   });
+
+  test('plans API 404 shows helpful error toast', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    page.route(
+      (url) => url.toString().includes('/rest/agile/1.0/plan/'),
+      async (route) => {
+        await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
+      }
+    );
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', PLAN_URL);
+    await page.click('#search-btn');
+    await expect(page.locator('#toast')).toContainText('Jira Premium', { timeout: 5000 });
+  });
 });
 
 // ── 5. GROUPS ─────────────────────────────────────────────────────────────────
