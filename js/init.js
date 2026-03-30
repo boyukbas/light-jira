@@ -190,7 +190,6 @@ function init() {
     document.getElementById('cfg-url').value = cfg.baseUrl;
     document.getElementById('cfg-email').value = cfg.email;
     document.getElementById('cfg-token').value = cfg.token;
-    document.getElementById(cfg.useCloud ? 'cfg-proxy-cloud' : 'cfg-proxy-local').checked = true;
     clearSettingsErrors();
     document.getElementById('settings-overlay').classList.remove('hidden');
     document.getElementById('cfg-email').focus();
@@ -227,7 +226,6 @@ function init() {
     cfg.baseUrl = (rawUrl || DEFAULTS.baseUrl).replace(/\/$/, '');
     cfg.email = document.getElementById('cfg-email').value.trim();
     cfg.token = document.getElementById('cfg-token').value.trim();
-    cfg.useCloud = document.getElementById('cfg-proxy-cloud').checked;
     saveConfig();
     closeCfg();
     toast('Settings saved');
@@ -255,12 +253,57 @@ function init() {
   }
 }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('sw.js')
-      .catch((err) => console.error('ServiceWorker setup failed: ', err));
-  });
+// ── JIRA BEAM — Chrome extension integration ──────────────────────────────────
+function handleBeam(payload) {
+  if (!payload || !payload.type) return;
+
+  if (payload.type === 'open-url') {
+    const url = (payload.url || '').trim();
+    if (!url) return;
+    // Browse URL → extract ticket key
+    const browseMatch = url.match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/i);
+    if (browseMatch) {
+      openTicketByKey(browseMatch[1].toUpperCase());
+      return;
+    }
+    // Bare ticket key
+    if (/^[A-Z][A-Z0-9]{0,9}-\d+$/i.test(url)) {
+      openTicketByKey(url.toUpperCase());
+      return;
+    }
+    // Filter URL, plan URL, or JQL
+    runFilterLoad(url).catch((e) => toast('Beam error: ' + e.message, 'error'));
+    return;
+  }
+
+  if (payload.type === 'open-group') {
+    const { name, keys } = payload;
+    if (!keys || !keys.length) return;
+    const id = 'beam_' + Date.now();
+    insertGroupBeforeHistory({ id, name: name || 'Beamed Group', keys });
+    state.activeGroupId = id;
+    state.activeKey = keys[0];
+    saveState();
+    updateViewMode();
+    toast(
+      'Beamed ' + keys.length + ' ticket' + (keys.length === 1 ? '' : 's') + ' into "' + name + '"',
+      'success'
+    );
+    if (isConfigured()) loadAllGroupTickets();
+  }
+}
+
+window.addEventListener('jira-beam', (e) => handleBeam(e.detail));
+
+// Handle ?beam=<base64-JSON> sent by the extension when the app tab was not open
+try {
+  const beamParam = new URLSearchParams(window.location.search).get('beam');
+  if (beamParam) {
+    handleBeam(JSON.parse(atob(beamParam)));
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+} catch {
+  /* ignore malformed beam param */
 }
 
 init();

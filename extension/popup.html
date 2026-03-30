@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Jira Beam</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <span class="logo">
+        <!-- Lightning bolt — "beam" motif -->
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M13 3L4 13H11L10 21L20 11H13L13 3Z" fill="#9d4edd" />
+        </svg>
+        Jira Beam
+      </span>
+      <span id="app-status" class="status-badge">Checking…</span>
+    </header>
+
+    <main>
+      <!-- Section A: Beam the current page URL -->
+      <section id="section-url" class="hidden">
+        <div class="section-label">Current Page</div>
+        <div id="url-display" class="url-display"></div>
+        <button id="beam-url-btn" class="btn primary">Beam to App</button>
+      </section>
+
+      <!-- Shown when the active tab is not a Jira page -->
+      <section id="section-not-jira" class="hidden">
+        <p class="muted">Open a Jira page to use Jira Beam.</p>
+      </section>
+
+      <!-- Section B: Issue keys found on the current page -->
+      <section id="section-keys" class="hidden">
+        <div class="section-header">
+          <div class="section-label">Tickets on This Page</div>
+          <a id="select-all-link" href="#" class="link-btn">Select all</a>
+        </div>
+        <p id="keys-loading" class="muted">Scanning…</p>
+        <ul id="keys-list" class="keys-list hidden"></ul>
+        <div id="group-form" class="group-form hidden">
+          <input id="group-name" class="text-input" placeholder="Group name…" maxlength="60" />
+          <button id="beam-group-btn" class="btn primary">Beam Group</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button id="open-app-btn" class="btn ghost hidden">Open App</button>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

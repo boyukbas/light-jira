@@ -4,8 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Light Jira</title>
-    <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#7000ff" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -460,7 +458,9 @@
                 href="https://id.atlassian.com/manage-profile/security/api-tokens"
                 target="_blank"
                 rel="noopener noreferrer"
-              >Create an API token →</a>
+              >
+                Create an API token →
+              </a>
             </div>
           </div>
           <div class="form-group">
@@ -471,22 +471,6 @@
               type="text"
               placeholder="https://your-domain.atlassian.net"
             />
-          </div>
-          <div
-            class="form-group"
-            style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px"
-          >
-            <label class="form-label">Proxy Mode</label>
-            <div class="proxy-mode-group">
-              <label class="proxy-mode-option">
-                <input type="radio" name="cfg-proxy-mode" id="cfg-proxy-local" value="local" />
-                localhost:3000
-              </label>
-              <label class="proxy-mode-option">
-                <input type="radio" name="cfg-proxy-mode" id="cfg-proxy-cloud" value="cloud" />
-                Cloud
-              </label>
-            </div>
           </div>
         </div>
         <div class="modal-footer">
