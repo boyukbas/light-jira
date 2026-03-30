@@ -1,14 +1,111 @@
 'use strict';
 
+// ── SORT STATE (session-only, not persisted) ──────────────────────────────────
+let historySortCol = null; // 'key'|'summary'|'status'|'assignee'|'created'|'viewed'
+let historySortDir = 'asc'; // 'asc' | 'desc'
+
+function sortEntries(entries) {
+  if (!historySortCol) return entries;
+  return [...entries].sort((a, b) => {
+    const ka = entryKey(a);
+    const kb = entryKey(b);
+    const ia = issueCache[ka];
+    const ib = issueCache[kb];
+    const fa = ia && !ia._error ? ia.fields || {} : null;
+    const fb = ib && !ib._error ? ib.fields || {} : null;
+    let va, vb;
+    switch (historySortCol) {
+      case 'key':
+        va = ka;
+        vb = kb;
+        break;
+      case 'summary':
+        va = fa ? fa.summary || '' : '';
+        vb = fb ? fb.summary || '' : '';
+        break;
+      case 'status':
+        va = fa ? (fa.status ? fa.status.name : '') : '';
+        vb = fb ? (fb.status ? fb.status.name : '') : '';
+        break;
+      case 'assignee':
+        va = fa ? (fa.assignee ? fa.assignee.displayName : '') : '';
+        vb = fb ? (fb.assignee ? fb.assignee.displayName : '') : '';
+        break;
+      case 'created':
+        va = fa ? fa.created || '' : '';
+        vb = fb ? fb.created || '' : '';
+        break;
+      case 'viewed':
+        va = typeof a === 'object' ? a.added : 0;
+        vb = typeof b === 'object' ? b.added : 0;
+        break;
+      default:
+        return 0;
+    }
+    const cmp =
+      typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
+    return historySortDir === 'asc' ? cmp : -cmp;
+  });
+}
+
+function thSortable(cls, colKey, label) {
+  const active = historySortCol === colKey;
+  const arrow = active ? (historySortDir === 'asc' ? '▲' : '▼') : '▲';
+  return (
+    '<th class="' +
+    cls +
+    ' ht-th-sortable" data-sort-col="' +
+    colKey +
+    '"' +
+    (active ? ' data-sort-active="1"' : '') +
+    '>' +
+    esc(label) +
+    '<span class="ht-sort-indicator">' +
+    arrow +
+    '</span>' +
+    '</th>'
+  );
+}
+
+// ── COLUMN RESIZE ─────────────────────────────────────────────────────────────
+function initHtResize(pane) {
+  pane.querySelectorAll('.ht-th-sortable').forEach((th) => {
+    const handle = document.createElement('div');
+    handle.className = 'ht-resize-handle';
+    th.appendChild(handle);
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startW = th.offsetWidth;
+      const colKey = th.dataset.sortCol;
+      const col = pane.querySelector('col[data-col-key="' + colKey + '"]');
+
+      const onMove = (mv) => {
+        const newW = Math.max(40, startW + mv.clientX - startX);
+        if (col) col.style.width = newW + 'px';
+        th.style.width = newW + 'px';
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
 // ── RENDER HISTORY TABLE ──────────────────────────────────────────────────────
 function renderHistoryTable() {
   const pane = document.getElementById('history-pane');
   if (!pane) return;
   const hist = getGroup('history');
   const limit = parseInt(cfg.historyLimit) || 100;
-  const entries = hist.keys.slice(0, limit);
+  const rawEntries = hist.keys.slice(0, limit);
 
-  if (!entries.length) {
+  if (!rawEntries.length) {
     pane.innerHTML =
       '<div class="ht-empty">' +
       '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="color:var(--text-tertiary)">' +
@@ -20,10 +117,12 @@ function renderHistoryTable() {
     return;
   }
 
-  const shown = entries.length;
+  const shown = rawEntries.length;
   const total = hist.keys.length;
   const headerRight =
     total > shown ? shown + ' of ' + total + ' shown' : shown + ' item' + (shown === 1 ? '' : 's');
+
+  const entries = sortEntries(rawEntries);
 
   let html =
     '<div class="middle-header">' +
@@ -34,13 +133,22 @@ function renderHistoryTable() {
     '</div>' +
     '<div class="ht-scroll">' +
     '<table class="ht-table">' +
+    '<colgroup>' +
+    '<col data-col-key="key">' +
+    '<col data-col-key="summary">' +
+    '<col data-col-key="status">' +
+    '<col data-col-key="assignee">' +
+    '<col data-col-key="created">' +
+    '<col data-col-key="viewed">' +
+    '<col>' +
+    '</colgroup>' +
     '<thead><tr>' +
-    '<th class="ht-col-key">Key</th>' +
-    '<th class="ht-col-summary">Summary</th>' +
-    '<th class="ht-col-status">Status</th>' +
-    '<th class="ht-col-assignee">Assignee</th>' +
-    '<th class="ht-col-created">Created</th>' +
-    '<th class="ht-col-viewed">Viewed</th>' +
+    thSortable('ht-col-key', 'key', 'Key') +
+    thSortable('ht-col-summary', 'summary', 'Summary') +
+    thSortable('ht-col-status', 'status', 'Status') +
+    thSortable('ht-col-assignee', 'assignee', 'Assignee') +
+    thSortable('ht-col-created', 'created', 'Created') +
+    thSortable('ht-col-viewed', 'viewed', 'Viewed') +
     '<th class="ht-col-remove"></th>' +
     '</tr></thead>' +
     '<tbody>';
@@ -114,6 +222,27 @@ function renderHistoryTable() {
   html += '</tbody></table></div>';
   pane.innerHTML = html;
 
+  // ── Sort click handlers ───────────────────────────────────────────────────
+  pane.querySelectorAll('th[data-sort-col]').forEach((th) => {
+    th.addEventListener('click', (e) => {
+      if (e.target.closest('.ht-resize-handle')) return;
+      const col = th.dataset.sortCol;
+      if (historySortCol === col) {
+        if (historySortDir === 'asc') {
+          historySortDir = 'desc';
+        } else {
+          historySortCol = null;
+          historySortDir = 'asc';
+        }
+      } else {
+        historySortCol = col;
+        historySortDir = 'asc';
+      }
+      renderHistoryTable();
+    });
+  });
+
+  // ── Row click handlers ────────────────────────────────────────────────────
   pane.querySelectorAll('.ht-row').forEach((row) => {
     row.addEventListener('click', (e) => {
       if (e.target.closest('.ht-remove-btn')) return;
@@ -131,9 +260,12 @@ function renderHistoryTable() {
     });
   });
 
+  // ── Column resize handles ─────────────────────────────────────────────────
+  initHtResize(pane);
+
   // ── B3 fix: fetch uncached entries in batches of 5; surface errors ───────
   const BATCH = 5;
-  const uncached = entries.filter((e) => !issueCache[entryKey(e)]);
+  const uncached = rawEntries.filter((e) => !issueCache[entryKey(e)]);
 
   if (!uncached.length) return;
 
