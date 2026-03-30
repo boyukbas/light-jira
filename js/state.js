@@ -15,7 +15,8 @@ let state = {
     sidebarCollapsed: false,
     middleCollapsed: false,
   },
-  appMode: 'jira', // 'jira' | 'notes' | 'history' | 'mindmap'
+  appMode: 'jira', // 'jira' | 'labels' | 'notes' | 'history' | 'mindmap'
+  labelsActiveGroup: null, // active label name in labels tab (string | null)
   standAloneNotes: [], // [{id, title, blocks[], created, updated}]
   activeNoteId: null,
   mindMaps: [], // [{id, name, code}]
@@ -58,6 +59,7 @@ function loadState() {
         middleCollapsed: false,
       };
     if (!state.appMode) state.appMode = 'jira';
+    if (state.labelsActiveGroup === undefined) state.labelsActiveGroup = null;
     // History is now a tab — activeGroupId should never be 'history'
     if (state.activeGroupId === 'history') {
       const first = state.groups.find((g) => g.id !== 'history');

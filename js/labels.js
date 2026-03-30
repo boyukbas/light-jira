@@ -90,6 +90,8 @@ function applyLabel(key, name) {
   }
 }
 
+window.applyLabel = applyLabel;
+
 window.closeLabelPicker = function () {
   const el = document.getElementById('label-picker');
   if (el) el.remove();
