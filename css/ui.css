@@ -318,6 +318,18 @@
   font-size: 11px;
   margin-top: 4px;
 }
+.form-hint {
+  font-size: 11px;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+.form-hint a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.form-hint a:hover {
+  text-decoration: underline;
+}
 .form-group {
   margin-bottom: 12px;
 }

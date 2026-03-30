@@ -9,7 +9,7 @@ const DEFAULTS = {
   baseUrl: 'https://site.atlassian.net',
   email: '',
   token: '',
-  useCloud: false,
+  useCloud: true,
 };
 let cfg = { ...DEFAULTS };
 
