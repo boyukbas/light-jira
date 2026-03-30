@@ -27,11 +27,12 @@ function updateViewMode() {
 
   if (state.appMode === 'notes') {
     renderNotesSidebar();
-    renderNoteEditor();
+    renderNoteCanvas();
   } else if (state.appMode === 'history') {
     renderSidebar();
     renderHistoryTable();
   } else if (state.appMode === 'mindmap') {
+    renderMindMapSidebar();
     renderMindMap();
   } else {
     renderSidebar();
