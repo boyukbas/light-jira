@@ -242,6 +242,7 @@ function renderReading() {
   notesTextEl.value = state.notes[key] || '';
   bindAuthImages(content);
   bindCodeCopyButtons(content);
+  bindJiraLinks(content);
   renderHierarchy(key, f.parent);
 }
 
@@ -264,6 +265,40 @@ function bindCodeCopyButtons(container) {
     });
     pre.style.position = 'relative';
     pre.appendChild(btn);
+  });
+}
+
+// Pattern for Jira user/profile links — these should not be intercepted
+const JIRA_PROFILE_RE = /\/(jira\/people|jira\/user|profile|users?)\//i;
+// Pattern for /browse/KEY-123 links
+const JIRA_BROWSE_RE = /\/browse\/([A-Z][A-Z0-9_]+-\d+)/i;
+
+function bindJiraLinks(container) {
+  container.querySelectorAll('a[href]').forEach((a) => {
+    const href = a.getAttribute('href') || '';
+
+    // Profile links — ensure they open in a new tab externally, never in app
+    if (JIRA_PROFILE_RE.test(href)) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      return;
+    }
+
+    // Browse links
+    const m = JIRA_BROWSE_RE.exec(href);
+    if (!m) return;
+
+    const linkedKey = m[1].toUpperCase();
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Ctrl/Cmd+click → open in browser
+      if (e.ctrlKey || e.metaKey) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      // Regular click → open in app
+      openFromHistory(linkedKey);
+    });
   });
 }
 
