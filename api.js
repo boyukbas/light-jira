@@ -1,11 +1,14 @@
 'use strict';
 
+const CLOUD_PROXY_URL =
+  'https://wj342i36cjmzpkicz6b72moapi0fiucq.lambda-url.eu-central-1.on.aws';
+
 const DEFAULTS = {
   baseUrl: 'https://site.atlassian.net',
   email: '',
   token: '',
   historyLimit: 100,
-  proxyUrl: '',
+  useCloud: false,
 };
 let cfg = { ...DEFAULTS };
 
@@ -16,7 +19,15 @@ let customFieldMap = {}; // maps customfield_10010 to "Business Case", etc
 function loadConfig() {
   try {
     const s = localStorage.getItem('jira_config');
-    if (s) cfg = { ...DEFAULTS, ...JSON.parse(s) };
+    if (s) {
+      const stored = JSON.parse(s);
+      // Migrate: old proxyUrl field → useCloud boolean
+      if ('proxyUrl' in stored && !('useCloud' in stored)) {
+        stored.useCloud = stored.proxyUrl === CLOUD_PROXY_URL;
+        delete stored.proxyUrl;
+      }
+      cfg = { ...DEFAULTS, ...stored };
+    }
   } catch (e) {
     console.error('Config parsing error:', e);
     cfg = { ...DEFAULTS };
@@ -38,13 +49,13 @@ function commonHeaders() {
 }
 
 function apiBase() {
-  if (cfg.proxyUrl) return cfg.proxyUrl.replace(/\/$/, '') + '/api/jira';
+  if (cfg.useCloud) return CLOUD_PROXY_URL + '/api/jira';
   return window.location.protocol === 'file:' ? cfg.baseUrl : '/api/jira';
 }
 
 function proxyUrl(fullUrl) {
   if (!fullUrl) return fullUrl;
-  const base = cfg.proxyUrl ? cfg.proxyUrl.replace(/\/$/, '') : '';
+  const base = cfg.useCloud ? CLOUD_PROXY_URL : '';
   const jira = cfg.baseUrl ? cfg.baseUrl.replace(/\/$/, '') : '';
 
   // Prevent double proxying if we already hit the Lambda

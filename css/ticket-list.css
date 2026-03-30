@@ -227,6 +227,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
 }
 
 .ht-table thead th {
@@ -243,6 +244,46 @@
   position: sticky;
   top: 0;
   z-index: 1;
+  overflow: hidden;
+}
+
+/* Sortable column headers */
+.ht-th-sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.ht-th-sortable:hover {
+  color: var(--text-primary);
+}
+
+.ht-sort-indicator {
+  margin-left: 4px;
+  opacity: 0.3;
+  font-size: 9px;
+}
+
+.ht-th-sortable[data-sort-active] .ht-sort-indicator {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* Column resize handle */
+.ht-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.ht-resize-handle:hover,
+.ht-resize-handle:active {
+  background: var(--accent);
+  opacity: 0.4;
 }
 
 .ht-col-key {
@@ -250,7 +291,7 @@
 }
 
 .ht-col-summary {
-  min-width: 200px;
+  width: 260px;
 }
 
 .ht-col-status {
