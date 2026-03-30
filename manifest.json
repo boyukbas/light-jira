@@ -21,9 +21,6 @@
     "48": "extension/icons/icon48.png",
     "128": "extension/icons/icon128.png"
   },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self' https://cdn.jsdelivr.net; object-src 'self'"
-  },
   "content_scripts": [
     {
       "matches": ["https://*.atlassian.net/*"],
