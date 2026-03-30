@@ -380,6 +380,79 @@ test.describe('Notes', () => {
   });
 });
 
+// ── 6b. LABELS TAB ───────────────────────────────────────────────────────────
+test.describe('Labels Tab', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('Labels tab is between Jira and Notes', async ({ page }) => {
+    const tabs = await page.locator('#tab-bar .tab-btn').allTextContents();
+    const cleaned = tabs.map((t) => t.trim());
+    const jiraIdx = cleaned.findIndex((t) => t.includes('Jira'));
+    const labelsIdx = cleaned.findIndex((t) => t.includes('Labels'));
+    const notesIdx = cleaned.findIndex((t) => t.includes('Notes'));
+    expect(jiraIdx).toBeLessThan(labelsIdx);
+    expect(labelsIdx).toBeLessThan(notesIdx);
+  });
+
+  test('switching to Labels tab changes app mode', async ({ page }) => {
+    await page.click('#tab-labels');
+    await expect(page.locator('#tab-labels')).toHaveClass(/active/);
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'labels');
+  });
+
+  test('Labels tab shows no-label group when ticket has no labels', async ({ page }) => {
+    // Load a ticket (has no labels by default)
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+
+    await page.click('#tab-labels');
+    await expect(page.locator('#group-list')).toContainText('no-label');
+  });
+
+  test('Labels tab shows labeled ticket under its label group', async ({ page }) => {
+    // Load a ticket and assign a label via state
+    await page.addInitScript(() => {
+      const orig = localStorage.setItem.bind(localStorage);
+      // After app initializes, inject a label
+    });
+
+    // Assign a label programmatically then switch to labels tab
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+
+    // Apply label via JS
+    await page.evaluate(() => {
+      window.applyLabel('PROJ-123', 'bug');
+    });
+
+    await page.click('#tab-labels');
+    await expect(page.locator('#group-list')).toContainText('bug');
+  });
+
+  test('clicking a label group in Labels tab shows its tickets in middle pane', async ({
+    page,
+  }) => {
+    // Load ticket and add label
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.evaluate(() => window.applyLabel('PROJ-123', 'bug'));
+
+    await page.click('#tab-labels');
+    // Click the "bug" label group
+    await page.locator('#group-list .group-item').filter({ hasText: 'bug' }).click();
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#ticket-list .list-card')).toContainText('PROJ-123');
+  });
+});
+
 // ── 7. HISTORY ────────────────────────────────────────────────────────────────
 test.describe('History', () => {
   test.beforeEach(async ({ page }) => {
