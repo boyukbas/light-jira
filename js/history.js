@@ -85,7 +85,6 @@ function initHtResize(pane) {
       const onMove = (mv) => {
         const newW = Math.max(40, startW + mv.clientX - startX);
         if (col) col.style.width = newW + 'px';
-        th.style.width = newW + 'px';
       };
       const onUp = () => {
         document.removeEventListener('mousemove', onMove);
