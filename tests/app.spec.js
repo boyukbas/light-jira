@@ -476,6 +476,18 @@ test.describe('Tabs', () => {
     await page.click('#mm-copy-btn');
     await expect(page.locator('#toast')).toContainText('copied', { timeout: 3000 });
   });
+
+  test('Mindmap refresh button exists and re-renders preview', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-refresh-btn')).toBeVisible();
+    // Clear preview to verify refresh actually re-renders it
+    await page.evaluate(() => {
+      document.getElementById('mm-preview').innerHTML = '';
+    });
+    await page.click('#mm-refresh-btn');
+    // Preview should have content again after refresh
+    await expect(page.locator('#mm-preview')).not.toBeEmpty({ timeout: 3000 });
+  });
 });
 
 // ── 9. BULK ACTIONS ───────────────────────────────────────────────────────────
