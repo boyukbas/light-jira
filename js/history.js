@@ -101,7 +101,7 @@ function renderHistoryTable() {
   const pane = document.getElementById('history-pane');
   if (!pane) return;
   const hist = getGroup('history');
-  const limit = parseInt(cfg.historyLimit) || 100;
+  const limit = HISTORY_LIMIT;
   const rawEntries = hist.keys.slice(0, limit);
 
   if (!rawEntries.length) {

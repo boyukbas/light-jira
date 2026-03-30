@@ -190,7 +190,6 @@ function init() {
     document.getElementById('cfg-url').value = cfg.baseUrl;
     document.getElementById('cfg-email').value = cfg.email;
     document.getElementById('cfg-token').value = cfg.token;
-    document.getElementById('cfg-hist-limit').value = cfg.historyLimit || 100;
     document.getElementById(cfg.useCloud ? 'cfg-proxy-cloud' : 'cfg-proxy-local').checked = true;
     clearSettingsErrors();
     document.getElementById('settings-overlay').classList.remove('hidden');
@@ -225,7 +224,6 @@ function init() {
     cfg.baseUrl = (rawUrl || DEFAULTS.baseUrl).replace(/\/$/, '');
     cfg.email = document.getElementById('cfg-email').value.trim();
     cfg.token = document.getElementById('cfg-token').value.trim();
-    cfg.historyLimit = parseInt(document.getElementById('cfg-hist-limit').value) || 100;
     cfg.useCloud = document.getElementById('cfg-proxy-cloud').checked;
     saveConfig();
     closeCfg();

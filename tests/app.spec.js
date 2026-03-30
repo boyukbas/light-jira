@@ -12,7 +12,6 @@ const initConfig = () => {
     email: 'test@example.com',
     token: 'fake-api-token',
     baseUrl: 'https://site.atlassian.net',
-    historyLimit: 100,
     useCloud: false,
   };
   localStorage.setItem('jira_config', JSON.stringify(config));
@@ -176,6 +175,13 @@ test.describe('Settings', () => {
     await page.click('#settings-btn');
     await expect(page.locator('#cfg-proxy-cloud')).toBeChecked();
     await expect(page.locator('#cfg-proxy-local')).not.toBeChecked();
+  });
+
+  test('history limit field is not present in settings', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-hist-limit')).toHaveCount(0);
   });
 });
 
