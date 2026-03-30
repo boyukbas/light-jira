@@ -29,6 +29,7 @@ function init() {
       try {
         const u = new URL(t);
         if (u.searchParams.get('filter') || u.searchParams.get('jql')) return 'filter';
+        if (/\/jira\/plans\/\d+/.test(u.pathname)) return 'filter';
       } catch {}
       return 'open'; // browse URL → single ticket
     }
