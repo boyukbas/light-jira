@@ -332,17 +332,51 @@ test.describe('Notes', () => {
     await page.click('#tab-notes');
     await expect(page.locator('#tab-notes')).toHaveClass(/active/);
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'notes');
+    await expect(page.locator('#notes-canvas-pane')).toBeVisible();
   });
 
-  test('can create a standalone note in notes mode', async ({ page }) => {
+  test('can create a note and click canvas to add text block', async ({ page }) => {
     await page.click('#tab-notes');
-    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'notes');
+    await page.click('#add-note-btn');
 
-    // In Notes mode #add-group-btn creates a note directly (no prompt)
-    await page.click('#add-group-btn');
+    // New note appears in sidebar
+    await expect(page.locator('#nc-notes-list .nc-note-item')).toHaveCount(1, { timeout: 3000 });
 
-    // Notes sidebar renders .note-item elements (not .group-item)
-    await expect(page.locator('#group-list .note-item')).toHaveCount(1, { timeout: 3000 });
+    // Click on empty canvas area creates a text block
+    await page.click('#note-canvas', { position: { x: 100, y: 100 } });
+    await expect(page.locator('#note-canvas .cb')).toHaveCount(1, { timeout: 3000 });
+    await expect(page.locator('#note-canvas .cb-text')).toHaveCount(1);
+  });
+
+  test('Mindmap tab is between Notes and History', async ({ page }) => {
+    const tabs = await page.locator('#tab-bar .tab-btn').allTextContents();
+    const cleaned = tabs.map((t) => t.trim());
+    const notesIdx = cleaned.findIndex((t) => t.includes('Notes'));
+    const mindmapIdx = cleaned.findIndex((t) => t.includes('Mindmap'));
+    const historyIdx = cleaned.findIndex((t) => t.includes('History'));
+    expect(notesIdx).toBeLessThan(mindmapIdx);
+    expect(mindmapIdx).toBeLessThan(historyIdx);
+  });
+
+  test('Mindmap sidebar shows diagram list and add button', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-diagram-list')).toBeVisible();
+    await expect(page.locator('#mm-add-btn')).toBeVisible();
+    // Default diagram exists after first load
+    await expect(page.locator('#mm-diagram-list .mm-diagram-item')).toHaveCount(1, {
+      timeout: 3000,
+    });
+  });
+
+  test('adding a second diagram updates the sidebar', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-diagram-list .mm-diagram-item')).toHaveCount(1, {
+      timeout: 3000,
+    });
+    await page.click('#mm-add-btn');
+    await expect(page.locator('#mm-diagram-list .mm-diagram-item')).toHaveCount(2, {
+      timeout: 3000,
+    });
   });
 });
 
@@ -398,7 +432,7 @@ test.describe('Tabs', () => {
     await expect(page.locator('#tab-jira')).toHaveClass(/active/);
   });
 
-  test('Diagram tab switches to mindmap mode and shows editor/preview panes', async ({ page }) => {
+  test('Mindmap tab switches to mindmap mode and shows editor/preview panes', async ({ page }) => {
     await page.click('#tab-mindmap');
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'mindmap');
     await expect(page.locator('#tab-mindmap')).toHaveClass(/active/);
@@ -409,9 +443,8 @@ test.describe('Tabs', () => {
     await expect(page.locator('#mm-code')).toHaveValue(/journey/);
   });
 
-  test('Diagram tab copy button shows toast', async ({ page }) => {
+  test('Mindmap copy button shows toast', async ({ page }) => {
     await page.click('#tab-mindmap');
-    // Grant clipboard permissions
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.click('#mm-copy-btn');
     await expect(page.locator('#toast')).toContainText('copied', { timeout: 3000 });
