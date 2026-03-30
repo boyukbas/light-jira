@@ -90,6 +90,7 @@ function applyLabel(key, name) {
   }
 }
 
+window.addLabel = addLabel;
 window.applyLabel = applyLabel;
 
 window.closeLabelPicker = function () {
@@ -104,6 +105,8 @@ function removeLabel(key, lbl) {
     renderReading();
   }
 }
+
+window.removeLabel = removeLabel;
 
 window.viewByLabel = function (label) {
   const ticketKeys = [];

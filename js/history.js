@@ -42,8 +42,7 @@ function sortEntries(entries) {
       default:
         return 0;
     }
-    const cmp =
-      typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
+    const cmp = typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb));
     return historySortDir === 'asc' ? cmp : -cmp;
   });
 }

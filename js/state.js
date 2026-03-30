@@ -14,6 +14,9 @@ let state = {
     notesWidth: 320,
     sidebarCollapsed: false,
     middleCollapsed: false,
+    notesSidebarWidth: 220,
+    mmSidebarWidth: 200,
+    mmEditorWidth: 280,
   },
   appMode: 'jira', // 'jira' | 'labels' | 'notes' | 'history' | 'mindmap'
   labelsActiveGroup: null, // active label name in labels tab (string | null)
@@ -57,7 +60,13 @@ function loadState() {
         notesWidth: 320,
         sidebarCollapsed: false,
         middleCollapsed: false,
+        notesSidebarWidth: 220,
+        mmSidebarWidth: 200,
+        mmEditorWidth: 280,
       };
+    if (!state.layout.notesSidebarWidth) state.layout.notesSidebarWidth = 220;
+    if (!state.layout.mmSidebarWidth) state.layout.mmSidebarWidth = 200;
+    if (!state.layout.mmEditorWidth) state.layout.mmEditorWidth = 280;
     if (!state.appMode) state.appMode = 'jira';
     if (state.labelsActiveGroup === undefined) state.labelsActiveGroup = null;
     // History is now a tab — activeGroupId should never be 'history'

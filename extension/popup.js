@@ -18,12 +18,8 @@ async function getAppTab() {
 async function beamToApp(payload) {
   const appTab = await getAppTab();
   if (appTab) {
-    await chrome.scripting.executeScript({
-      target: { tabId: appTab.id },
-      world: 'MAIN',
-      func: (p) => window.dispatchEvent(new CustomEvent('jira-beam', { detail: p })),
-      args: [payload],
-    });
+    // runtime messaging requires no host permission — works for own extension pages
+    chrome.runtime.sendMessage({ type: 'beam', payload });
     await chrome.tabs.update(appTab.id, { active: true });
   } else {
     const encoded = btoa(JSON.stringify(payload));

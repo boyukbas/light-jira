@@ -619,8 +619,9 @@ body[data-app-mode='mindmap'] #mindmap-pane {
 }
 
 .mm-editor-pane {
-  width: 35%;
-  min-width: 200px;
+  width: 280px;
+  min-width: 150px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
@@ -750,7 +751,7 @@ body[data-app-mode='mindmap'] #mindmap-pane {
   background: transparent;
   border: 1px dashed var(--border);
   color: var(--text-tertiary);
-  margin-top: 8px;
+  margin: 0 6px 8px;
   padding: 10px;
   border-radius: 6px;
   cursor: pointer;
@@ -759,9 +760,9 @@ body[data-app-mode='mindmap'] #mindmap-pane {
   justify-content: center;
   gap: 6px;
   transition: var(--transition);
-  width: 100%;
   font-family: var(--font);
   font-size: 12px;
+  flex-shrink: 0;
 }
 
 #add-note-btn:hover {
