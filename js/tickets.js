@@ -43,7 +43,7 @@ window.addToHistory = function (key) {
   if (h) {
     h.keys = h.keys.filter((k) => entryKey(k) !== key);
     h.keys.unshift({ key, added: Date.now() });
-    const limit = parseInt(cfg.historyLimit) || 100;
+    const limit = HISTORY_LIMIT;
     if (h.keys.length > limit) h.keys = h.keys.slice(0, limit);
   }
 };

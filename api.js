@@ -3,11 +3,12 @@
 const CLOUD_PROXY_URL =
   'https://wj342i36cjmzpkicz6b72moapi0fiucq.lambda-url.eu-central-1.on.aws';
 
+const HISTORY_LIMIT = 150;
+
 const DEFAULTS = {
   baseUrl: 'https://site.atlassian.net',
   email: '',
   token: '',
-  historyLimit: 100,
   useCloud: false,
 };
 let cfg = { ...DEFAULTS };
