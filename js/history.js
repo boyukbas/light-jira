@@ -124,7 +124,10 @@ function renderHistoryTable() {
   pane.querySelectorAll('.ht-remove-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      removeTicket(btn.dataset.key);
+      const hist = getGroup('history');
+      hist.keys = hist.keys.filter((k) => entryKey(k) !== btn.dataset.key);
+      saveState();
+      renderHistoryTable();
     });
   });
 

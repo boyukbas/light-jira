@@ -348,6 +348,21 @@ test.describe('Notes', () => {
     await expect(page.locator('#note-canvas .cb-text')).toHaveCount(1);
   });
 
+  test('empty text block is removed when focus leaves without typing', async ({ page }) => {
+    await page.click('#tab-notes');
+    await page.click('#add-note-btn');
+
+    // Click canvas to create an empty text block
+    await page.click('#note-canvas', { position: { x: 120, y: 120 } });
+    await expect(page.locator('#note-canvas .cb')).toHaveCount(1, { timeout: 3000 });
+
+    // Blur by clicking the title input (not the canvas — avoids creating a second block)
+    await page.click('#nc-title-input');
+
+    // The empty block should have been removed on blur
+    await expect(page.locator('#note-canvas .cb')).toHaveCount(0, { timeout: 3000 });
+  });
+
   test('Mindmap tab is between Notes and History', async ({ page }) => {
     const tabs = await page.locator('#tab-bar .tab-btn').allTextContents();
     const cleaned = tabs.map((t) => t.trim());
@@ -466,6 +481,30 @@ test.describe('History', () => {
     await page.click('#tab-history');
     await expect(page.locator('#tab-history')).toHaveClass(/active/);
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'history');
+  });
+
+  test('remove button deletes the entry from history', async ({ page }) => {
+    // Open a ticket so it lands in history
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+
+    await page.click('#tab-history');
+    await expect(page.locator('.ht-row')).toHaveCount(1, { timeout: 5000 });
+
+    // Click the remove button on that row
+    await page.locator('.ht-remove-btn').click();
+
+    // Row should be gone
+    await expect(page.locator('.ht-row')).toHaveCount(0, { timeout: 3000 });
+
+    // Persisted in state too
+    const histCount = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
+      const hist = (s.groups || []).find((g) => g.id === 'history');
+      return hist ? hist.keys.length : 0;
+    });
+    expect(histCount).toBe(0);
   });
 
   test('opening a ticket persists it in history state', async ({ page }) => {
