@@ -480,15 +480,16 @@
             class="form-group"
             style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px"
           >
-            <label class="form-label">Cloud Proxy URL (Optional)</label>
-            <input
-              class="form-input"
-              id="cfg-proxy-url"
-              type="text"
-              placeholder="https://xyz.lambda-url.region.on.aws"
-            />
-            <div style="font-size: 11px; opacity: 0.6; margin-top: 4px">
-              Leave empty for local proxy (localhost:3000)
+            <label class="form-label">Proxy Mode</label>
+            <div class="proxy-mode-group">
+              <label class="proxy-mode-option">
+                <input type="radio" name="cfg-proxy-mode" id="cfg-proxy-local" value="local" />
+                Local (localhost:3000)
+              </label>
+              <label class="proxy-mode-option">
+                <input type="radio" name="cfg-proxy-mode" id="cfg-proxy-cloud" value="cloud" />
+                Cloud (AWS Lambda)
+              </label>
             </div>
           </div>
         </div>
