@@ -16,9 +16,10 @@ let state = {
     middleCollapsed: false,
   },
   appMode: 'jira', // 'jira' | 'notes' | 'history' | 'mindmap'
-  standAloneNotes: [], // [{id, title, body, created, updated}]
+  standAloneNotes: [], // [{id, title, blocks[], created, updated}]
   activeNoteId: null,
-  mindMapCode: '', // mermaid diagram source persisted across sessions
+  mindMaps: [], // [{id, name, code}]
+  activeMindMapId: null,
 };
 
 let draggedKey = null; // for ticket drag & drop
@@ -64,7 +65,25 @@ function loadState() {
     }
     if (!state.standAloneNotes) state.standAloneNotes = [];
     if (state.activeNoteId === undefined) state.activeNoteId = null;
-    if (!state.mindMapCode) state.mindMapCode = '';
+    // Migrate old note body (rich-text string) to canvas blocks format
+    for (const note of state.standAloneNotes) {
+      if ('body' in note && !note.blocks) {
+        note.blocks = note.body
+          ? [{ id: 'blk_' + note.id, type: 'text', x: 40, y: 40, w: 600, content: note.body }]
+          : [];
+        delete note.body;
+      }
+      if (!note.blocks) note.blocks = [];
+    }
+    // Migrate old single mindMapCode to mindMaps array
+    if (!state.mindMaps) {
+      state.mindMaps = state.mindMapCode
+        ? [{ id: 'mm_default', name: 'Diagram 1', code: state.mindMapCode }]
+        : [];
+      state.activeMindMapId = state.mindMaps.length ? state.mindMaps[0].id : null;
+      delete state.mindMapCode;
+    }
+    if (state.activeMindMapId === undefined) state.activeMindMapId = null;
 
     const cached = localStorage.getItem('jira_issue_cache');
     if (cached) issueCache = JSON.parse(cached);

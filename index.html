@@ -71,20 +71,6 @@
           </svg>
           Notes
         </button>
-        <button class="tab-btn" data-tab="history" id="tab-history">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M12 8v4l3 3" />
-            <circle cx="12" cy="12" r="9" />
-          </svg>
-          History
-        </button>
         <button class="tab-btn" data-tab="mindmap" id="tab-mindmap">
           <svg
             width="14"
@@ -104,7 +90,21 @@
             <line x1="18.4" y1="5.6" x2="14.8" y2="9.2" />
             <line x1="9.2" y1="14.8" x2="5.6" y2="18.4" />
           </svg>
-          Diagram
+          Mindmap
+        </button>
+        <button class="tab-btn" data-tab="history" id="tab-history">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M12 8v4l3 3" />
+            <circle cx="12" cy="12" r="9" />
+          </svg>
+          History
         </button>
       </div>
 
@@ -288,8 +288,32 @@
         <div class="reading-content" id="reading-content" style="display: none"></div>
       </div>
 
-      <!-- MIND MAP PANE (for Diagram mode) -->
+      <!-- MIND MAP PANE (for Mindmap mode) -->
       <div id="mindmap-pane">
+        <div class="mm-sidebar">
+          <div class="mm-sidebar-header">
+            <span class="mm-sidebar-label">Diagrams</span>
+            <button
+              class="top-btn icon-only"
+              id="mm-add-btn"
+              title="New Diagram"
+              aria-label="New Diagram"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+          <div id="mm-diagram-list"></div>
+        </div>
         <div class="mm-editor-pane">
           <div class="mm-editor-header">
             <span class="mm-editor-label">Diagram Code</span>
@@ -326,89 +350,33 @@
         </div>
       </div>
 
-      <!-- NOTES EDITOR PANE (for Notes mode) -->
-      <div id="notes-editor-pane">
-        <div class="notes-editor-header">
-          <input
-            type="text"
-            class="note-title-input"
-            id="note-title-input"
-            placeholder="Untitled Note"
-          />
-          <span class="note-date" id="note-date-display"></span>
-        </div>
-        <div class="note-toolbar" id="note-toolbar">
-          <button class="note-tool-btn" data-cmd="bold" title="Bold (Ctrl+B)" aria-label="Bold">
-            <b>B</b>
-          </button>
-          <button
-            class="note-tool-btn"
-            data-cmd="italic"
-            title="Italic (Ctrl+I)"
-            aria-label="Italic"
-          >
-            <i>I</i>
-          </button>
-          <div class="note-toolbar-sep"></div>
-          <button
-            class="note-tool-btn"
-            data-cmd="insertUnorderedList"
-            title="Bullet List"
-            aria-label="Bullet List"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+      <!-- NOTES CANVAS PANE (for Notes mode) -->
+      <div id="notes-canvas-pane">
+        <div class="nc-sidebar" id="nc-sidebar">
+          <div class="nc-sidebar-header">
+            <span class="nc-sidebar-label">Notes</span>
+            <button
+              class="top-btn icon-only"
+              id="add-note-btn"
+              title="New Note"
+              aria-label="New Note"
             >
-              <line x1="9" y1="6" x2="20" y2="6" />
-              <line x1="9" y1="12" x2="20" y2="12" />
-              <line x1="9" y1="18" x2="20" y2="18" />
-              <circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none" />
-            </svg>
-          </button>
-          <button
-            class="note-tool-btn"
-            data-cmd="insertOrderedList"
-            title="Numbered List"
-            aria-label="Numbered List"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="10" y1="6" x2="21" y2="6" />
-              <line x1="10" y1="12" x2="21" y2="12" />
-              <line x1="10" y1="18" x2="21" y2="18" />
-              <path d="M4 5h1v4" stroke="currentColor" stroke-width="1.5" fill="none" />
-              <path d="M4 9h2" stroke="currentColor" stroke-width="1.5" />
-              <path
-                d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"
-                stroke="currentColor"
-                stroke-width="1.5"
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
                 fill="none"
-              />
-            </svg>
-          </button>
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+          <div id="nc-notes-list"></div>
         </div>
-        <div
-          id="note-editor-body"
-          class="note-editor-body"
-          contenteditable="true"
-          role="textbox"
-          aria-multiline="true"
-          aria-label="Note body"
-          data-placeholder="Start writing..."
-        ></div>
+        <div class="nc-main" id="nc-main"></div>
       </div>
 
       <div class="resizer" id="resizer-notes"></div>
