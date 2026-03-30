@@ -667,6 +667,79 @@ test.describe('Code Block Copy', () => {
   });
 });
 
+// ── 7c. JIRA LINK HANDLING ────────────────────────────────────────────────────
+test.describe('Jira Link Handling', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    // Return an issue with Jira links in description
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/PROJ-123'),
+      async (route) => {
+        const issueWithLinks = {
+          ...require('./fixtures/issue.json'),
+          renderedFields: {
+            description:
+              '<p>See <a href="https://site.atlassian.net/browse/ENHANCE-3133">ENHANCE-3133</a></p>' +
+              '<p>Contact <a href="https://site.atlassian.net/jira/people/user123">John Doe</a></p>',
+            comment: { comments: [] },
+          },
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(issueWithLinks),
+        });
+      }
+    );
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('clicking a /browse/ link opens ticket in app', async ({ page }) => {
+    // Mock the linked ticket route
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/ENHANCE-3133'),
+      async (route) => {
+        const f = require('./fixtures/issue.json');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...f, key: 'ENHANCE-3133' }),
+        });
+      }
+    );
+    await page.locator('#reading-content a[href*="/browse/ENHANCE-3133"]').click();
+    await expect(page.locator('#reading-content')).toContainText('ENHANCE-3133', { timeout: 5000 });
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'jira');
+  });
+
+  test('profile links are not intercepted', async ({ page }) => {
+    const link = page.locator('#reading-content a[href*="/jira/people/"]');
+    await expect(link).toBeVisible();
+    // Profile link should open externally — verify it has target="_blank"
+    await expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  test('ctrl+click on browse link opens in browser not app', async ({ page }) => {
+    // Ctrl+click should not trigger in-app navigation
+    const jsErrors = [];
+    page.on('pageerror', (err) => jsErrors.push(err.message));
+    // Record state before
+    const keyBefore = await page.evaluate(() => window.state?.activeKey);
+    await page
+      .locator('#reading-content a[href*="/browse/ENHANCE-3133"]')
+      .click({ modifiers: ['Control'] });
+    // activeKey should not change to ENHANCE-3133 (app-navigation was skipped)
+    const keyAfter = await page.evaluate(() => window.state?.activeKey);
+    expect(keyAfter).toBe(keyBefore);
+  });
+});
+
 // ── 8. ERROR PATHS ────────────────────────────────────────────────────────────
 test.describe('Error Paths', () => {
   test.beforeEach(async ({ page }) => {
