@@ -14,7 +14,7 @@ function showLabelPicker(key, suggestions) {
   let html =
     '<div id="label-picker" class="label-picker-overlay">' +
     '<div class="label-picker-box">' +
-    '<div class="label-picker-header">Add Label<button class="modal-close" onclick="closeLabelPicker()">&times;</button></div>' +
+    '<div class="label-picker-header">Add Label<button class="modal-close" id="label-picker-close">&times;</button></div>' +
     '<input type="text" id="label-picker-input" class="form-input" placeholder="Type a label name..." autocomplete="off" />';
 
   html += '<div class="label-picker-suggestions" id="label-picker-list">';
@@ -42,6 +42,8 @@ function showLabelPicker(key, suggestions) {
 
   const input = document.getElementById('label-picker-input');
   const listEl = document.getElementById('label-picker-list');
+  const closeBtn = document.getElementById('label-picker-close');
+  if (closeBtn) closeBtn.addEventListener('click', closeLabelPicker);
 
   input.focus();
 

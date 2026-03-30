@@ -195,6 +195,17 @@ function init() {
     document.getElementById('cfg-email').focus();
   }
 
+  // Bind handlers that were formerly inline (CSP blocks inline event handlers in extension context)
+  document
+    .getElementById('sidebar-collapse-btn')
+    .addEventListener('click', () => toggleCollapse('sidebar'));
+  document
+    .getElementById('middle-collapse-btn')
+    .addEventListener('click', () => toggleCollapse('middle'));
+  document.getElementById('notes-pane-close').addEventListener('click', toggleNotes);
+  const notesText = document.getElementById('notes-text');
+  if (notesText) notesText.addEventListener('input', () => saveNotes(notesText.value));
+
   const settingsBtn = document.getElementById('settings-btn');
   settingsBtn.addEventListener('click', openCfg);
   const closeCfg = () => {
