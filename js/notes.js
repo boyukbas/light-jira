@@ -239,6 +239,16 @@ function buildBlock(blk, note) {
         syncNotePreview(note);
       }, 300);
     });
+    text.addEventListener('blur', () => {
+      const isEmpty = !text.textContent.trim() && !text.querySelector('img');
+      if (isEmpty) {
+        clearTimeout(saveTimer);
+        note.blocks = note.blocks.filter((b) => b.id !== blk.id);
+        note.updated = Date.now();
+        saveState();
+        el.remove();
+      }
+    });
     body.appendChild(text);
   } else if (blk.type === 'image') {
     const img = document.createElement('img');
