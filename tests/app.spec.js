@@ -157,12 +157,35 @@ test.describe('Settings', () => {
     await expect(page.locator('#cfg-proxy-url')).toHaveCount(0);
   });
 
-  test('proxy mode defaults to local', async ({ page }) => {
-    await page.addInitScript(initConfig);
+  test('proxy mode saved as local is respected', async ({ page }) => {
+    await page.addInitScript(initConfig); // explicitly stores useCloud: false
     await page.goto('/');
     await page.click('#settings-btn');
     await expect(page.locator('#cfg-proxy-local')).toBeChecked();
     await expect(page.locator('#cfg-proxy-cloud')).not.toBeChecked();
+  });
+
+  test('proxy mode defaults to cloud for new installs', async ({ page }) => {
+    // No useCloud key in stored config — DEFAULTS should kick in as cloud
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'jira_config',
+        JSON.stringify({ email: 'test@example.com', token: 'tok', baseUrl: 'https://site.atlassian.net' })
+      );
+    });
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-proxy-cloud')).toBeChecked();
+    await expect(page.locator('#cfg-proxy-local')).not.toBeChecked();
+  });
+
+  test('API token field has a help link to the Atlassian token page', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.click('#settings-btn');
+    const link = page.locator('#settings-modal a[href*="atlassian.com"]');
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('target', '_blank');
   });
 
   test('proxy mode can be switched to cloud and persists after save', async ({ page }) => {
