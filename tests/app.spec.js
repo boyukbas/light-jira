@@ -655,6 +655,23 @@ test.describe('History Column Sort', () => {
     });
     expect(afterW).toBeGreaterThan(beforeW + 40);
   });
+
+  test('mousedown on resize handle alone does not change column width', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.click('#tab-history');
+
+    const { beforeW, afterW } = await page.evaluate(() => {
+      const th = document.querySelector('.ht-th-sortable[data-sort-col="key"]');
+      const beforeW = th.offsetWidth;
+      const handle = th.querySelector('.ht-resize-handle');
+      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true }));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      return { beforeW, afterW: th.offsetWidth };
+    });
+    expect(afterW).toBe(beforeW);
+  });
 });
 
 // ── 8. TABS ───────────────────────────────────────────────────────────────────
