@@ -665,16 +665,32 @@ body[data-app-mode='mindmap'] #mindmap-pane {
 .mm-preview-pane {
   flex: 1;
   min-width: 0;
-  overflow: auto;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 24px;
+  overflow: hidden;
+  position: relative;
   background: var(--bg);
+  cursor: grab;
+}
+
+.mm-preview-pane:active {
+  cursor: grabbing;
+}
+
+.mm-zoom-controls {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
 }
 
 .mm-preview {
-  max-width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 .mm-preview svg {

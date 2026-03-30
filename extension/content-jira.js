@@ -1,30 +1,75 @@
 'use strict';
 
 // Runs on *.atlassian.net pages.
-// Responds to extract-keys messages from the popup with all Jira issue keys found on the page.
+// Responds to extract-keys messages from the popup with all Jira issue keys
+// and their best-effort titles found on the page.
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type !== 'extract-keys') return;
 
-  const keys = new Set();
+  // Map from key → title (best title found so far; defaults to the key itself)
+  const tickets = new Map();
+
+  function addTicket(key, title) {
+    if (!/^[A-Z][A-Z0-9]{0,9}-\d+$/.test(key)) return;
+    // Only upgrade an existing entry if we found a real title
+    if (!tickets.has(key) || (title && title !== key)) {
+      tickets.set(key, title || key);
+    }
+  }
 
   // 1. Anchor tags pointing to /browse/PROJ-123
   document.querySelectorAll('a[href*="/browse/"]').forEach((a) => {
     const m = a.href.match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/);
-    if (m) keys.add(m[1]);
+    if (!m) return;
+    const key = m[1];
+    let title = '';
+    // Check if the anchor's text is something other than the bare key
+    const anchorText = a.textContent.trim();
+    if (anchorText && anchorText !== key) title = anchorText;
+    // Look for a summary element in a parent container
+    if (!title) {
+      const container =
+        a.closest('[data-issue-key]') || a.closest('[data-testid*="issue"]') || a.parentElement;
+      const summaryEl = container && container.querySelector('[data-testid*="summary"]');
+      if (summaryEl) title = summaryEl.textContent.trim();
+    }
+    addTicket(key, title);
   });
 
   // 2. data-issue-key attributes used by Jira board/backlog cards
   document.querySelectorAll('[data-issue-key]').forEach((el) => {
-    const k = el.dataset.issueKey;
-    if (/^[A-Z][A-Z0-9]{0,9}-\d+$/.test(k)) keys.add(k);
+    const key = el.dataset.issueKey;
+    if (!/^[A-Z][A-Z0-9]{0,9}-\d+$/.test(key)) return;
+    const summaryEl = el.querySelector('[data-testid*="summary"]');
+    const title = summaryEl ? summaryEl.textContent.trim() : '';
+    addTicket(key, title);
   });
 
   // 3. Elements with testids that carry the key as text (Jira's new UI)
   document.querySelectorAll('[data-testid*="issue-key"]').forEach((el) => {
-    const text = el.textContent.trim();
-    if (/^[A-Z][A-Z0-9]{0,9}-\d+$/.test(text)) keys.add(text);
+    const key = el.textContent.trim();
+    if (!/^[A-Z][A-Z0-9]{0,9}-\d+$/.test(key)) return;
+    const container = el.closest('[data-testid*="issue"]') || el.parentElement;
+    const summaryEl = container && container.querySelector('[data-testid*="summary"]');
+    const title = summaryEl ? summaryEl.textContent.trim() : '';
+    addTicket(key, title);
   });
 
-  sendResponse({ keys: Array.from(keys).sort() });
+  // 4. Single-issue page: the page h1 is the issue summary
+  const keyEl = document.querySelector('[data-testid*="issue-key"]');
+  const h1 = document.querySelector('h1[data-testid*="summary"], h1');
+  if (keyEl && h1) {
+    const key = keyEl.textContent.trim();
+    const title = h1.textContent.trim();
+    if (/^[A-Z][A-Z0-9]{0,9}-\d+$/.test(key) && title && title !== key) {
+      tickets.set(key, title);
+    }
+  }
+
+  const sorted = Array.from(tickets.entries()).sort(([a], [b]) => a.localeCompare(b));
+  sendResponse({
+    keys: sorted.map(([key]) => key),
+    tickets: sorted.map(([key, title]) => ({ key, title })),
+  });
 });

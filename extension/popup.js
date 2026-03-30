@@ -95,17 +95,22 @@ async function init() {
   // ── Section B: keys extracted from the page ───────────────────────────────
   sectionKeys.classList.remove('hidden');
 
-  let extractedKeys = [];
+  let extractedTickets = [];
   try {
     const response = await chrome.tabs.sendMessage(currentTab.id, { type: 'extract-keys' });
-    extractedKeys = response?.keys || [];
+    if (response?.tickets?.length) {
+      extractedTickets = response.tickets;
+    } else if (response?.keys?.length) {
+      // Backward-compat: old content script returns only keys
+      extractedTickets = response.keys.map((key) => ({ key, title: key }));
+    }
   } catch {
     // Content script not yet injected (e.g. extension just installed); graceful degradation.
   }
 
   keysLoading.classList.add('hidden');
 
-  if (!extractedKeys.length) {
+  if (!extractedTickets.length) {
     keysLoading.textContent = 'No tickets found on this page.';
     keysLoading.classList.remove('hidden');
     return;
@@ -116,7 +121,7 @@ async function init() {
   groupForm.classList.remove('hidden');
   groupNameInput.value = pageTitle || 'Jira Group';
 
-  extractedKeys.forEach((key) => {
+  extractedTickets.forEach(({ key, title }) => {
     const li = document.createElement('li');
     const cb = document.createElement('input');
     cb.type = 'checkbox';
@@ -124,8 +129,16 @@ async function init() {
     cb.checked = true;
     const lbl = document.createElement('label');
     lbl.htmlFor = cb.id;
-    lbl.className = 'key-label';
-    lbl.textContent = key;
+    const keySpan = document.createElement('span');
+    keySpan.className = 'key-label';
+    keySpan.textContent = key;
+    lbl.appendChild(keySpan);
+    if (title && title !== key) {
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'key-title';
+      titleSpan.textContent = title;
+      lbl.appendChild(titleSpan);
+    }
     li.appendChild(cb);
     li.appendChild(lbl);
     // Clicking anywhere on the row toggles the checkbox
