@@ -317,6 +317,53 @@ test.describe('Filters', () => {
   });
 });
 
+// ── 4b. PLANS URL ─────────────────────────────────────────────────────────────
+test.describe('Plans URL', () => {
+  const PLAN_URL = 'https://site.atlassian.net/jira/plans/6083/scenarios/6099/timeline?vid=8813';
+
+  function mockPlanRoute(page) {
+    page.route(
+      (url) => url.toString().includes('/rest/agile/1.0/plan/'),
+      async (route) => {
+        const reqUrl = route.request().url();
+        if (reqUrl.includes('/issue')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(searchFixture),
+          });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ id: 6083, title: 'My Roadmap' }),
+          });
+        }
+      }
+    );
+  }
+
+  test('plans URL is classified as Load Filter', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.fill('#search-input', PLAN_URL);
+    await expect(page.locator('#search-btn')).toContainText('Load Filter');
+  });
+
+  test('loading a plans URL creates a group named after the plan', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockPlanRoute(page);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', PLAN_URL);
+    await page.click('#search-btn');
+    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Roadmap', {
+      timeout: 5000,
+    });
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(3);
+  });
+});
+
 // ── 5. GROUPS ─────────────────────────────────────────────────────────────────
 test.describe('Groups', () => {
   test.beforeEach(async ({ page }) => {
