@@ -85,6 +85,27 @@
           </svg>
           History
         </button>
+        <button class="tab-btn" data-tab="mindmap" id="tab-mindmap">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="3" x2="12" y2="9" />
+            <line x1="12" y1="15" x2="12" y2="21" />
+            <line x1="3" y1="12" x2="9" y2="12" />
+            <line x1="15" y1="12" x2="21" y2="12" />
+            <line x1="5.6" y1="5.6" x2="9.2" y2="9.2" />
+            <line x1="14.8" y1="14.8" x2="18.4" y2="18.4" />
+            <line x1="18.4" y1="5.6" x2="14.8" y2="9.2" />
+            <line x1="9.2" y1="14.8" x2="5.6" y2="18.4" />
+          </svg>
+          Diagram
+        </button>
       </div>
 
       <div style="flex: 1"></div>
@@ -267,6 +288,44 @@
         <div class="reading-content" id="reading-content" style="display: none"></div>
       </div>
 
+      <!-- MIND MAP PANE (for Diagram mode) -->
+      <div id="mindmap-pane">
+        <div class="mm-editor-pane">
+          <div class="mm-editor-header">
+            <span class="mm-editor-label">Diagram Code</span>
+            <button
+              class="top-btn icon-only"
+              id="mm-copy-btn"
+              title="Copy diagram code"
+              aria-label="Copy diagram code"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+          </div>
+          <textarea
+            id="mm-code"
+            class="mm-code-editor"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+          ></textarea>
+        </div>
+        <div class="mm-preview-pane">
+          <div id="mm-preview" class="mm-preview"></div>
+        </div>
+      </div>
+
       <!-- NOTES EDITOR PANE (for Notes mode) -->
       <div id="notes-editor-pane">
         <div class="notes-editor-header">
@@ -440,6 +499,7 @@
     <div id="toast"></div>
 
     <!-- LIBRARIES & APP -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <script src="api.js"></script>
     <script src="utils.js"></script>
     <script src="js/state.js"></script>
@@ -453,6 +513,7 @@
     <script src="js/drag-drop.js"></script>
     <script src="js/filters.js"></script>
     <script src="js/tickets.js"></script>
+    <script src="js/mindmap.js"></script>
     <script src="js/init.js"></script>
   </body>
 </html>
