@@ -625,6 +625,48 @@ test.describe('Bulk Actions', () => {
   });
 });
 
+// ── 7b. READING PANE — CODE BLOCK COPY ───────────────────────────────────────
+test.describe('Code Block Copy', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    // Return an issue with a code block in the description
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/'),
+      async (route) => {
+        const issueWithCode = {
+          ...require('./fixtures/issue.json'),
+          renderedFields: {
+            description: '<p>Check this code:</p><pre><code>console.log("hello");</code></pre>',
+            comment: { comments: [] },
+          },
+        };
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(issueWithCode),
+        });
+      }
+    );
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('code block in reading pane has a copy button', async ({ page }) => {
+    await expect(page.locator('#reading-content .code-copy-btn')).toBeVisible({ timeout: 3000 });
+  });
+
+  test('clicking code copy button shows toast', async ({ page }) => {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.locator('#reading-content .code-copy-btn').first().click();
+    await expect(page.locator('#toast')).toContainText(/cop/i, { timeout: 3000 });
+  });
+});
+
 // ── 8. ERROR PATHS ────────────────────────────────────────────────────────────
 test.describe('Error Paths', () => {
   test.beforeEach(async ({ page }) => {

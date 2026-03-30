@@ -241,7 +241,30 @@ function renderReading() {
   const notesTextEl = document.getElementById('notes-text');
   notesTextEl.value = state.notes[key] || '';
   bindAuthImages(content);
+  bindCodeCopyButtons(content);
   renderHierarchy(key, f.parent);
+}
+
+function bindCodeCopyButtons(container) {
+  container.querySelectorAll('pre').forEach((pre) => {
+    if (pre.querySelector('.code-copy-btn')) return; // already added
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn top-btn icon-only';
+    btn.title = 'Copy code';
+    btn.setAttribute('aria-label', 'Copy code');
+    btn.innerHTML =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+      '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>' +
+      '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+      '</svg>';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const code = pre.querySelector('code') || pre;
+      navigator.clipboard.writeText(code.textContent || '').then(() => toast('Code copied!'));
+    });
+    pre.style.position = 'relative';
+    pre.appendChild(btn);
+  });
 }
 
 async function renderHierarchy(rootKey, directParent) {
