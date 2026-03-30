@@ -523,6 +523,111 @@ test.describe('History', () => {
   });
 });
 
+// ── 7b. HISTORY COLUMN SORT & RESIZE ─────────────────────────────────────────
+test.describe('History Column Sort', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  // Open tickets in order 200→100→300 so natural history order = [300, 100, 200]
+  async function openThreeTickets(page) {
+    for (const key of ['PROJ-200', 'PROJ-100', 'PROJ-300']) {
+      await page.fill('#search-input', key);
+      await page.click('#search-btn');
+      await expect(page.locator('#ticket-list .list-card.active')).toBeVisible({ timeout: 5000 });
+    }
+    await page.click('#tab-history');
+    await expect(page.locator('.ht-row')).toHaveCount(3, { timeout: 5000 });
+  }
+
+  test('sortable column headers render with sort indicators', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.click('#tab-history');
+    await expect(page.locator('.ht-th-sortable[data-sort-col="key"]')).toBeVisible();
+    await expect(page.locator('.ht-th-sortable[data-sort-col="summary"]')).toBeVisible();
+    await expect(page.locator('.ht-th-sortable[data-sort-col="viewed"]')).toBeVisible();
+  });
+
+  test('clicking Key header sorts ascending, again descending, third click resets', async ({
+    page,
+  }) => {
+    await openThreeTickets(page);
+
+    // Natural order first row: PROJ-300 (most recently opened)
+    await expect(page.locator('.ht-row').first()).toHaveAttribute('data-key', 'PROJ-300');
+
+    // 1st click → ascending
+    await page.click('.ht-th-sortable[data-sort-col="key"]');
+    const keys1 = await page.locator('.ht-row').evaluateAll((rows) =>
+      rows.map((r) => r.dataset.key)
+    );
+    expect(keys1).toEqual(['PROJ-100', 'PROJ-200', 'PROJ-300']);
+
+    // 2nd click → descending
+    await page.click('.ht-th-sortable[data-sort-col="key"]');
+    const keys2 = await page.locator('.ht-row').evaluateAll((rows) =>
+      rows.map((r) => r.dataset.key)
+    );
+    expect(keys2).toEqual(['PROJ-300', 'PROJ-200', 'PROJ-100']);
+
+    // 3rd click → natural order restored [300, 100, 200]
+    await page.click('.ht-th-sortable[data-sort-col="key"]');
+    const keys3 = await page.locator('.ht-row').evaluateAll((rows) =>
+      rows.map((r) => r.dataset.key)
+    );
+    expect(keys3).toEqual(['PROJ-300', 'PROJ-100', 'PROJ-200']);
+  });
+
+  test('active sort column gets data-sort-active attribute', async ({ page }) => {
+    await openThreeTickets(page);
+    await page.click('.ht-th-sortable[data-sort-col="key"]');
+    await expect(page.locator('.ht-th-sortable[data-sort-col="key"]')).toHaveAttribute(
+      'data-sort-active',
+      '1'
+    );
+    // Other columns should not be active
+    await expect(
+      page.locator('.ht-th-sortable[data-sort-col="summary"]')
+    ).not.toHaveAttribute('data-sort-active');
+  });
+
+  test('resize handles are present on every sortable column header', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.click('#tab-history');
+    // 6 sortable columns: key, summary, status, assignee, created, viewed
+    await expect(page.locator('.ht-th-sortable .ht-resize-handle')).toHaveCount(6);
+  });
+
+  test('dragging resize handle changes column width', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.click('#tab-history');
+
+    const keyTh = page.locator('.ht-th-sortable[data-sort-col="key"]');
+    const beforeW = await keyTh.evaluate((el) => el.offsetWidth);
+
+    // Dispatch mouse events directly — page.mouse does not reliably target
+    // position-absolute children inside sticky <th> elements in headless Chromium.
+    const afterW = await page.evaluate(() => {
+      const th = document.querySelector('.ht-th-sortable[data-sort-col="key"]');
+      const handle = th.querySelector('.ht-resize-handle');
+      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true }));
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 160, bubbles: true }));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      return th.offsetWidth;
+    });
+    expect(afterW).toBeGreaterThan(beforeW + 40);
+  });
+});
+
 // ── 8. TABS ───────────────────────────────────────────────────────────────────
 test.describe('Tabs', () => {
   test.beforeEach(async ({ page }) => {
