@@ -134,11 +134,19 @@ The settings-save handler validates `cfg-url` and `cfg-proxy-url` with `new URL(
 
 All 5 icon-only buttons have `aria-label` matching their `title`. The settings modal has `role="dialog"`, `aria-modal="true"`, and `aria-labelledby="settings-modal-title"`. The note editor `contenteditable` has `role="textbox"`, `aria-multiline="true"`, and `aria-label="Note body"`. All 4 toolbar buttons have `aria-label`.
 
-## Testing
+## Testing (TDD — required)
 
-Run `npm test` after any change to confirm no regressions. Tests live in `tests/app.spec.js` and use Playwright with mocked API routes (no real Jira needed). 41 tests covering layout, settings, tickets, filters, groups (inline create/rename/Escape), notes, history, tabs, bulk actions, error paths (401, network abort, corrupted localStorage, XSS, URL validation), and drag-and-drop. Add tests for new user-facing behaviour.
+**Follow TDD for every change**: write a failing test first, then make it pass. Never ship a behaviour change without a corresponding test.
+
+1. Write a test that reproduces the bug or describes the new behaviour — confirm it **fails** before touching production code.
+2. Make the minimal code change to turn the test green.
+3. Run the full suite (`npm test`) to confirm no regressions.
+
+Tests live in `tests/app.spec.js` and use Playwright with mocked API routes (no real Jira needed). Coverage includes: layout, settings, tickets, filters, groups (inline create/rename/Escape), notes, history, tabs, bulk actions, error paths (401, network abort, corrupted localStorage, XSS, URL validation), and drag-and-drop. Add tests for all new user-facing behaviour.
 
 Use `createGroup(page, name)` helper (defined at the top of the test file) whenever a test needs a second group — it clicks `#add-group-btn`, fills `.g-name-input`, and presses Enter. Never use `page.once('dialog', ...)` for group operations.
+
+To catch JS runtime errors in tests, register a `page.on('pageerror', ...)` listener before triggering the action, then assert the collected errors array.
 
 ## Commit discipline
 

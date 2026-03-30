@@ -432,6 +432,33 @@ test.describe('Tabs', () => {
     await expect(page.locator('#tab-jira')).toHaveClass(/active/);
   });
 
+  test('switching back to Jira with active ticket renders reading pane without errors', async ({
+    page,
+  }) => {
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+
+    const jsErrors = [];
+    page.on('pageerror', (err) => jsErrors.push(err.message));
+
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+
+    // Switch away and back — renderReading must not throw
+    await page.click('#tab-notes');
+    await page.click('#tab-jira');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'jira');
+
+    // No JS errors should have been thrown (catches bindPasteHandler ReferenceError)
+    const referenceErrors = jsErrors.filter(
+      (m) => m.includes('ReferenceError') || m.includes('not defined')
+    );
+    expect(referenceErrors).toHaveLength(0);
+  });
+
   test('Mindmap tab switches to mindmap mode and shows editor/preview panes', async ({ page }) => {
     await page.click('#tab-mindmap');
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'mindmap');
