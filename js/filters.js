@@ -25,14 +25,34 @@ async function runFilterLoad(rawInput, customName = '') {
   const parsed = parseFilterInput(rawInput);
 
   if (parsed.type === 'planId') {
-    const [plan, results] = await Promise.all([
-      fetchPlanDetails(parsed.value),
-      fetchPlanIssues(parsed.value),
-    ]);
+    // fetchPlanDetails is graceful (returns null on failure)
+    const plan = await fetchPlanDetails(parsed.value);
     const groupName = customName || plan?.title || plan?.name || 'Plan #' + parsed.value;
-    const issues = results.issues || results.values || [];
-    if (!issues.length) {
-      toast('No tickets found in this plan', 'error');
+
+    let issues = null;
+    try {
+      const results = await fetchPlanIssues(parsed.value);
+      issues = results.issues || results.values || [];
+    } catch {
+      // Plans REST API unavailable (requires Jira Premium or specific API scope).
+      // Fall back: some plan detail responses include a JQL we can search instead.
+      const fallbackJql =
+        plan?.issueListConfig?.query?.jql || plan?.jql || plan?.filter?.jql;
+      if (fallbackJql) {
+        try {
+          const r = await fetchByJql(fallbackJql);
+          issues = r.issues || [];
+        } catch {
+          issues = null;
+        }
+      }
+    }
+
+    if (!issues || !issues.length) {
+      toast(
+        'Could not load plan — the Plans REST API requires Jira Premium. Paste JQL here instead.',
+        'error'
+      );
       return;
     }
     const keys = issues.map((iss) => {
