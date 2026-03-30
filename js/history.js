@@ -85,7 +85,6 @@ function initHtResize(pane) {
       const onMove = (mv) => {
         const newW = Math.max(40, startW + mv.clientX - startX);
         if (col) col.style.width = newW + 'px';
-        th.style.width = newW + 'px';
       };
       const onUp = () => {
         document.removeEventListener('mousemove', onMove);
@@ -102,7 +101,7 @@ function renderHistoryTable() {
   const pane = document.getElementById('history-pane');
   if (!pane) return;
   const hist = getGroup('history');
-  const limit = parseInt(cfg.historyLimit) || 100;
+  const limit = HISTORY_LIMIT;
   const rawEntries = hist.keys.slice(0, limit);
 
   if (!rawEntries.length) {

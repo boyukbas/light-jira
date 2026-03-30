@@ -3,11 +3,12 @@
 const CLOUD_PROXY_URL =
   'https://wj342i36cjmzpkicz6b72moapi0fiucq.lambda-url.eu-central-1.on.aws';
 
+const HISTORY_LIMIT = 150;
+
 const DEFAULTS = {
   baseUrl: 'https://site.atlassian.net',
   email: '',
   token: '',
-  historyLimit: 100,
   useCloud: false,
 };
 let cfg = { ...DEFAULTS };
@@ -163,6 +164,9 @@ function parseFilterInput(input) {
       // Could also be a JQL URL
       const jql = url.searchParams.get('jql');
       if (jql) return { type: 'jql', value: jql };
+      // Plans URL: /jira/plans/{planId}/scenarios/{scenarioId}/...
+      const plansMatch = url.pathname.match(/\/jira\/plans\/(\d+)/);
+      if (plansMatch) return { type: 'planId', value: plansMatch[1] };
     }
   } catch {
     /* not a URL */
@@ -173,4 +177,33 @@ function parseFilterInput(input) {
 
   // Assume it's JQL
   return { type: 'jql', value: trimmed };
+}
+
+async function fetchPlanIssues(planId) {
+  const url =
+    apiBase() +
+    '/rest/agile/1.0/plan/' +
+    encodeURIComponent(planId) +
+    '/issue?maxResults=200';
+  const r = await fetch(url, { headers: commonHeaders() });
+  if (!r.ok) {
+    let msg = r.status + ' ' + r.statusText;
+    try {
+      const j = await r.json();
+      msg += ': ' + (j.errorMessages?.[0] || j.message || '');
+    } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function fetchPlanDetails(planId) {
+  try {
+    const url = apiBase() + '/rest/agile/1.0/plan/' + encodeURIComponent(planId);
+    const r = await fetch(url, { headers: commonHeaders() });
+    if (!r.ok) return null;
+    return r.json();
+  } catch {
+    return null;
+  }
 }

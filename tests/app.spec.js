@@ -12,7 +12,6 @@ const initConfig = () => {
     email: 'test@example.com',
     token: 'fake-api-token',
     baseUrl: 'https://site.atlassian.net',
-    historyLimit: 100,
     useCloud: false,
   };
   localStorage.setItem('jira_config', JSON.stringify(config));
@@ -177,6 +176,13 @@ test.describe('Settings', () => {
     await expect(page.locator('#cfg-proxy-cloud')).toBeChecked();
     await expect(page.locator('#cfg-proxy-local')).not.toBeChecked();
   });
+
+  test('history limit field is not present in settings', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-hist-limit')).toHaveCount(0);
+  });
 });
 
 // ── 3. TICKETS ────────────────────────────────────────────────────────────────
@@ -308,6 +314,53 @@ test.describe('Filters', () => {
     // Switch to Inbox
     await page.locator('#group-list .group-item').first().click();
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(0);
+  });
+});
+
+// ── 4b. PLANS URL ─────────────────────────────────────────────────────────────
+test.describe('Plans URL', () => {
+  const PLAN_URL = 'https://site.atlassian.net/jira/plans/6083/scenarios/6099/timeline?vid=8813';
+
+  function mockPlanRoute(page) {
+    page.route(
+      (url) => url.toString().includes('/rest/agile/1.0/plan/'),
+      async (route) => {
+        const reqUrl = route.request().url();
+        if (reqUrl.includes('/issue')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(searchFixture),
+          });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ id: 6083, title: 'My Roadmap' }),
+          });
+        }
+      }
+    );
+  }
+
+  test('plans URL is classified as Load Filter', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.fill('#search-input', PLAN_URL);
+    await expect(page.locator('#search-btn')).toContainText('Load Filter');
+  });
+
+  test('loading a plans URL creates a group named after the plan', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockPlanRoute(page);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', PLAN_URL);
+    await page.click('#search-btn');
+    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Roadmap', {
+      timeout: 5000,
+    });
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(3);
   });
 });
 
@@ -654,6 +707,23 @@ test.describe('History Column Sort', () => {
       return th.offsetWidth;
     });
     expect(afterW).toBeGreaterThan(beforeW + 40);
+  });
+
+  test('mousedown on resize handle alone does not change column width', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.click('#tab-history');
+
+    const { beforeW, afterW } = await page.evaluate(() => {
+      const th = document.querySelector('.ht-th-sortable[data-sort-col="key"]');
+      const beforeW = th.offsetWidth;
+      const handle = th.querySelector('.ht-resize-handle');
+      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true }));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      return { beforeW, afterW: th.offsetWidth };
+    });
+    expect(afterW).toBe(beforeW);
   });
 });
 
