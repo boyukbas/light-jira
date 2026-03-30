@@ -181,6 +181,20 @@ test.describe('Tickets', () => {
     );
   });
 
+  test('newly opened ticket summary updates in list after fetch resolves', async ({ page }) => {
+    // Regression: C3 fast path was skipping full rebuild when key list was
+    // unchanged, leaving "Loading..." stuck in the card until another item
+    // was opened. The fast path must be bypassed while any key is uncached.
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+
+    // Card must eventually show the real summary, not "Loading..."
+    await expect(page.locator('#ticket-list .list-card').first()).toContainText(
+      'Test ticket summary for automation',
+      { timeout: 5000 }
+    );
+  });
+
   test('ticket key is normalised from lowercase input', async ({ page }) => {
     await page.fill('#search-input', 'proj-123');
     await page.click('#search-btn');
@@ -382,6 +396,25 @@ test.describe('Tabs', () => {
     await page.click('#tab-jira');
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'jira');
     await expect(page.locator('#tab-jira')).toHaveClass(/active/);
+  });
+
+  test('Diagram tab switches to mindmap mode and shows editor/preview panes', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'mindmap');
+    await expect(page.locator('#tab-mindmap')).toHaveClass(/active/);
+    await expect(page.locator('#mindmap-pane')).toBeVisible();
+    await expect(page.locator('#mm-code')).toBeVisible();
+    await expect(page.locator('#mm-preview')).toBeVisible();
+    // Default diagram code is pre-loaded
+    await expect(page.locator('#mm-code')).toHaveValue(/journey/);
+  });
+
+  test('Diagram tab copy button shows toast', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    // Grant clipboard permissions
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.click('#mm-copy-btn');
+    await expect(page.locator('#toast')).toContainText('copied', { timeout: 3000 });
   });
 });
 

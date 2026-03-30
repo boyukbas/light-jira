@@ -15,9 +15,10 @@ let state = {
     sidebarCollapsed: false,
     middleCollapsed: false,
   },
-  appMode: 'jira', // 'jira' | 'notes' | 'history'
+  appMode: 'jira', // 'jira' | 'notes' | 'history' | 'mindmap'
   standAloneNotes: [], // [{id, title, body, created, updated}]
   activeNoteId: null,
+  mindMapCode: '', // mermaid diagram source persisted across sessions
 };
 
 let draggedKey = null; // for ticket drag & drop
@@ -63,6 +64,7 @@ function loadState() {
     }
     if (!state.standAloneNotes) state.standAloneNotes = [];
     if (state.activeNoteId === undefined) state.activeNoteId = null;
+    if (!state.mindMapCode) state.mindMapCode = '';
 
     const cached = localStorage.getItem('jira_issue_cache');
     if (cached) issueCache = JSON.parse(cached);

@@ -31,6 +31,8 @@ function updateViewMode() {
   } else if (state.appMode === 'history') {
     renderSidebar();
     renderHistoryTable();
+  } else if (state.appMode === 'mindmap') {
+    renderMindMap();
   } else {
     renderSidebar();
     renderMiddle();
