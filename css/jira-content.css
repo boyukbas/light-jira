@@ -160,6 +160,18 @@
   vertical-align: top !important;
 }
 
+/* Code block copy button */
+.code-copy-btn {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+pre:hover .code-copy-btn {
+  opacity: 1;
+}
+
 /* Hide Jira "Smart Link" lightbulbs */
 .description img[src*='info-modeler'],
 .description img[src*='lightbulb'],

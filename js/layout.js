@@ -34,6 +34,10 @@ function updateViewMode() {
   } else if (state.appMode === 'mindmap') {
     renderMindMapSidebar();
     renderMindMap();
+  } else if (state.appMode === 'labels') {
+    renderLabelsSidebar();
+    renderLabelsMiddle();
+    renderReading();
   } else {
     renderSidebar();
     renderMiddle();
