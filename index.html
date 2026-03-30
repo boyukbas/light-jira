@@ -157,7 +157,7 @@
           </span>
           <button
             class="top-btn icon-only collapse-btn"
-            onclick="toggleCollapse('sidebar')"
+            id="sidebar-collapse-btn"
             title="Collapse Sidebar"
             aria-label="Collapse Sidebar"
           >
@@ -198,7 +198,6 @@
           <button
             class="top-btn icon-only collapse-btn"
             id="middle-collapse-btn"
-            onclick="toggleCollapse('middle')"
             title="Collapse Items"
             aria-label="Collapse Items"
           >
@@ -419,12 +418,11 @@
           style="border-bottom: 1px solid var(--border-subtle); background: var(--card)"
         >
           Notes
-          <button class="modal-close" onclick="toggleNotes()">&times;</button>
+          <button class="modal-close" id="notes-pane-close">&times;</button>
         </div>
         <textarea
           id="notes-text"
           placeholder="Type personal notes here... Saved automatically to your browser."
-          oninput="saveNotes(this.value)"
         ></textarea>
       </div>
     </div>

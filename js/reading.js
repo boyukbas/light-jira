@@ -47,7 +47,7 @@ function renderReading() {
 
   const f = issue.fields;
   let selHtml =
-    '<select class="rs-group-select" onchange="moveTicket(\'' + esc(key) + '\', this.value)">';
+    '<select class="rs-group-select" data-action="move-ticket" data-key="' + esc(key) + '">';
   for (const g of state.groups) {
     selHtml +=
       '<option value="' +
@@ -65,25 +65,27 @@ function renderReading() {
   const myLbls = state.labels[key] || [];
   for (const L of myLbls) {
     const c = state.labelColors[L] || '#6e7681';
-    const escapedL = esc(L).replace(/'/g, "\\'");
     html +=
       '<span class="lbl-badge" style="background:' +
       c +
       ';' +
       (c === '#f0883e' || c === '#e3b341' ? 'color:#000;' : 'color:#fff;') +
       '">' +
-      '<span onclick="viewByLabel(\'' +
-      escapedL +
-      '\')" style="cursor:pointer;" title="View all tickets with this label">' +
+      '<span data-action="view-label" data-label="' +
+      esc(L) +
+      '" style="cursor:pointer;" title="View all tickets with this label">' +
       esc(L) +
       '</span>' +
-      ' <span class="x-btn" onclick="removeLabel(\'' +
+      ' <span class="x-btn" data-action="remove-label" data-key="' +
       esc(key) +
-      "', '" +
-      escapedL +
-      '\')">✕</span></span>';
+      '" data-label="' +
+      esc(L) +
+      '">✕</span></span>';
   }
-  html += '<button class="lbl-add" onclick="addLabel(\'' + esc(key) + '\')">+ Label</button></div>';
+  html +=
+    '<button class="lbl-add" data-action="add-label" data-key="' +
+    esc(key) +
+    '">+ Label</button></div>';
 
   html +=
     '<div class="rs-title-row"><div class="rs-title"><a href="' +
@@ -98,8 +100,8 @@ function renderReading() {
   html +=
     '<div class="rs-actions">' +
     selHtml +
-    '<button class="top-btn" onclick="toggleNotes()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Notes</button>' +
-    '<button class="top-btn" onclick="forceRefreshReading()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg> Refresh</button></div></div>';
+    '<button class="top-btn" data-action="toggle-notes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Notes</button>' +
+    '<button class="top-btn" data-action="refresh-reading"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg> Refresh</button></div></div>';
 
   html += '<div class="meta-grid">';
   const metas = [
@@ -190,9 +192,9 @@ function renderReading() {
       const t = isOut ? l.outwardIssue : l.inwardIssue;
       const rel = isOut ? l.type.outward : l.type.inward;
       html +=
-        '<div class="link-card" onclick="openTicketByKey(\'' +
+        '<div class="link-card" data-action="open-ticket" data-key="' +
         esc(t.key) +
-        '\')">' +
+        '">' +
         '<div style="flex:1;min-width:0;">' +
         '<div class="link-type">' +
         esc(rel) +
@@ -207,7 +209,7 @@ function renderReading() {
         esc(cfg.baseUrl) +
         '/browse/' +
         esc(t.key) +
-        '" target="_blank" class="link-open-jira" onclick="event.stopPropagation()" title="Open in Jira">' +
+        '" target="_blank" class="link-open-jira" title="Open in Jira">' +
         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
         '</a></div>';
     }
@@ -240,10 +242,45 @@ function renderReading() {
   content.innerHTML = html;
   const notesTextEl = document.getElementById('notes-text');
   notesTextEl.value = state.notes[key] || '';
+  bindReadingHandlers(content, key);
   bindAuthImages(content);
   bindCodeCopyButtons(content);
   bindJiraLinks(content);
   renderHierarchy(key, f.parent);
+}
+
+function bindReadingHandlers(container, key) {
+  container.querySelectorAll('.link-open-jira').forEach((a) => {
+    a.addEventListener('click', (e) => e.stopPropagation());
+  });
+
+  container.querySelectorAll('[data-action]').forEach((el) => {
+    const { action, label } = el.dataset;
+    const elKey = el.dataset.key;
+    switch (action) {
+      case 'add-label':
+        el.addEventListener('click', () => addLabel(elKey));
+        break;
+      case 'remove-label':
+        el.addEventListener('click', () => removeLabel(elKey, label));
+        break;
+      case 'view-label':
+        el.addEventListener('click', () => window.viewByLabel(label));
+        break;
+      case 'move-ticket':
+        el.addEventListener('change', () => window.moveTicket(elKey, el.value));
+        break;
+      case 'toggle-notes':
+        el.addEventListener('click', toggleNotes);
+        break;
+      case 'refresh-reading':
+        el.addEventListener('click', () => window.forceRefreshReading());
+        break;
+      case 'open-ticket':
+        el.addEventListener('click', () => openTicketByKey(elKey));
+        break;
+    }
+  });
 }
 
 function bindCodeCopyButtons(container) {
