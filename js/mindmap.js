@@ -1,15 +1,12 @@
 'use strict';
 
 // ── MIND MAP ──────────────────────────────────────────────────────────────────
-const MM_DEFAULT_CODE = `journey
-    title My Working Day
-    section Go to work
-      Make tea: 5: Me
-      Go upstairs: 3: Me
-      Do work: 1: Me, Cat
-    section Go home
-      Go downstairs: 5: Me
-      Sit down: 5: Me`;
+const MM_DEFAULT_CODE = `sequenceDiagram
+    participant User
+    participant System
+    User->>System: Request
+    System-->>User: Response
+    User-)System: Follow-up`;
 
 let mmRenderTimer = null;
 let mmRenderSeq = 0;

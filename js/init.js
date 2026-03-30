@@ -295,6 +295,13 @@ function handleBeam(payload) {
 
 window.addEventListener('jira-beam', (e) => handleBeam(e.detail));
 
+// Chrome extension: receive beam messages from the popup via runtime messaging
+if (typeof chrome !== 'undefined' && chrome.runtime?.id) {
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg && msg.type === 'beam') handleBeam(msg.payload);
+  });
+}
+
 // Handle ?beam=<base64-JSON> sent by the extension when the app tab was not open
 try {
   const beamParam = new URLSearchParams(window.location.search).get('beam');

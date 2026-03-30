@@ -303,7 +303,7 @@
 
       <!-- MIND MAP PANE (for Mindmap mode) -->
       <div id="mindmap-pane">
-        <div class="mm-sidebar">
+        <div class="mm-sidebar" id="mm-sidebar-panel">
           <div class="mm-sidebar-header">
             <span class="mm-sidebar-label">Diagrams</span>
             <button
@@ -327,7 +327,8 @@
           </div>
           <div id="mm-diagram-list"></div>
         </div>
-        <div class="mm-editor-pane">
+        <div class="resizer" id="resizer-mm-sidebar"></div>
+        <div class="mm-editor-pane" id="mm-editor-panel">
           <div class="mm-editor-header">
             <span class="mm-editor-label">Diagram Code</span>
             <button
@@ -378,6 +379,7 @@
             autocapitalize="off"
           ></textarea>
         </div>
+        <div class="resizer" id="resizer-mm-editor"></div>
         <div class="mm-preview-pane">
           <div id="mm-preview" class="mm-preview"></div>
         </div>
@@ -388,27 +390,23 @@
         <div class="nc-sidebar" id="nc-sidebar">
           <div class="nc-sidebar-header">
             <span class="nc-sidebar-label">Notes</span>
-            <button
-              class="top-btn icon-only"
-              id="add-note-btn"
-              title="New Note"
-              aria-label="New Note"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
           </div>
           <div id="nc-notes-list"></div>
+          <button id="add-note-btn" title="New Note" aria-label="New Note">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
         </div>
+        <div class="resizer" id="resizer-nc-sidebar"></div>
         <div class="nc-main" id="nc-main"></div>
       </div>
 

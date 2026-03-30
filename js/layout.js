@@ -25,6 +25,14 @@ function updateViewMode() {
     nts.style.width = state.layout.notesWidth + 'px';
   }
 
+  const ncSidebar = document.getElementById('nc-sidebar');
+  if (ncSidebar) ncSidebar.style.width = state.layout.notesSidebarWidth + 'px';
+
+  const mmSidebarPanel = document.getElementById('mm-sidebar-panel');
+  const mmEditorPanel = document.getElementById('mm-editor-panel');
+  if (mmSidebarPanel) mmSidebarPanel.style.width = state.layout.mmSidebarWidth + 'px';
+  if (mmEditorPanel) mmEditorPanel.style.width = state.layout.mmEditorWidth + 'px';
+
   if (state.appMode === 'notes') {
     renderNotesSidebar();
     renderNoteCanvas();
@@ -91,4 +99,7 @@ function initResizing() {
   setup('resizer-sidebar', 'sidebar', 'sidebarWidth', 120, 'left');
   setup('resizer-middle', 'middle', 'middleWidth', 150, 'left');
   setup('resizer-notes', 'notes-pane', 'notesWidth', 200, 'right');
+  setup('resizer-nc-sidebar', 'nc-sidebar', 'notesSidebarWidth', 140, 'left');
+  setup('resizer-mm-sidebar', 'mm-sidebar-panel', 'mmSidebarWidth', 120, 'left');
+  setup('resizer-mm-editor', 'mm-editor-panel', 'mmEditorWidth', 150, 'left');
 }

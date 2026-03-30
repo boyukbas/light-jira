@@ -3,7 +3,7 @@
   "name": "Light Jira",
   "version": "1.0.0",
   "description": "A fast, lightweight Jira ticket viewer. Works directly from the browser extension — no proxy needed.",
-  "permissions": ["tabs", "scripting", "activeTab"],
+  "permissions": ["tabs", "activeTab"],
   "host_permissions": [
     "https://*.atlassian.net/*"
   ],

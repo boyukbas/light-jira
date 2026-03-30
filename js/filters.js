@@ -36,8 +36,7 @@ async function runFilterLoad(rawInput, customName = '') {
     } catch {
       // Plans REST API unavailable (requires Jira Premium or specific API scope).
       // Fall back: some plan detail responses include a JQL we can search instead.
-      const fallbackJql =
-        plan?.issueListConfig?.query?.jql || plan?.jql || plan?.filter?.jql;
+      const fallbackJql = plan?.issueListConfig?.query?.jql || plan?.jql || plan?.filter?.jql;
       if (fallbackJql) {
         try {
           const r = await fetchByJql(fallbackJql);
