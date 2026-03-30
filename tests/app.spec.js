@@ -148,37 +148,6 @@ test.describe('Settings', () => {
     await expect(modal.locator('.form-label').nth(2)).toContainText('Jira URL');
   });
 
-  test('settings shows proxy mode radio buttons instead of URL input', async ({ page }) => {
-    await page.addInitScript(initConfig);
-    await page.goto('/');
-    await page.click('#settings-btn');
-    await expect(page.locator('#cfg-proxy-local')).toBeVisible();
-    await expect(page.locator('#cfg-proxy-cloud')).toBeVisible();
-    await expect(page.locator('#cfg-proxy-url')).toHaveCount(0);
-  });
-
-  test('proxy mode saved as local is respected', async ({ page }) => {
-    await page.addInitScript(initConfig); // explicitly stores useCloud: false
-    await page.goto('/');
-    await page.click('#settings-btn');
-    await expect(page.locator('#cfg-proxy-local')).toBeChecked();
-    await expect(page.locator('#cfg-proxy-cloud')).not.toBeChecked();
-  });
-
-  test('proxy mode defaults to cloud for new installs', async ({ page }) => {
-    // No useCloud key in stored config — DEFAULTS should kick in as cloud
-    await page.addInitScript(() => {
-      localStorage.setItem(
-        'jira_config',
-        JSON.stringify({ email: 'test@example.com', token: 'tok', baseUrl: 'https://site.atlassian.net' })
-      );
-    });
-    await page.goto('/');
-    await page.click('#settings-btn');
-    await expect(page.locator('#cfg-proxy-cloud')).toBeChecked();
-    await expect(page.locator('#cfg-proxy-local')).not.toBeChecked();
-  });
-
   test('API token field has a help link to the Atlassian token page', async ({ page }) => {
     await page.addInitScript(initConfig);
     await page.goto('/');
@@ -186,18 +155,6 @@ test.describe('Settings', () => {
     const link = page.locator('#settings-modal a[href*="atlassian.com"]');
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute('target', '_blank');
-  });
-
-  test('proxy mode can be switched to cloud and persists after save', async ({ page }) => {
-    await page.addInitScript(initConfig);
-    await page.goto('/');
-    await page.click('#settings-btn');
-    await page.check('#cfg-proxy-cloud');
-    await page.click('#settings-save');
-
-    await page.click('#settings-btn');
-    await expect(page.locator('#cfg-proxy-cloud')).toBeChecked();
-    await expect(page.locator('#cfg-proxy-local')).not.toBeChecked();
   });
 
   test('history limit field is not present in settings', async ({ page }) => {
@@ -683,23 +640,23 @@ test.describe('History Column Sort', () => {
 
     // 1st click → ascending
     await page.click('.ht-th-sortable[data-sort-col="key"]');
-    const keys1 = await page.locator('.ht-row').evaluateAll((rows) =>
-      rows.map((r) => r.dataset.key)
-    );
+    const keys1 = await page
+      .locator('.ht-row')
+      .evaluateAll((rows) => rows.map((r) => r.dataset.key));
     expect(keys1).toEqual(['PROJ-100', 'PROJ-200', 'PROJ-300']);
 
     // 2nd click → descending
     await page.click('.ht-th-sortable[data-sort-col="key"]');
-    const keys2 = await page.locator('.ht-row').evaluateAll((rows) =>
-      rows.map((r) => r.dataset.key)
-    );
+    const keys2 = await page
+      .locator('.ht-row')
+      .evaluateAll((rows) => rows.map((r) => r.dataset.key));
     expect(keys2).toEqual(['PROJ-300', 'PROJ-200', 'PROJ-100']);
 
     // 3rd click → natural order restored [300, 100, 200]
     await page.click('.ht-th-sortable[data-sort-col="key"]');
-    const keys3 = await page.locator('.ht-row').evaluateAll((rows) =>
-      rows.map((r) => r.dataset.key)
-    );
+    const keys3 = await page
+      .locator('.ht-row')
+      .evaluateAll((rows) => rows.map((r) => r.dataset.key));
     expect(keys3).toEqual(['PROJ-300', 'PROJ-100', 'PROJ-200']);
   });
 
@@ -711,9 +668,9 @@ test.describe('History Column Sort', () => {
       '1'
     );
     // Other columns should not be active
-    await expect(
-      page.locator('.ht-th-sortable[data-sort-col="summary"]')
-    ).not.toHaveAttribute('data-sort-active');
+    await expect(page.locator('.ht-th-sortable[data-sort-col="summary"]')).not.toHaveAttribute(
+      'data-sort-active'
+    );
   });
 
   test('resize handles are present on every sortable column header', async ({ page }) => {
@@ -739,7 +696,9 @@ test.describe('History Column Sort', () => {
     const afterW = await page.evaluate(() => {
       const th = document.querySelector('.ht-th-sortable[data-sort-col="key"]');
       const handle = th.querySelector('.ht-resize-handle');
-      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true }));
+      handle.dispatchEvent(
+        new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true })
+      );
       document.dispatchEvent(new MouseEvent('mousemove', { clientX: 160, bubbles: true }));
       document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       return th.offsetWidth;
@@ -757,7 +716,9 @@ test.describe('History Column Sort', () => {
       const th = document.querySelector('.ht-th-sortable[data-sort-col="key"]');
       const beforeW = th.offsetWidth;
       const handle = th.querySelector('.ht-resize-handle');
-      handle.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true }));
+      handle.dispatchEvent(
+        new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true })
+      );
       document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       return { beforeW, afterW: th.offsetWidth };
     });
@@ -1205,5 +1166,72 @@ test.describe('Drag and Drop', () => {
     // Groups should be reordered
     await expect(groups.nth(0)).toHaveAttribute('data-id', secondGroupId);
     await expect(groups.nth(1)).toHaveAttribute('data-id', firstGroupId);
+  });
+});
+
+// ── 12. JIRA BEAM EXTENSION INTEGRATION ──────────────────────────────────────
+test.describe('Jira Beam', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('open-url beam with ticket key opens the ticket', async ({ page }) => {
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('jira-beam', { detail: { type: 'open-url', url: 'PROJ-123' } })
+      );
+    });
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('open-url beam with Jira browse URL extracts key and opens ticket', async ({ page }) => {
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('jira-beam', {
+          detail: { type: 'open-url', url: 'https://site.atlassian.net/browse/PROJ-123' },
+        })
+      );
+    });
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('open-group beam creates a named group with the given keys', async ({ page }) => {
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('jira-beam', {
+          detail: { type: 'open-group', name: 'Sprint 42', keys: ['PROJ-1', 'PROJ-2', 'PROJ-3'] },
+        })
+      );
+    });
+    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('Sprint 42', {
+      timeout: 3000,
+    });
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(3, { timeout: 5000 });
+  });
+
+  test('open-group beam shows a success toast', async ({ page }) => {
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('jira-beam', {
+          detail: { type: 'open-group', name: 'My Sprint', keys: ['PROJ-1', 'PROJ-2'] },
+        })
+      );
+    });
+    await expect(page.locator('#toast')).toContainText('Beamed 2 tickets', { timeout: 3000 });
+  });
+
+  test('?beam= URL param creates group on page load', async ({ page }) => {
+    const payload = { type: 'open-group', name: 'Param Group', keys: ['PROJ-1', 'PROJ-2'] };
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto(`/?beam=${encoded}`);
+    await expect(page.locator('#group-list .group-item').nth(1)).toContainText('Param Group', {
+      timeout: 3000,
+    });
   });
 });

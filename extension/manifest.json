@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Jira Beam",
+  "version": "0.1.0",
+  "description": "Beam tickets and groups from any Jira page to your Light Jira app.",
+  "permissions": ["tabs", "scripting", "activeTab"],
+  "host_permissions": [
+    "https://boyukbas.github.io/*",
+    "http://localhost:3000/*",
+    "https://*.atlassian.net/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Jira Beam",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.atlassian.net/*"],
+      "js": ["content-jira.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

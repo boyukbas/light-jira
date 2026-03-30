@@ -1,7 +1,6 @@
 'use strict';
 
-const CLOUD_PROXY_URL =
-  'https://wj342i36cjmzpkicz6b72moapi0fiucq.lambda-url.eu-central-1.on.aws';
+const CLOUD_PROXY_URL = 'https://wj342i36cjmzpkicz6b72moapi0fiucq.lambda-url.eu-central-1.on.aws';
 
 const HISTORY_LIMIT = 150;
 
@@ -50,12 +49,17 @@ function commonHeaders() {
 }
 
 function apiBase() {
+  const proto = window.location.protocol;
+  // Extension page has host_permissions — talks directly to Jira, no proxy needed
+  if (proto === 'chrome-extension:' || proto === 'file:') return cfg.baseUrl;
   if (cfg.useCloud) return CLOUD_PROXY_URL + '/api/jira';
-  return window.location.protocol === 'file:' ? cfg.baseUrl : '/api/jira';
+  return '/api/jira';
 }
 
 function proxyUrl(fullUrl) {
   if (!fullUrl) return fullUrl;
+  // Extension page fetches media directly via host_permissions — no proxy needed
+  if (window.location.protocol === 'chrome-extension:') return fullUrl;
   const base = cfg.useCloud ? CLOUD_PROXY_URL : '';
   const jira = cfg.baseUrl ? cfg.baseUrl.replace(/\/$/, '') : '';
 
@@ -181,10 +185,7 @@ function parseFilterInput(input) {
 
 async function fetchPlanIssues(planId) {
   const url =
-    apiBase() +
-    '/rest/agile/1.0/plan/' +
-    encodeURIComponent(planId) +
-    '/issue?maxResults=200';
+    apiBase() + '/rest/agile/1.0/plan/' + encodeURIComponent(planId) + '/issue?maxResults=200';
   const r = await fetch(url, { headers: commonHeaders() });
   if (!r.ok) {
     let msg = r.status + ' ' + r.statusText;

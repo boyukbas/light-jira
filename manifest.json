@@ -1,21 +1,31 @@
 {
+  "manifest_version": 3,
   "name": "Light Jira",
-  "short_name": "Light Jira",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#0d1117",
-  "description": "A fast, lightweight Jira ticket viewer PWA.",
-  "icons": [
+  "version": "1.0.0",
+  "description": "A fast, lightweight Jira ticket viewer. Works directly from the browser extension — no proxy needed.",
+  "permissions": ["tabs", "scripting", "activeTab"],
+  "host_permissions": [
+    "https://*.atlassian.net/*"
+  ],
+  "action": {
+    "default_popup": "extension/popup.html",
+    "default_title": "Light Jira",
+    "default_icon": {
+      "16": "extension/icons/icon16.png",
+      "48": "extension/icons/icon48.png",
+      "128": "extension/icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "extension/icons/icon16.png",
+    "48": "extension/icons/icon48.png",
+    "128": "extension/icons/icon128.png"
+  },
+  "content_scripts": [
     {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
-    },
-    {
-      "src": "icon.svg",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml"
+      "matches": ["https://*.atlassian.net/*"],
+      "js": ["extension/content-jira.js"],
+      "run_at": "document_idle"
     }
   ]
 }

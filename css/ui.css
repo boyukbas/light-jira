@@ -384,24 +384,3 @@
   opacity: 0.85;
   flex-shrink: 0;
 }
-
-/* ── PROXY MODE RADIO GROUP ── */
-.proxy-mode-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-}
-.proxy-mode-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.proxy-mode-option input[type='radio'] {
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
