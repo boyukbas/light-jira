@@ -13,7 +13,7 @@ const initConfig = () => {
     token: 'fake-api-token',
     baseUrl: 'https://site.atlassian.net',
     historyLimit: 100,
-    proxyUrl: '',
+    useCloud: false,
   };
   localStorage.setItem('jira_config', JSON.stringify(config));
   if (navigator.serviceWorker) {
@@ -147,6 +147,35 @@ test.describe('Settings', () => {
     await expect(modal.locator('.form-label').first()).toContainText('Email');
     await expect(modal.locator('.form-label').nth(1)).toContainText('API Token');
     await expect(modal.locator('.form-label').nth(2)).toContainText('Jira URL');
+  });
+
+  test('settings shows proxy mode radio buttons instead of URL input', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-proxy-local')).toBeVisible();
+    await expect(page.locator('#cfg-proxy-cloud')).toBeVisible();
+    await expect(page.locator('#cfg-proxy-url')).toHaveCount(0);
+  });
+
+  test('proxy mode defaults to local', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-proxy-local')).toBeChecked();
+    await expect(page.locator('#cfg-proxy-cloud')).not.toBeChecked();
+  });
+
+  test('proxy mode can be switched to cloud and persists after save', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await page.check('#cfg-proxy-cloud');
+    await page.click('#settings-save');
+
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-proxy-cloud')).toBeChecked();
+    await expect(page.locator('#cfg-proxy-local')).not.toBeChecked();
   });
 });
 
