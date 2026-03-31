@@ -1,14 +1,11 @@
 'use strict';
 
-const CLOUD_PROXY_URL = 'https://wj342i36cjmzpkicz6b72moapi0fiucq.lambda-url.eu-central-1.on.aws';
-
 const HISTORY_LIMIT = 150;
 
 const DEFAULTS = {
   baseUrl: 'https://site.atlassian.net',
   email: '',
   token: '',
-  useCloud: true,
 };
 let cfg = { ...DEFAULTS };
 
@@ -20,13 +17,7 @@ function loadConfig() {
   try {
     const s = localStorage.getItem('jira_config');
     if (s) {
-      const stored = JSON.parse(s);
-      // Migrate: old proxyUrl field → useCloud boolean
-      if ('proxyUrl' in stored && !('useCloud' in stored)) {
-        stored.useCloud = stored.proxyUrl === CLOUD_PROXY_URL;
-        delete stored.proxyUrl;
-      }
-      cfg = { ...DEFAULTS, ...stored };
+      cfg = { ...DEFAULTS, ...JSON.parse(s) };
     }
   } catch (e) {
     console.error('Config parsing error:', e);
@@ -43,38 +34,11 @@ function authHeader() {
   return 'Basic ' + btoa(cfg.email + ':' + cfg.token);
 }
 function commonHeaders() {
-  const h = { Authorization: authHeader(), Accept: 'application/json' };
-  if (cfg.baseUrl) h['X-Jira-Host'] = new URL(cfg.baseUrl).host;
-  return h;
+  return { Authorization: authHeader(), Accept: 'application/json' };
 }
 
 function apiBase() {
-  const proto = window.location.protocol;
-  // Extension page has host_permissions — talks directly to Jira, no proxy needed
-  if (proto === 'chrome-extension:' || proto === 'file:') return cfg.baseUrl;
-  if (cfg.useCloud) return CLOUD_PROXY_URL + '/api/jira';
-  return '/api/jira';
-}
-
-function proxyUrl(fullUrl) {
-  if (!fullUrl) return fullUrl;
-  // Extension page fetches media directly via host_permissions — no proxy needed
-  if (window.location.protocol === 'chrome-extension:') return fullUrl;
-  const base = cfg.useCloud ? CLOUD_PROXY_URL : '';
-  const jira = cfg.baseUrl ? cfg.baseUrl.replace(/\/$/, '') : '';
-
-  // Prevent double proxying if we already hit the Lambda
-  if (base && fullUrl.startsWith(base)) return fullUrl;
-
-  if (jira && fullUrl.startsWith(jira)) {
-    const path = fullUrl.slice(jira.length);
-    return (base || '/api/jira') + path;
-  }
-  if (fullUrl.startsWith('http')) {
-    const isLocal = fullUrl.includes(window.location.host);
-    if (!isLocal) return (base || '/api/ext') + '?url=' + encodeURIComponent(fullUrl);
-  }
-  return fullUrl;
+  return cfg.baseUrl;
 }
 
 async function fetchIssue(key) {
@@ -111,8 +75,7 @@ async function fetchCustomFields() {
 async function fetchBlob(url) {
   if (blobCache[url]) return blobCache[url];
   try {
-    const target = proxyUrl(url);
-    const r = await fetch(target, { headers: commonHeaders() });
+    const r = await fetch(url, { headers: commonHeaders() });
     if (!r.ok) return null;
     const objectUrl = URL.createObjectURL(await r.blob());
     blobCache[url] = objectUrl;
