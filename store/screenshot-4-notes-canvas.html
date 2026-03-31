@@ -328,83 +328,169 @@
       <div class="canvas-wrap">
         <div class="canvas-header">
           <span class="canvas-title">Sprint planning</span>
-          <div style="display:flex;gap:6px">
+          <div style="display: flex; gap: 6px">
             <div class="canvas-btn accent">+ Diagram</div>
             <div class="canvas-btn">+ Image</div>
           </div>
         </div>
         <div class="canvas-body">
           <!-- Text block 1 -->
-          <div class="block focused" style="left:16px;top:12px;width:310px">
+          <div class="block focused" style="left: 16px; top: 12px; width: 310px">
             <div class="block-handle">
               <div class="dots">
-                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
               <span class="block-type">text</span>
               <span class="block-del">✕</span>
             </div>
             <div class="block-content">
-              <strong>Auth refactor (PROJ-418)</strong><br />
-              Needs design sign-off before implementation starts. Sara to update the strategy doc with token refresh
-              notes.<br />
-              <span class="lbl" style="background:#1e1b4b;color:#a5b4fc">blocked</span>
-              <span class="lbl" style="background:#14532d40;color:#4ade80">Q2</span>
+              <strong>Auth refactor (PROJ-418)</strong>
+              <br />
+              Needs design sign-off before implementation starts. Sara to update the strategy doc
+              with token refresh notes.
+              <br />
+              <span class="lbl" style="background: #1e1b4b; color: #a5b4fc">blocked</span>
+              <span class="lbl" style="background: #14532d40; color: #4ade80">Q2</span>
             </div>
           </div>
 
           <!-- Text block 2 -->
-          <div class="block" style="left:344px;top:12px;width:260px">
+          <div class="block" style="left: 344px; top: 12px; width: 260px">
             <div class="block-handle">
               <div class="dots">
-                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
               <span class="block-type">text</span>
               <span class="block-del">✕</span>
             </div>
             <div class="block-content">
-              <strong>CI migration (PROJ-501)</strong><br />
+              <strong>CI migration (PROJ-501)</strong>
+              <br />
               Maya owns. Target: this sprint. Unblocks the Docker layer caching work in PROJ-510.
             </div>
           </div>
 
           <!-- Mermaid block -->
-          <div class="block" style="left:16px;top:190px;width:530px">
+          <div class="block" style="left: 16px; top: 190px; width: 530px">
             <div class="block-handle">
               <div class="dots">
-                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
               <span class="block-type">diagram</span>
               <span class="block-del">✕</span>
             </div>
             <div class="mermaid-block">
               <div class="mermaid-code">
-                flowchart LR<br />
-                &nbsp;&nbsp;A[PR merged] --&gt; B<br />
-                &nbsp;&nbsp;B[GitHub Action] --&gt; C<br />
-                &nbsp;&nbsp;B --&gt; D[Tests]<br />
-                &nbsp;&nbsp;C[Build image] --&gt; E<br />
+                flowchart LR
+                <br />
+                &nbsp;&nbsp;A[PR merged] --&gt; B
+                <br />
+                &nbsp;&nbsp;B[GitHub Action] --&gt; C
+                <br />
+                &nbsp;&nbsp;B --&gt; D[Tests]
+                <br />
+                &nbsp;&nbsp;C[Build image] --&gt; E
+                <br />
                 &nbsp;&nbsp;D --&gt; E[Deploy]
               </div>
               <div class="mermaid-preview">
                 <svg width="200" height="120" viewBox="0 0 200 120">
                   <!-- Nodes -->
-                  <rect x="2" y="45" width="40" height="22" rx="5" fill="#1e3a8a40" stroke="#60a5fa60" stroke-width="1" />
-                  <text x="22" y="60" text-anchor="middle" font-size="7" fill="#94a3b8">PR merged</text>
+                  <rect
+                    x="2"
+                    y="45"
+                    width="40"
+                    height="22"
+                    rx="5"
+                    fill="#1e3a8a40"
+                    stroke="#60a5fa60"
+                    stroke-width="1"
+                  />
+                  <text x="22" y="60" text-anchor="middle" font-size="7" fill="#94a3b8">
+                    PR merged
+                  </text>
 
-                  <rect x="56" y="25" width="50" height="22" rx="5" fill="#14532d40" stroke="#4ade8060" stroke-width="1" />
-                  <text x="81" y="40" text-anchor="middle" font-size="7" fill="#94a3b8">GitHub Action</text>
+                  <rect
+                    x="56"
+                    y="25"
+                    width="50"
+                    height="22"
+                    rx="5"
+                    fill="#14532d40"
+                    stroke="#4ade8060"
+                    stroke-width="1"
+                  />
+                  <text x="81" y="40" text-anchor="middle" font-size="7" fill="#94a3b8">
+                    GitHub Action
+                  </text>
 
-                  <rect x="120" y="8" width="40" height="22" rx="5" fill="#21293a" stroke="#4a5568" stroke-width="1" />
-                  <text x="140" y="23" text-anchor="middle" font-size="7" fill="#64748b">Build</text>
+                  <rect
+                    x="120"
+                    y="8"
+                    width="40"
+                    height="22"
+                    rx="5"
+                    fill="#21293a"
+                    stroke="#4a5568"
+                    stroke-width="1"
+                  />
+                  <text x="140" y="23" text-anchor="middle" font-size="7" fill="#64748b">
+                    Build
+                  </text>
 
-                  <rect x="120" y="40" width="34" height="22" rx="5" fill="#21293a" stroke="#4a5568" stroke-width="1" />
-                  <text x="137" y="55" text-anchor="middle" font-size="7" fill="#64748b">Tests</text>
+                  <rect
+                    x="120"
+                    y="40"
+                    width="34"
+                    height="22"
+                    rx="5"
+                    fill="#21293a"
+                    stroke="#4a5568"
+                    stroke-width="1"
+                  />
+                  <text x="137" y="55" text-anchor="middle" font-size="7" fill="#64748b">
+                    Tests
+                  </text>
 
-                  <rect x="170" y="25" width="28" height="22" rx="5" fill="#78350f40" stroke="#fbbf2460" stroke-width="1" />
-                  <text x="184" y="40" text-anchor="middle" font-size="7" fill="#fbbf24">Deploy</text>
+                  <rect
+                    x="170"
+                    y="25"
+                    width="28"
+                    height="22"
+                    rx="5"
+                    fill="#78350f40"
+                    stroke="#fbbf2460"
+                    stroke-width="1"
+                  />
+                  <text x="184" y="40" text-anchor="middle" font-size="7" fill="#fbbf24">
+                    Deploy
+                  </text>
 
                   <!-- Arrows -->
-                  <line x1="42" y1="56" x2="56" y2="40" stroke="#4a5568" stroke-width="1" marker-end="url(#arr)" />
+                  <line
+                    x1="42"
+                    y1="56"
+                    x2="56"
+                    y2="40"
+                    stroke="#4a5568"
+                    stroke-width="1"
+                    marker-end="url(#arr)"
+                  />
                   <line x1="106" y1="33" x2="120" y2="19" stroke="#4a5568" stroke-width="1" />
                   <line x1="106" y1="38" x2="120" y2="49" stroke="#4a5568" stroke-width="1" />
                   <line x1="160" y1="19" x2="170" y2="30" stroke="#4a5568" stroke-width="1" />
@@ -415,18 +501,27 @@
           </div>
 
           <!-- Text block 3 -->
-          <div class="block" style="left:344px;top:115px;width:240px">
+          <div class="block" style="left: 344px; top: 115px; width: 240px">
             <div class="block-handle">
               <div class="dots">
-                <span></span><span></span><span></span><span></span><span></span><span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
               <span class="block-type">text</span>
               <span class="block-del">✕</span>
             </div>
             <div class="block-content">
-              📌 <strong>Decisions this sprint:</strong><br />
-              • Auth = Sara leads<br />
-              • CI = Maya leads<br />
+              📌
+              <strong>Decisions this sprint:</strong>
+              <br />
+              • Auth = Sara leads
+              <br />
+              • CI = Maya leads
+              <br />
               • SSO blocked by PROJ-418
             </div>
           </div>
@@ -435,9 +530,14 @@
 
       <!-- Right copy -->
       <div class="side-text">
-        <h2>A canvas for<br /><span>your thinking.</span></h2>
+        <h2>
+          A canvas for
+          <br />
+          <span>your thinking.</span>
+        </h2>
         <p>
-          Drop text blocks anywhere. Paste screenshots. Draw live Mermaid diagrams. Everything stays where you put it.
+          Drop text blocks anywhere. Paste screenshots. Draw live Mermaid diagrams. Everything stays
+          where you put it.
         </p>
         <div class="feature-pill">
           <span class="icon">📝</span>
