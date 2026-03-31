@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Light Jira",
+  "name": "Crisp for Jira",
   "version": "1.0.0",
-  "description": "A fast, lightweight Jira ticket viewer. Works directly from the browser extension — no proxy needed.",
+  "description": "Crisp for Jira — a fast, keyboard-friendly Jira client. Organise tickets into groups, add labels, take canvas notes, run JQL filters, and build diagrams. No proxy needed.",
   "permissions": ["tabs"],
   "host_permissions": [
     "https://*.atlassian.net/*"
   ],
   "action": {
     "default_popup": "extension/popup.html",
-    "default_title": "Light Jira",
+    "default_title": "Crisp for Jira",
     "default_icon": {
       "16": "extension/icons/icon16.png",
       "48": "extension/icons/icon48.png",

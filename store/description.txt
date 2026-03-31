@@ -1,0 +1,111 @@
+Crisp for Jira — the fast, keyboard-friendly Jira client that lives in your browser toolbar.
+
+Stop fighting Jira's slow interface. Crisp gives you instant ticket access, a clean three-pane workspace, and powerful organisation tools — all without leaving Chrome.
+
+──────────────────────────────────────
+⚡ WHY CRISP FOR JIRA?
+──────────────────────────────────────
+
+Jira's default UI is built for everyone. Crisp is built for you. No menus buried five clicks deep. No page reloads. No waiting. Just your tickets, instantly.
+
+• Open any ticket key instantly from the toolbar
+• Keyboard-first: F2 to focus search, ↑↓ to navigate the list
+• Full ticket details — description, comments, linked issues, parent hierarchy — rendered in a clean reading pane
+• Ticket data cached locally so previously-viewed issues load in milliseconds, even offline
+• Connects directly to Jira's REST API — no third-party proxy, no data leaves your browser except to Atlassian
+
+──────────────────────────────────────
+📋 ORGANISE WITH CUSTOM GROUPS
+──────────────────────────────────────
+
+Create named groups (e.g. "This Sprint", "On Hold", "Reviewing") and drag tickets between them. Unlike Jira's boards, your groups are personal and instant — no configuration, no board setup.
+
+• Create, rename, reorder (drag), and delete groups
+• Drag tickets between groups; drag groups to reorder the sidebar
+• Bulk select: move or remove multiple tickets at once
+• Group search: filter the ticket list by key or summary
+
+──────────────────────────────────────
+🔍 SMART SEARCH & JQL
+──────────────────────────────────────
+
+One search bar handles everything:
+
+• Paste a ticket key → opens it directly (PROJ-123)
+• Paste a Jira URL → opens the ticket or filter
+• Type a filter ID → loads the filter results
+• Type JQL → runs the query and creates a filter group
+• Press F2 from anywhere to focus the search bar instantly
+
+──────────────────────────────────────
+🏷️ LABELS
+──────────────────────────────────────
+
+Add colour-coded labels to any ticket. The Labels tab auto-generates groups from your tags — no setup required. Click a label badge in the reading pane to filter across all your tickets by that label. Great for cross-project themes like "needs-design", "blocked", or "Q2".
+
+──────────────────────────────────────
+📝 FREEFORM NOTES CANVAS
+──────────────────────────────────────
+
+Each note is an infinite canvas (2400×2400px) with freely draggable blocks:
+
+• Text blocks — click anywhere to create, drag to move
+• Image blocks — paste from clipboard or drag-and-drop image files
+• Mermaid diagram blocks — live-rendered diagrams inline on your canvas
+
+Perfect for scratch space, architecture notes, meeting summaries, or anything you don't want to lose in a Jira comment.
+
+──────────────────────────────────────
+🗺️ MERMAID DIAGRAMS (MINDMAP TAB)
+──────────────────────────────────────
+
+A full Mermaid v11 diagram workspace with:
+
+• Multiple named diagrams per workspace
+• Live preview that updates as you type
+• Pan and zoom the preview with scroll wheel or drag
+• Copy diagram code with one click
+• Supports all Mermaid types: flowchart, sequenceDiagram, classDiagram, erDiagram, gitgraph, gantt, pie, mindmap, and more
+
+──────────────────────────────────────
+📜 HISTORY TAB
+──────────────────────────────────────
+
+Every ticket you've opened is saved in a sortable, searchable history table. Columns: Key, Summary, Status, Assignee, Created, Last Viewed. Click any column header to sort. Drag column edges to resize. Click a row to reopen the ticket instantly.
+
+──────────────────────────────────────
+🔗 JIRA BEAM (POPUP)
+──────────────────────────────────────
+
+Click the toolbar icon while browsing Jira and the popup detects all ticket keys visible on the current page. Select any combination of tickets and beam them into a named group in Crisp — no manual searching.
+
+──────────────────────────────────────
+🔒 PRIVACY
+──────────────────────────────────────
+
+Crisp talks directly to your Jira instance using your own API token. No data is sent to any third-party server. No analytics. No tracking. Everything — tickets, notes, labels, history — is stored locally in your browser's localStorage.
+
+Required permissions:
+• tabs — to read the current tab URL for Jira Beam
+• https://*.atlassian.net/* — direct API access to your Jira instance
+
+──────────────────────────────────────
+⚙️ GETTING STARTED
+──────────────────────────────────────
+
+1. Click the Crisp for Jira icon in your toolbar
+2. Click the gear icon and enter your Jira URL, email, and API token
+   (Generate a token at: id.atlassian.com/manage-profile/security/api-tokens)
+3. Type a ticket key in the search bar and press Enter
+
+That's it.
+
+──────────────────────────────────────
+🛠️ TECHNICAL DETAILS
+──────────────────────────────────────
+
+• Pure vanilla JavaScript — zero dependencies, zero framework overhead
+• No build step — the extension is exactly what you read in the source
+• Open source — inspect and verify every line
+• Manifest V3 compatible
+• Uses Jira REST API v3 with rendered field expansion for full HTML descriptions

@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>Screenshot 2 — Smart Search & JQL</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1280px;
+        height: 800px;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #060b18;
+      }
+      .frame {
+        width: 1280px;
+        height: 800px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 60px;
+        background: radial-gradient(ellipse at 70% 50%, #1e1b4b 0%, #060b18 70%);
+        position: relative;
+        overflow: hidden;
+      }
+      .frame::before {
+        content: '';
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(ellipse, #6366f118 0%, transparent 70%);
+        right: -80px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      /* left — feature list */
+      .feature-list {
+        width: 380px;
+        flex-shrink: 0;
+      }
+      .feature-list h2 {
+        font-size: 28px;
+        font-weight: 700;
+        color: #e2e8f0;
+        letter-spacing: -0.8px;
+        line-height: 1.2;
+        margin-bottom: 10px;
+      }
+      .feature-list h2 span {
+        color: #6366f1;
+      }
+      .feature-list .sub {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 32px;
+        line-height: 1.5;
+      }
+      .feature-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .feature-icon {
+        width: 32px;
+        height: 32px;
+        background: #161b27;
+        border: 1px solid #21293a;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .feature-text h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+      }
+      .feature-text p {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.4;
+      }
+
+      /* right — UI mockup panel */
+      .panel {
+        width: 680px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .search-demo {
+        background: #0d1117;
+        border: 1px solid #21293a;
+        border-radius: 12px;
+        padding: 20px 22px;
+        box-shadow:
+          0 20px 60px #00000060,
+          0 0 0 1px #ffffff08;
+      }
+      .search-demo-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 12px;
+      }
+      .search-input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #161b27;
+        border: 1px solid #6366f140;
+        border-radius: 8px;
+        padding: 9px 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 0 0 3px #6366f110;
+      }
+      .search-input-row .text {
+        flex: 1;
+        font-size: 13px;
+        color: #e2e8f0;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .search-input-row .cursor {
+        display: inline-block;
+        width: 2px;
+        height: 14px;
+        background: #6366f1;
+        margin-left: 1px;
+        animation: blink 1s step-end infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .search-btn {
+        background: #6366f1;
+        color: white;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 14px;
+        border-radius: 6px;
+        flex-shrink: 0;
+      }
+
+      .result-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        margin-bottom: 4px;
+      }
+      .result-row:hover,
+      .result-row.highlight {
+        background: #161b27;
+      }
+      .result-key {
+        font-size: 11px;
+        font-weight: 600;
+        color: #6366f1;
+        width: 72px;
+        flex-shrink: 0;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .result-sum {
+        font-size: 12px;
+        color: #94a3b8;
+        flex: 1;
+      }
+      .result-badge {
+        font-size: 9px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 10px;
+        flex-shrink: 0;
+      }
+      .rb-done {
+        background: #14532d50;
+        color: #4ade80;
+      }
+      .rb-prog {
+        background: #1e3a8a50;
+        color: #60a5fa;
+      }
+      .rb-todo {
+        background: #1e293b;
+        color: #64748b;
+      }
+
+      .divider {
+        height: 1px;
+        background: #21293a;
+        margin: 8px 0;
+      }
+
+      .input-examples {
+        background: #0d1117;
+        border: 1px solid #21293a;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow:
+          0 20px 60px #00000060,
+          0 0 0 1px #ffffff08;
+      }
+      .ie-header {
+        padding: 12px 16px;
+        background: #161b27;
+        border-bottom: 1px solid #21293a;
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+      }
+      .ie-row {
+        display: flex;
+        align-items: center;
+        padding: 9px 16px;
+        border-bottom: 1px solid #21293a10;
+        gap: 10px;
+      }
+      .ie-row:last-child {
+        border-bottom: none;
+      }
+      .ie-input {
+        flex: 1;
+        font-size: 11px;
+        color: #64748b;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .ie-arrow {
+        font-size: 11px;
+        color: #4a5568;
+        flex-shrink: 0;
+      }
+      .ie-result {
+        font-size: 11px;
+        color: #94a3b8;
+        width: 110px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .ie-result.accent {
+        color: #6366f1;
+        font-weight: 600;
+      }
+      .ie-result.amber {
+        color: #fbbf24;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <!-- Left: feature copy -->
+      <div class="feature-list">
+        <h2>One search bar.<br /><span>Everything.</span></h2>
+        <p class="sub">
+          Ticket keys, filter IDs, JQL queries, and Jira URLs — the search bar classifies your input and acts
+          accordingly. Press F2 from anywhere to focus it.
+        </p>
+
+        <div class="feature-row">
+          <div class="feature-icon">🔑</div>
+          <div class="feature-text">
+            <h4>Ticket keys</h4>
+            <p>Type PROJ-123 and press Enter. The ticket opens instantly in the reading pane.</p>
+          </div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">🔍</div>
+          <div class="feature-text">
+            <h4>JQL queries</h4>
+            <p>Paste any JQL expression. Results load into a named filter group automatically.</p>
+          </div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">🔗</div>
+          <div class="feature-text">
+            <h4>Filter IDs & URLs</h4>
+            <p>Paste a numeric filter ID or a Jira filter/board URL. Crisp does the rest.</p>
+          </div>
+        </div>
+        <div class="feature-row">
+          <div class="feature-icon">⌨️</div>
+          <div class="feature-text">
+            <h4>F2 focus · Enter submit · ↑↓ navigate</h4>
+            <p>Everything reachable without touching the mouse.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: UI panels -->
+      <div class="panel">
+        <!-- JQL search demo -->
+        <div class="search-demo">
+          <div class="search-demo-label">JQL Filter loaded · 12 results</div>
+          <div class="search-input-row">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <span class="text">project = PROJ AND sprint in openSprints() ORDER BY priority DESC<span class="cursor"></span></span>
+            <span class="search-btn">Load Filter</span>
+          </div>
+          <div class="result-row highlight">
+            <span class="result-key">PROJ-501</span>
+            <span class="result-sum">Migrate CI pipeline to GitHub Actions</span>
+            <span class="result-badge rb-todo">To Do</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">PROJ-498</span>
+            <span class="result-sum">Add dark mode to customer portal</span>
+            <span class="result-badge rb-prog">In Progress</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">PROJ-495</span>
+            <span class="result-sum">Fix timezone offset in scheduled reports</span>
+            <span class="result-badge rb-done">Done</span>
+          </div>
+          <div class="result-row">
+            <span class="result-key">PROJ-491</span>
+            <span class="result-sum">Update dependency: lodash 4.17.19 → 4.17.21</span>
+            <span class="result-badge rb-prog">In Progress</span>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:11px;color:#4a5568;padding:0 10px">+ 8 more tickets in this filter group</div>
+        </div>
+
+        <!-- Input examples table -->
+        <div class="input-examples">
+          <div class="ie-header">What you type → what Crisp does</div>
+          <div class="ie-row">
+            <span class="ie-input">PROJ-123</span>
+            <span class="ie-arrow">→</span>
+            <span class="ie-result accent">Open ticket</span>
+          </div>
+          <div class="ie-row">
+            <span class="ie-input">https://…/browse/PROJ-123</span>
+            <span class="ie-arrow">→</span>
+            <span class="ie-result accent">Open ticket</span>
+          </div>
+          <div class="ie-row">
+            <span class="ie-input">12345</span>
+            <span class="ie-arrow">→</span>
+            <span class="ie-result amber">Load filter</span>
+          </div>
+          <div class="ie-row">
+            <span class="ie-input">https://…/issues/?filter=12345</span>
+            <span class="ie-arrow">→</span>
+            <span class="ie-result amber">Load filter</span>
+          </div>
+          <div class="ie-row">
+            <span class="ie-input">assignee = currentUser()</span>
+            <span class="ie-arrow">→</span>
+            <span class="ie-result amber">Run JQL</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

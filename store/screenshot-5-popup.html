@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>Screenshot 5 — Jira Beam Popup</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1280px;
+        height: 800px;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #060b18;
+      }
+      .frame {
+        width: 1280px;
+        height: 800px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 60px;
+        background: radial-gradient(ellipse at 45% 50%, #1e1b4b 0%, #060b18 65%);
+        position: relative;
+      }
+      .frame::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 50% 50%, #6366f108 0%, transparent 60%);
+        pointer-events: none;
+      }
+
+      /* left copy */
+      .copy {
+        width: 340px;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .copy .eyebrow {
+        font-size: 10px;
+        font-weight: 700;
+        color: #6366f1;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .copy h2 {
+        font-size: 30px;
+        font-weight: 700;
+        color: #e2e8f0;
+        letter-spacing: -0.8px;
+        line-height: 1.2;
+        margin-bottom: 14px;
+      }
+      .copy h2 span {
+        color: #6366f1;
+      }
+      .copy p {
+        font-size: 13px;
+        color: #64748b;
+        line-height: 1.65;
+        margin-bottom: 28px;
+      }
+      .step {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 18px;
+        align-items: flex-start;
+      }
+      .step-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #1e1b4b;
+        border: 1px solid #6366f140;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #6366f1;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .step-text h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+      }
+      .step-text p {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.4;
+        margin-bottom: 0;
+      }
+
+      /* browser chrome mockup */
+      .browser {
+        width: 680px;
+        background: #0d1117;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow:
+          0 40px 120px #00000080,
+          0 0 0 1px #ffffff12;
+        position: relative;
+        z-index: 1;
+      }
+      .browser-chrome {
+        background: #161b27;
+        border-bottom: 1px solid #21293a;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .traffic-lights {
+        display: flex;
+        gap: 5px;
+      }
+      .tl {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .address-bar {
+        flex: 1;
+        background: #0d1117;
+        border: 1px solid #21293a;
+        border-radius: 5px;
+        padding: 5px 10px;
+        font-size: 11px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .ext-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        background: #0f172a;
+        border: 1px solid #21293a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+      }
+      .ext-icon.active {
+        border-color: #6366f140;
+        box-shadow: 0 0 0 2px #6366f120;
+      }
+
+      /* jira page content */
+      .jira-page {
+        padding: 20px;
+        min-height: 300px;
+        position: relative;
+      }
+      .jira-header {
+        font-size: 11px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .jira-board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .board-col {
+        background: #161b27;
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .col-title {
+        font-size: 10px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      .board-card {
+        background: #0d1117;
+        border: 1px solid #21293a;
+        border-radius: 6px;
+        padding: 8px;
+        margin-bottom: 6px;
+      }
+      .board-card-key {
+        font-size: 10px;
+        font-weight: 600;
+        color: #6366f1;
+        margin-bottom: 3px;
+      }
+      .board-card-sum {
+        font-size: 11px;
+        color: #64748b;
+        line-height: 1.3;
+      }
+      .highlight-key {
+        background: #fbbf2430;
+        border: 1px solid #fbbf2440;
+        border-radius: 3px;
+        padding: 0 2px;
+        color: #fbbf24;
+      }
+
+      /* popup overlay */
+      .popup {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 260px;
+        background: #0d1117;
+        border: 1px solid #21293a;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow:
+          0 16px 48px #00000080,
+          0 0 0 1px #ffffff10;
+        z-index: 10;
+      }
+      .popup-header {
+        padding: 10px 12px;
+        background: #161b27;
+        border-bottom: 1px solid #21293a;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .popup-logo {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+      .popup-status {
+        font-size: 9px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 10px;
+        background: #14532d40;
+        color: #4ade80;
+      }
+      .popup-section-label {
+        padding: 8px 12px 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .popup-keys-list {
+        padding: 0 12px 8px;
+        list-style: none;
+      }
+      .popup-key-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid #21293a18;
+      }
+      .popup-key-item:last-child {
+        border-bottom: none;
+      }
+      .popup-checkbox {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        border: 1px solid #4a5568;
+        background: transparent;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .popup-checkbox.checked {
+        background: #6366f1;
+        border-color: #6366f1;
+      }
+      .popup-checkbox.checked::after {
+        content: '✓';
+        font-size: 9px;
+        color: white;
+        line-height: 1;
+      }
+      .popup-key-label {
+        flex: 1;
+        min-width: 0;
+      }
+      .popup-key-text {
+        font-size: 10px;
+        font-weight: 600;
+        color: #6366f1;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .popup-key-title {
+        font-size: 10px;
+        color: #4a5568;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .popup-group-form {
+        padding: 8px 12px;
+        border-top: 1px solid #21293a;
+      }
+      .popup-group-input {
+        width: 100%;
+        background: #161b27;
+        border: 1px solid #21293a;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 11px;
+        color: #e2e8f0;
+        margin-bottom: 6px;
+      }
+      .popup-beam-btn {
+        width: 100%;
+        background: #6366f1;
+        color: white;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 7px;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+      }
+
+      /* connector line */
+      .connector {
+        position: absolute;
+        top: 44px;
+        right: 268px;
+        width: 40px;
+        height: 2px;
+        background: linear-gradient(to left, #6366f1, transparent);
+        z-index: 9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <!-- Left copy -->
+      <div class="copy">
+        <div class="eyebrow">
+          <svg width="12" height="12" viewBox="0 0 128 128" fill="none">
+            <rect width="128" height="128" rx="24" fill="#6366f1" />
+            <path d="M 69 43 A 30 30 0 1 0 69 85" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" />
+            <circle cx="69" cy="43" r="7" fill="#fbbf24" />
+          </svg>
+          Jira Beam
+        </div>
+        <h2>On a Jira page?<br /><span>Beam the tickets in.</span></h2>
+        <p>
+          Click the Crisp icon while browsing any Jira page. The popup scans the page for visible ticket keys and shows
+          them with their titles. Select any and beam them into a named group.
+        </p>
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <h4>Browse any Jira page</h4>
+            <p>Sprint board, backlog, search results — any page with ticket keys visible.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <h4>Click the Crisp icon</h4>
+            <p>The popup detects all ticket keys on the page and shows their summaries.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <h4>Select and beam</h4>
+            <p>Pick the tickets you want, name the group, and beam them into Crisp instantly.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Browser mockup -->
+      <div class="browser">
+        <!-- Browser chrome -->
+        <div class="browser-chrome">
+          <div class="traffic-lights">
+            <div class="tl" style="background:#ff5f57"></div>
+            <div class="tl" style="background:#febc2e"></div>
+            <div class="tl" style="background:#28c840"></div>
+          </div>
+          <div class="address-bar">
+            <span>🔒</span>
+            <span>company.atlassian.net/jira/software/projects/PROJ/boards/14</span>
+          </div>
+          <div class="ext-icon active">
+            <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+              <rect width="128" height="128" rx="24" fill="#0f172a" />
+              <path d="M 69 43 A 30 30 0 1 0 69 85" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" />
+              <circle cx="69" cy="43" r="7" fill="#fbbf24" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Jira board page content -->
+        <div class="jira-page">
+          <div class="jira-header">Active Sprint · PROJ Board</div>
+          <div class="jira-board">
+            <div class="board-col">
+              <div class="col-title">To Do</div>
+              <div class="board-card">
+                <div class="board-card-key"><span class="highlight-key">PROJ-501</span></div>
+                <div class="board-card-sum">Migrate CI pipeline to GitHub Actions</div>
+              </div>
+              <div class="board-card">
+                <div class="board-card-key"><span class="highlight-key">PROJ-488</span></div>
+                <div class="board-card-sum">Rate limiting on public API</div>
+              </div>
+            </div>
+            <div class="board-col">
+              <div class="col-title">In Progress</div>
+              <div class="board-card">
+                <div class="board-card-key"><span class="highlight-key">PROJ-418</span></div>
+                <div class="board-card-sum">Refactor auth middleware for OAuth 2.0</div>
+              </div>
+              <div class="board-card">
+                <div class="board-card-key"><span class="highlight-key">PROJ-498</span></div>
+                <div class="board-card-sum">Add dark mode to portal</div>
+              </div>
+            </div>
+            <div class="board-col">
+              <div class="col-title">Done</div>
+              <div class="board-card">
+                <div class="board-card-key"><span class="highlight-key">PROJ-495</span></div>
+                <div class="board-card-sum">Fix timezone offset in reports</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Popup overlay -->
+          <div class="connector"></div>
+          <div class="popup">
+            <div class="popup-header">
+              <div class="popup-logo">
+                <svg width="14" height="14" viewBox="0 0 128 128" fill="none">
+                  <rect width="128" height="128" rx="24" fill="#0f172a" />
+                  <path d="M 69 43 A 30 30 0 1 0 69 85" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" />
+                  <circle cx="69" cy="43" r="7" fill="#fbbf24" />
+                </svg>
+                Crisp for Jira
+              </div>
+              <span class="popup-status">Jira detected</span>
+            </div>
+            <div class="popup-section-label">Tickets on this page</div>
+            <ul class="popup-keys-list">
+              <li class="popup-key-item">
+                <div class="popup-checkbox checked"></div>
+                <div class="popup-key-label">
+                  <div class="popup-key-text">PROJ-501</div>
+                  <div class="popup-key-title">Migrate CI pipeline to GitHub Actions</div>
+                </div>
+              </li>
+              <li class="popup-key-item">
+                <div class="popup-checkbox checked"></div>
+                <div class="popup-key-label">
+                  <div class="popup-key-text">PROJ-488</div>
+                  <div class="popup-key-title">Rate limiting on public API</div>
+                </div>
+              </li>
+              <li class="popup-key-item">
+                <div class="popup-checkbox checked"></div>
+                <div class="popup-key-label">
+                  <div class="popup-key-text">PROJ-418</div>
+                  <div class="popup-key-title">Refactor auth middleware for OAuth 2.0</div>
+                </div>
+              </li>
+              <li class="popup-key-item">
+                <div class="popup-checkbox"></div>
+                <div class="popup-key-label">
+                  <div class="popup-key-text">PROJ-498</div>
+                  <div class="popup-key-title">Add dark mode to portal</div>
+                </div>
+              </li>
+              <li class="popup-key-item">
+                <div class="popup-checkbox"></div>
+                <div class="popup-key-label">
+                  <div class="popup-key-text">PROJ-495</div>
+                  <div class="popup-key-title">Fix timezone offset in reports</div>
+                </div>
+              </li>
+            </ul>
+            <div class="popup-group-form">
+              <div class="popup-group-input">This Sprint →</div>
+              <div class="popup-beam-btn">⚡ Beam 3 tickets</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

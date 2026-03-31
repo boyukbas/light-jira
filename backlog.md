@@ -8,9 +8,6 @@ Priority scale: **P1** critical bug · **P2** high-value improvement · **P3** n
 
 ---
 
-
-**P2** Refactor code base. The goal is the make the repository look clean, organised and understandable. Second goal is keeping each file manageable by keeping them shorter and splitting big files meaningfully.
-
 **P2** From now on, I want you to document our conversation but never push it to git. Make necessary changes on CLAUDE.md to note this.
 
 **P3** Jira,Labels and History tab: A special button needed for individual ticket to open on Jira. It should be in the same line, it should be guessable. I don't want the link in ticket title but we can but it as an action button new refresh button. Hierarchy should also have that button right new to the links. It should be on the same line. Same goes for other links in the page. If a link follows "*.atlassian.net/browse/" pattern, it should have this button right new to the link to open the link in Jira.
@@ -20,3 +17,5 @@ Priority scale: **P1** critical bug · **P2** high-value improvement · **P3** n
 **P3** Simple inner sections inside the details section should be displayed at the tab just like Created and Updated labels are displayed.
 
 **P3** Suggest better names for the extension.
+
+**P3** History tab: Resize columns is buggy. It feels like working by percentage instead of px.

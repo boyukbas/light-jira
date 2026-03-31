@@ -1,0 +1,71 @@
+────────────────────────────────────────────────────────
+CHROME WEB STORE LISTING FIELDS
+────────────────────────────────────────────────────────
+
+NAME (max 45 chars — 15 used)
+────────────────────────────────────────────────────────
+Crisp for Jira
+
+
+SHORT DESCRIPTION (max 132 chars — shown in search results)
+────────────────────────────────────────────────────────
+Fast, keyboard-friendly Jira client. Organise tickets into groups, run JQL filters, take canvas notes, and build diagrams.
+
+
+CATEGORY
+────────────────────────────────────────────────────────
+Productivity
+
+
+LANGUAGE
+────────────────────────────────────────────────────────
+English
+
+
+HOMEPAGE URL
+────────────────────────────────────────────────────────
+https://github.com/boyukbas/light-jira
+
+
+SUPPORT URL
+────────────────────────────────────────────────────────
+https://github.com/boyukbas/light-jira/issues
+
+
+PROMO TILE TEXT (440×280 tile — up to 80 chars of headline copy)
+────────────────────────────────────────────────────────
+Your Jira.
+Crisp.
+
+
+MARQUEE PROMO HEADLINE (1400×560 — large featured banner copy)
+────────────────────────────────────────────────────────
+Stop fighting Jira.
+Start working in Crisp.
+
+
+SEARCH KEYWORDS (used in store search ranking — weave naturally into description)
+────────────────────────────────────────────────────────
+jira, jira client, jira extension, jira viewer, jira tickets, jql, atlassian,
+jira organiser, ticket manager, jira notes, jira productivity, jira tool,
+jira chrome extension, issue tracker, sprint planning, jira filter
+
+
+SCREENSHOT CAPTIONS (shown below each screenshot on the store page)
+────────────────────────────────────────────────────────
+Screenshot 1: Three-pane workspace — groups, ticket list, and full reading pane
+Screenshot 2: Smart search — open tickets by key, load JQL filters or filter IDs
+Screenshot 3: History tab — every ticket you've opened, sortable and resizable
+Screenshot 4: Notes canvas — freeform text, images, and live Mermaid diagrams
+Screenshot 5: Popup — detect and beam tickets from any Jira page
+
+
+JUSTIFICATION FOR PERMISSIONS (required by Google on submission)
+────────────────────────────────────────────────────────
+"tabs" — used to read the URL of the currently active tab so the popup can
+  detect whether the user is on a Jira page and extract visible ticket keys.
+
+"https://*.atlassian.net/*" — used to call the Jira REST API directly
+  (fetchIssue, fetchByJql, fetchFilter) using the user's own API token.
+  Also used by the content script to detect ticket keys on Jira pages.
+  No data is sent to any server other than the user's own Atlassian instance.
