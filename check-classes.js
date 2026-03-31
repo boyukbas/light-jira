@@ -35,7 +35,7 @@ const KNOWN_DYNAMIC = new Set([
 
 // ── File discovery ────────────────────────────────────────────────────────────
 
-function findFiles(dir, ext, skip = ['node_modules', '.git', 'lib']) {
+function findFiles(dir, ext, skip = ['node_modules', '.git', 'lib', 'store']) {
   const results = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.isDirectory() && !skip.includes(entry.name)) {

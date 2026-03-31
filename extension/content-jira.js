@@ -23,17 +23,21 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const m = a.href.match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/);
     if (!m) return;
     const key = m[1];
-    let title = '';
-    // Check if the anchor's text is something other than the bare key
-    const anchorText = a.textContent.trim();
-    if (anchorText && anchorText !== key) title = anchorText;
-    // Look for a summary element in a parent container
-    if (!title) {
-      const container =
-        a.closest('[data-issue-key]') || a.closest('[data-testid*="issue"]') || a.parentElement;
-      const summaryEl = container && container.querySelector('[data-testid*="summary"]');
-      if (summaryEl) title = summaryEl.textContent.trim();
+
+    // Strategy A: explicit summary element in the nearest issue container (most reliable)
+    const container =
+      a.closest('[data-issue-key]') || a.closest('[data-testid*="issue"]') || a.parentElement;
+    const summaryEl = container && container.querySelector('[data-testid*="summary"]');
+    if (summaryEl) {
+      addTicket(key, summaryEl.textContent.trim());
+      return;
     }
+
+    // Strategy B: anchor text with the bare key removed.
+    // Jira injects bracket tags ([1], [ATTENTION], etc.) and SVG icon text into anchors —
+    // any remainder starting with '[' is UI chrome, not a title.
+    const cleaned = a.textContent.replace(key, '').trim();
+    const title = cleaned && !/^\[/.test(cleaned) ? cleaned : '';
     addTicket(key, title);
   });
 
