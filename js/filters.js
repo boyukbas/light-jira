@@ -1,5 +1,28 @@
 'use strict';
 
+// ── FILTER INPUT PARSER ───────────────────────────────────────────────────────
+// Classifies raw user input into a filter type and extracts the relevant value.
+// Used by runFilterLoad() to dispatch to the correct API call.
+function parseFilterInput(input) {
+  const trimmed = input.trim();
+  try {
+    if (trimmed.startsWith('http')) {
+      const url = new URL(trimmed);
+      const filterId = url.searchParams.get('filter');
+      if (filterId) return { type: 'filterId', value: filterId };
+      const jql = url.searchParams.get('jql');
+      if (jql) return { type: 'jql', value: jql };
+      // Plans URL: /jira/plans/{planId}/scenarios/{scenarioId}/...
+      const plansMatch = url.pathname.match(/\/jira\/plans\/(\d+)/);
+      if (plansMatch) return { type: 'planId', value: plansMatch[1] };
+    }
+  } catch {
+    /* not a URL */
+  }
+  if (/^\d+$/.test(trimmed)) return { type: 'filterId', value: trimmed };
+  return { type: 'jql', value: trimmed };
+}
+
 // ── FILTER & JQL MODE ─────────────────────────────────────────────────────────
 function applyFilterGroup(keys, groupName, queryKey) {
   const existing = state.groups.find((g) => g.isFilter && g.query === queryKey);

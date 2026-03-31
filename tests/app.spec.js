@@ -782,7 +782,7 @@ test.describe('Tabs', () => {
     await expect(page.locator('#mm-code')).toBeVisible();
     await expect(page.locator('#mm-preview')).toBeVisible();
     // Default diagram code is pre-loaded
-    await expect(page.locator('#mm-code')).toHaveValue(/journey/);
+    await expect(page.locator('#mm-code')).toHaveValue(/sequenceDiagram/);
   });
 
   test('Mindmap copy button shows toast', async ({ page }) => {

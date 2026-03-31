@@ -287,19 +287,3 @@ function renderHistoryTable() {
     }
   })();
 }
-
-async function loadAllGroupTickets() {
-  const group = getActiveGroup();
-  for (const key of group.keys) {
-    if (!issueCache[key]) {
-      try {
-        issueCache[key] = await fetchIssue(key);
-        saveState();
-        renderMiddle();
-        if (state.activeKey === key) renderReading();
-      } catch (err) {
-        console.warn('Failed to load', key, err.message);
-      }
-    }
-  }
-}

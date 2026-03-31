@@ -157,32 +157,6 @@ async function fetchFilterById(filterId) {
   return r.json();
 }
 
-function parseFilterInput(input) {
-  const trimmed = input.trim();
-  // Handle filter URL: https://site.atlassian.net/issues/?filter=12345
-  try {
-    if (trimmed.startsWith('http')) {
-      const url = new URL(trimmed);
-      const filterId = url.searchParams.get('filter');
-      if (filterId) return { type: 'filterId', value: filterId };
-      // Could also be a JQL URL
-      const jql = url.searchParams.get('jql');
-      if (jql) return { type: 'jql', value: jql };
-      // Plans URL: /jira/plans/{planId}/scenarios/{scenarioId}/...
-      const plansMatch = url.pathname.match(/\/jira\/plans\/(\d+)/);
-      if (plansMatch) return { type: 'planId', value: plansMatch[1] };
-    }
-  } catch {
-    /* not a URL */
-  }
-
-  // Plain filter ID
-  if (/^\d+$/.test(trimmed)) return { type: 'filterId', value: trimmed };
-
-  // Assume it's JQL
-  return { type: 'jql', value: trimmed };
-}
-
 async function fetchPlanIssues(planId) {
   const url =
     apiBase() + '/rest/agile/1.0/plan/' + encodeURIComponent(planId) + '/issue?maxResults=200';

@@ -13,14 +13,17 @@ function init() {
     loadAllGroupTickets();
   }
 
-  // Tab switching
+  // ── Tab switching ─────────────────────────────────────────────────────────
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
+  // ── Smart search bar ──────────────────────────────────────────────────────
   const searchInput = document.getElementById('search-input');
   const searchBtn = document.getElementById('search-btn');
 
+  // Classify the search bar value so the button label matches user intent.
+  // Returns 'filter' for JQL / filter IDs / filter URLs, 'open' for ticket keys.
   function classifySearchInput(val) {
     const t = val.trim();
     if (!t) return 'open';
@@ -33,14 +36,13 @@ function init() {
       } catch {}
       return 'open'; // browse URL → single ticket
     }
-    const upper = t.toUpperCase();
-    if (/^[A-Z][A-Z0-9]+-\d+$/.test(upper)) return 'open'; // ticket key
+    if (/^[A-Z][A-Z0-9]+-\d+$/.test(t.toUpperCase())) return 'open';
     return 'filter'; // everything else is JQL
   }
 
   searchInput.addEventListener('input', () => {
-    const kind = classifySearchInput(searchInput.value);
-    searchBtn.textContent = kind === 'filter' ? 'Load Filter' : 'Open';
+    searchBtn.textContent =
+      classifySearchInput(searchInput.value) === 'filter' ? 'Load Filter' : 'Open';
   });
 
   document.getElementById('search-form').addEventListener('submit', async (e) => {
@@ -68,7 +70,9 @@ function init() {
     }
   });
 
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
   window.addEventListener('keydown', (e) => {
+    // F2 → focus search bar from anywhere
     if (e.key === 'F2') {
       e.preventDefault();
       const si = document.getElementById('search-input');
@@ -79,7 +83,7 @@ function init() {
       return;
     }
 
-    // Arrow-key navigation in the ticket list (skip when an input is focused)
+    // Arrow keys → navigate ticket list (skip when an input/textarea is focused)
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       const tag = document.activeElement?.tagName;
       if (
@@ -108,6 +112,7 @@ function init() {
     }
   });
 
+  // ── Group search ──────────────────────────────────────────────────────────
   const groupSearchInput = document.getElementById('group-search-input');
   if (groupSearchInput) {
     groupSearchInput.addEventListener('input', () => {
@@ -116,6 +121,7 @@ function init() {
     });
   }
 
+  // ── Refresh button ────────────────────────────────────────────────────────
   document.getElementById('refresh-all-btn').addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     btn.style.pointerEvents = 'none';
@@ -146,11 +152,11 @@ function init() {
     if (state.activeKey) renderReading();
   });
 
+  // ── Bulk select ───────────────────────────────────────────────────────────
   document.getElementById('bulk-select-btn').addEventListener('click', () => {
     if (bulkSelectMode) exitBulkMode();
     else enterBulkMode();
   });
-
   document.getElementById('bulk-done-btn').addEventListener('click', exitBulkMode);
 
   document.getElementById('bulk-delete-btn').addEventListener('click', () => {
@@ -186,16 +192,7 @@ function init() {
     updateViewMode();
   });
 
-  function openCfg() {
-    document.getElementById('cfg-url').value = cfg.baseUrl;
-    document.getElementById('cfg-email').value = cfg.email;
-    document.getElementById('cfg-token').value = cfg.token;
-    clearSettingsErrors();
-    document.getElementById('settings-overlay').classList.remove('hidden');
-    document.getElementById('cfg-email').focus();
-  }
-
-  // Bind handlers that were formerly inline (CSP blocks inline event handlers in extension context)
+  // ── Pane collapse / notes pane ────────────────────────────────────────────
   document
     .getElementById('sidebar-collapse-btn')
     .addEventListener('click', () => toggleCollapse('sidebar'));
@@ -203,125 +200,12 @@ function init() {
     .getElementById('middle-collapse-btn')
     .addEventListener('click', () => toggleCollapse('middle'));
   document.getElementById('notes-pane-close').addEventListener('click', toggleNotes);
+
   const notesText = document.getElementById('notes-text');
   if (notesText) notesText.addEventListener('input', () => saveNotes(notesText.value));
 
-  const settingsBtn = document.getElementById('settings-btn');
-  settingsBtn.addEventListener('click', openCfg);
-  const closeCfg = () => {
-    document.getElementById('settings-overlay').classList.add('hidden');
-    settingsBtn.focus();
-  };
-  document.getElementById('settings-close').addEventListener('click', closeCfg);
-  document.getElementById('settings-cancel').addEventListener('click', closeCfg);
-
-  // Close on Escape key
-  document.getElementById('settings-overlay').addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeCfg();
-  });
-
-  document.getElementById('settings-save').addEventListener('click', () => {
-    clearSettingsErrors();
-    const rawUrl = document.getElementById('cfg-url').value.trim();
-
-    // U2: validate URLs before saving
-    if (rawUrl) {
-      try {
-        new URL(rawUrl);
-      } catch {
-        showSettingsError('cfg-url', 'Enter a valid URL (e.g. https://company.atlassian.net)');
-        return;
-      }
-    }
-
-    cfg.baseUrl = (rawUrl || DEFAULTS.baseUrl).replace(/\/$/, '');
-    cfg.email = document.getElementById('cfg-email').value.trim();
-    cfg.token = document.getElementById('cfg-token').value.trim();
-    saveConfig();
-    closeCfg();
-    toast('Settings saved');
-    if (getActiveGroup().keys.length) loadAllGroupTickets();
-  });
-
-  function showSettingsError(inputId, message) {
-    const input = document.getElementById(inputId);
-    input.classList.add('input-error');
-    let err = input.parentElement.querySelector('.field-error');
-    if (!err) {
-      err = document.createElement('div');
-      err.className = 'field-error';
-      input.parentElement.appendChild(err);
-    }
-    err.textContent = message;
-    input.focus();
-  }
-
-  function clearSettingsErrors() {
-    document
-      .querySelectorAll('#settings-modal .input-error')
-      .forEach((el) => el.classList.remove('input-error'));
-    document.querySelectorAll('#settings-modal .field-error').forEach((el) => el.remove());
-  }
-}
-
-// ── JIRA BEAM — Chrome extension integration ──────────────────────────────────
-function handleBeam(payload) {
-  if (!payload || !payload.type) return;
-
-  if (payload.type === 'open-url') {
-    const url = (payload.url || '').trim();
-    if (!url) return;
-    // Browse URL → extract ticket key
-    const browseMatch = url.match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/i);
-    if (browseMatch) {
-      openTicketByKey(browseMatch[1].toUpperCase());
-      return;
-    }
-    // Bare ticket key
-    if (/^[A-Z][A-Z0-9]{0,9}-\d+$/i.test(url)) {
-      openTicketByKey(url.toUpperCase());
-      return;
-    }
-    // Filter URL, plan URL, or JQL
-    runFilterLoad(url).catch((e) => toast('Beam error: ' + e.message, 'error'));
-    return;
-  }
-
-  if (payload.type === 'open-group') {
-    const { name, keys } = payload;
-    if (!keys || !keys.length) return;
-    const id = 'beam_' + Date.now();
-    insertGroupBeforeHistory({ id, name: name || 'Beamed Group', keys });
-    state.activeGroupId = id;
-    state.activeKey = keys[0];
-    saveState();
-    updateViewMode();
-    toast(
-      'Beamed ' + keys.length + ' ticket' + (keys.length === 1 ? '' : 's') + ' into "' + name + '"',
-      'success'
-    );
-    if (isConfigured()) loadAllGroupTickets();
-  }
-}
-
-window.addEventListener('jira-beam', (e) => handleBeam(e.detail));
-
-// Chrome extension: receive beam messages from the popup via runtime messaging
-if (typeof chrome !== 'undefined' && chrome.runtime?.id) {
-  chrome.runtime.onMessage.addListener((msg) => {
-    if (msg && msg.type === 'beam') handleBeam(msg.payload);
-  });
-}
-
-// Handle ?beam=<base64-JSON> sent by the extension when the app tab was not open
-try {
-  const beamParam = new URLSearchParams(window.location.search).get('beam');
-  if (beamParam) {
-    handleBeam(JSON.parse(atob(beamParam)));
-    window.history.replaceState({}, '', window.location.pathname);
-  }
-} catch {
-  /* ignore malformed beam param */
+  // ── Settings modal ────────────────────────────────────────────────────────
+  initSettings();
 }
 
 init();

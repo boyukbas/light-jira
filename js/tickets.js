@@ -57,3 +57,21 @@ window.openFromHistory = function (key) {
   saveState();
   updateViewMode();
 };
+
+// Sequentially loads all tickets in the active group that are not yet cached.
+// Renders incrementally so cards appear as data arrives.
+async function loadAllGroupTickets() {
+  const group = getActiveGroup();
+  for (const key of group.keys) {
+    if (!issueCache[key]) {
+      try {
+        issueCache[key] = await fetchIssue(key);
+        saveState();
+        renderMiddle();
+        if (state.activeKey === key) renderReading();
+      } catch (err) {
+        console.warn('Failed to load', key, err.message);
+      }
+    }
+  }
+}
