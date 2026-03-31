@@ -71,6 +71,24 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     }
   }
 
+  // 5. Single /browse/KEY page fallback — extract title from document.title.
+  // This works across all Jira UI generations (classic, next-gen, team-managed)
+  // because the browser tab title always reflects the issue summary.
+  // Title formats Jira uses:
+  //   "TTN-140922 My Issue Title - Regus Jira"
+  //   "[TTN-140922] My Issue Title - Jira"
+  //   "TTN-140922: My Issue Title | Atlassian Jira"
+  const browseMatch = window.location.pathname.match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/i);
+  if (browseMatch) {
+    const urlKey = browseMatch[1].toUpperCase();
+    const fromTitle = document.title
+      .replace(/\s+[-|]\s+.+$/, '') // strip " - Site Name" / " | Site Name" suffix
+      .replace(urlKey, '') // remove the bare key
+      .replace(/^[\s:[\]]+/, '') // strip leading punctuation left behind
+      .trim();
+    if (fromTitle) tickets.set(urlKey, fromTitle);
+  }
+
   const sorted = Array.from(tickets.entries()).sort(([a], [b]) => a.localeCompare(b));
   sendResponse({
     keys: sorted.map(([key]) => key),

@@ -79,7 +79,9 @@ async function init() {
 
   // ── Section A: beam current URL ───────────────────────────────────────────
   sectionUrl.classList.remove('hidden');
-  const pageTitle = (currentTab.title || '').replace(/\s*[-|].*$/, '').trim();
+  // Strip " - Site Name" / " | Site Name" suffix only — use \s+ on both sides so
+  // the dash inside a ticket key (TTN-12345) is never matched.
+  const pageTitle = (currentTab.title || '').replace(/\s+[-|]\s+.+$/, '').trim();
   if (pageTitle) {
     urlDisplay.innerHTML =
       `<strong>${escHtml(truncate(pageTitle, 45))}</strong>` +
