@@ -1,8 +1,8 @@
-# Light Jira
+# Crisp for Jira
 
 **A high-performance, minimalist Jira client built for speed and deep productivity.**
 
-Light Jira is a Chrome Extension that replaces sluggish Jira tabs with a streamlined, keyboard-friendly interface. Organise tickets into custom groups, tag them with labels, take freeform canvas notes, sketch diagrams, load from JQL filters, and maintain a full browsing history — all cached locally for instant offline access.
+Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a streamlined, keyboard-friendly interface. Organise tickets into custom groups, tag them with labels, take freeform canvas notes, sketch diagrams, load from JQL filters, and maintain a full browsing history — all cached locally for instant offline access.
 
 ---
 
@@ -51,7 +51,7 @@ Light Jira is a Chrome Extension that replaces sluggish Jira tabs with a streaml
 2. Open `chrome://extensions` in Chrome.
 3. Enable **Developer mode** (top-right toggle).
 4. Click **Load unpacked** and select the repository root folder.
-5. Pin the **Light Jira** extension from the toolbar.
+5. Pin the **Crisp for Jira** extension from the toolbar.
 
 ### Configure credentials
 
@@ -485,4 +485,4 @@ All interactive controls use the `.top-btn` class from `css/ui.css`. Three varia
 
 ---
 
-*Light Jira is an unofficial community project, not affiliated with or endorsed by Atlassian. "Jira" is a trademark of Atlassian.*
+*Crisp for Jira is an unofficial community project, not affiliated with or endorsed by Atlassian. "Jira" is a trademark of Atlassian.*
