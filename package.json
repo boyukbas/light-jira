@@ -8,7 +8,6 @@
     "lint:classes": "node check-classes.js",
     "lint:format": "prettier --check \"**/*.{html,css,js}\" --ignore-path .prettierignore",
     "format": "prettier --write \"**/*.{html,css,js}\" --ignore-path .prettierignore",
-    "mock": "MOCK=1 node proxy.js",
     "test": "playwright test",
     "test:ui": "playwright test --ui"
   },

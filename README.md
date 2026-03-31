@@ -2,7 +2,7 @@
 
 **A high-performance, minimalist Jira client built for speed and deep productivity.**
 
-Light Jira is a Progressive Web App that replaces sluggish Jira tabs with a streamlined, keyboard-friendly interface. Organise tickets into custom groups, tag them with labels, take freeform canvas notes, sketch diagrams, load from JQL filters, and maintain a full browsing history — all cached locally for instant offline access.
+Light Jira is a Chrome Extension that replaces sluggish Jira tabs with a streamlined, keyboard-friendly interface. Organise tickets into custom groups, tag them with labels, take freeform canvas notes, sketch diagrams, load from JQL filters, and maintain a full browsing history — all cached locally for instant offline access.
 
 ---
 
@@ -34,57 +34,36 @@ Light Jira is a Progressive Web App that replaces sluggish Jira tabs with a stre
 - **Custom Groups** — Create, rename, reorder (drag), and delete ticket lists. Filter groups (JQL) shown with a funnel badge.
 - **Labels System** — Tag tickets with coloured labels. The Labels tab auto-generates groups from your tags. Tickets with no labels appear in a "no-label" bucket.
 - **Freeform Notes Canvas** — Click anywhere to place a text block. Drag blocks freely. Paste or drop images. Insert live Mermaid diagrams inline.
-- **Mermaid Diagrams** — Full Mermaid v11 support with multiple named diagrams, live preview, copy-to-clipboard, and a refresh button.
-- **History Tab** — Full-width grid of every ticket you've opened, with Status, Assignee, Created, and Last Viewed. Sortable at a glance.
+- **Mermaid Diagrams** — Full Mermaid v11 support with multiple named diagrams, live preview, copy-to-clipboard, and a refresh button. Pan and zoom the preview.
+- **History Tab** — Full-width grid of every ticket you've opened, with Key, Summary, Status, Assignee, Created, and Last Viewed. Sortable and resizable columns.
 - **Code Block Copy** — Every code block in a ticket description gets a hover-reveal Copy button.
 - **Jira Link Interception** — `/browse/KEY-123` links open inside the app. Ctrl/Cmd+click opens in the browser. User profile links always open externally.
 - **Offline Persistence** — Ticket data, notes, screenshots, and state stored in `localStorage`. Works without a connection for already-cached tickets.
-- **PWA Ready** — Installable as a desktop or mobile app via the browser's install prompt.
+- **Jira Beam** — Content script on Jira pages detects ticket keys in the current view and surfaces them in the extension popup for one-click navigation.
 
 ---
 
 ## Getting Started
 
-### Prerequisites
+### Install the extension
 
-- **Node.js** (v16+) — required to run the local CORS proxy
+1. Clone or download this repository.
+2. Open `chrome://extensions` in Chrome.
+3. Enable **Developer mode** (top-right toggle).
+4. Click **Load unpacked** and select the repository root folder.
+5. Pin the **Light Jira** extension from the toolbar.
 
-### Run locally (against a real Jira)
+### Configure credentials
 
-```bash
-git clone https://github.com/boyukbas/light-jira.git
-cd light-jira
-npm install
-node proxy.js
-```
-
-Open `http://localhost:3000`, click the **gear icon**, and enter your credentials (see [Configuration](#configuration)).
-
-### Run in mock mode (no Jira account needed)
-
-```bash
-npm run mock
-```
-
-Open `http://localhost:3000`, click the gear icon, and set:
+Click the **gear icon** inside the extension (or the popup), and enter:
 
 | Field | Value |
 |---|---|
-| Jira URL | `http://localhost:3000` |
-| Email | anything (e.g. `demo@demo.com`) |
-| API Token | anything (e.g. `demo`) |
+| Jira URL | `https://yourcompany.atlassian.net` |
+| Email | Your Atlassian account email |
+| API Token | [Generate here](https://id.atlassian.com/manage-profile/security/api-tokens) |
 
-Ten pre-built demo tickets (`DEMO-1` … `DEMO-10`) are available. Any other key you enter will generate a placeholder issue automatically.
-
-### Cloud Deployment (GitHub Pages / AWS Lambda)
-
-The repo includes `lambda_handler.mjs` and a Terraform file (`main.tf`) for deploying a CORS-bridging AWS Lambda.
-
-1. Deploy the Lambda and copy its Function URL.
-2. In settings → **Cloud Proxy URL**, paste the Lambda URL.
-3. Deploy the static files to GitHub Pages (or any static host).
-
-No server required for the front-end once the Lambda is running.
+Click **Save**. The extension connects directly to Jira's REST API using your credentials.
 
 ---
 
@@ -207,28 +186,23 @@ A Mermaid diagram workspace with a multi-diagram sidebar.
 
 - Lists all saved diagrams.
 - Click a diagram to make it active.
-- `+` button creates a new diagram (pre-filled with the User Journey default).
+- `+` button creates a new diagram (pre-filled with a sequence diagram example).
 - `✕` on a diagram deletes it (with confirmation).
 
 **Editor + Preview**
 
 - Left: **Diagram Code** textarea with a Refresh button and a Copy button.
-- Right: Live SVG preview rendered by Mermaid v11.
+- Right: Live SVG preview rendered by Mermaid v11 with pan and zoom controls.
 
-**Buttons in the editor header**
+**Pan and Zoom**
 
-| Button | Action |
-|---|---|
-| Refresh (↺) | Re-renders the preview from the current textarea content |
-| Copy | Copies the diagram code to the clipboard |
+- **Scroll** — Zoom in/out at the cursor position.
+- **Drag** — Pan the preview canvas.
+- **Overlay buttons** — `+` / `-` / reset buttons in the bottom-right corner.
 
 **Supported diagram types**
 
 Any Mermaid diagram type works: `flowchart`, `sequenceDiagram`, `classDiagram`, `stateDiagram`, `erDiagram`, `journey`, `gantt`, `pie`, `gitgraph`, `mindmap`, and more.
-
-**Default diagram**
-
-On first launch, a User Journey example is created automatically so you have something to start with.
 
 ---
 
@@ -236,11 +210,13 @@ On first launch, a User Journey example is created automatically so you have som
 
 A full-width table of every ticket you've opened in the app.
 
-- Columns: **Key**, **Summary**, **Type**, **Status**, **Assignee**, **Priority**, **Created**, **Last Viewed**
+- Columns: **Key**, **Summary**, **Status**, **Assignee**, **Created**, **Last Viewed**
+- Click a column header to sort; click again to reverse; click a third time to clear sorting.
+- Drag column edges to resize.
 - Entries are added when a ticket is loaded (not when a filter is imported).
 - Click any row to open that ticket in the Jira tab.
 - Remove individual entries with the `✕` button on each row.
-- History is capped by the **History Limit** setting (default: 100).
+- History is capped at 150 entries (`HISTORY_LIMIT` in `api.js`).
 
 ---
 
@@ -257,7 +233,7 @@ The single search input at the top handles multiple input types. The button labe
 | `project = PROJ ORDER BY created DESC` | JQL | **Load Filter** | Runs JQL and creates a filter group |
 | `https://…/issues/?jql=…` | JQL URL | **Load Filter** | Extracts and runs the JQL |
 
-**Press `F2`** from anywhere in the app to instantly focus the search bar (without opening a modal). **Press `Escape`** to blur it.
+**Press `F2`** from anywhere in the app to instantly focus the search bar. **Press `Escape`** to blur it.
 
 ---
 
@@ -270,7 +246,7 @@ The right pane shows full ticket details when a ticket is selected.
 ```
 ┌───────────────────────────────────────┐
 │  KEY  Title                 [⤢] [↗]  │
-│  Status · Assignee · Priority         │
+│  Status · Assignee                    │
 │  Reporter  Labels  (+ add label)      │
 ├───────────────────────────────────────┤
 │  PARENT CHAIN (if epic/story/subtask) │
@@ -309,7 +285,7 @@ If a ticket has a parent (sub-task → story → epic), the hierarchy chain is d
 
 ### Linked Issues
 
-Linked tickets (blocks/is blocked by, relates to, etc.) appear in a section with their type, status, and a link to open them in the app.
+Linked tickets (blocks/is blocked by, relates to, etc.) appear in a section with their type, key, summary, and a link to open in the app or Jira.
 
 ---
 
@@ -332,13 +308,11 @@ Click the **gear icon** (top-right) to open Settings.
 
 | Field | Description |
 |---|---|
+| **Jira URL** | Your instance, e.g. `https://company.atlassian.net` |
 | **Email** | Your Atlassian account email |
 | **API Token** | [Generate here](https://id.atlassian.com/manage-profile/security/api-tokens) |
-| **Jira URL** | Your instance, e.g. `https://company.atlassian.net` |
-| **History Limit** | Maximum tickets to store in History (default: 100) |
-| **Cloud Proxy URL** | Optional AWS Lambda URL for cloud deployments |
 
-Settings are validated: Jira URL and Proxy URL must be valid URLs. Errors are shown inline next to the relevant field.
+Settings are validated: Jira URL must be a valid URL. Errors are shown inline next to the relevant field.
 
 ---
 
@@ -350,9 +324,8 @@ npm run lint:css      # stylelint only
 npm run lint:classes  # check for undefined CSS classes
 npm run lint:format   # prettier check
 npm run format        # auto-fix formatting
-npm test              # Playwright E2E tests (59 tests, all API mocked)
+npm test              # Playwright E2E tests (all API mocked)
 npm run test:ui       # Playwright with interactive UI
-npm run mock          # start server with mock Atlassian API
 ```
 
 ### Test-Driven Development
@@ -379,14 +352,13 @@ Commit after each logical change. Push only when all changes for a session are c
 
 | Layer | Technology |
 |---|---|
+| Extension | Chrome Manifest V3 (`extension/` folder) |
 | Front-end | Vanilla JavaScript (ES2020) / HTML5 / CSS3 |
 | Storage | `localStorage` (state + issue cache + screenshots) |
-| Proxy | Node.js `http` module (`proxy.js`) |
-| Cloud Proxy | AWS Lambda + Terraform (`lambda_handler.mjs`, `main.tf`) |
 | Tests | Playwright E2E |
 | Linting | Stylelint + custom class checker + Prettier |
 
-No build step. No framework. No bundler. Files are served directly.
+No build step. No framework. No bundler. The extension uses `host_permissions` to call Jira's REST API directly — no proxy server required.
 
 ### JS Module Layout
 
@@ -400,15 +372,20 @@ The app is split into focused files loaded via plain `<script>` tags in `index.h
 | `js/layout.js` | `updateViewMode()` (master render dispatcher), pane collapse, resizer drag |
 | `js/sidebar.js` | Group list rendering, inline create/rename, drag reorder |
 | `js/middle.js` | Ticket list rendering (fast-path optimisation), bulk select mode |
-| `js/history.js` | History table render, batch-fetch with per-row error states |
-| `js/reading.js` | Ticket detail pane, labels, hierarchy, code copy buttons, Jira link interception |
+| `js/history.js` | History table render, sort, column resize, batch-fetch with per-row error states |
+| `js/reading.js` | Slim orchestrator: assembles reading pane HTML, calls binders |
+| `js/reading-content.js` | Pure HTML builders: labels, meta grid, description, linked issues, comments |
+| `js/reading-bindings.js` | DOM binders: action handlers, code copy, Jira link interception, auth images, hierarchy |
 | `js/labels.js` | Label picker modal, `applyLabel`, `removeLabel`, `viewByLabel` |
 | `js/labels-tab.js` | Labels tab render functions (`renderLabelsSidebar`, `renderLabelsMiddle`) |
-| `js/notes.js` | Notes canvas: block builder, drag, image paste/drop, mermaid inline blocks |
-| `js/mindmap.js` | Multi-diagram Mindmap tab, sidebar, Mermaid render loop |
+| `js/notes.js` | Notes view: sidebar, canvas mount, note CRUD |
+| `js/notes-canvas.js` | Canvas block builder, drag, image paste/drop, Mermaid inline blocks |
+| `js/mindmap.js` | Multi-diagram Mindmap tab, sidebar, Mermaid render loop, pan/zoom |
 | `js/drag-drop.js` | All drag-and-drop handlers (tickets and groups) |
-| `js/filters.js` | JQL/filter load logic, `classifySearchInput` |
-| `js/tickets.js` | `openFromHistory`, ticket move helpers |
+| `js/filters.js` | `parseFilterInput`, `runFilterLoad`, `applyFilterGroup` |
+| `js/tickets.js` | `openFromHistory`, `loadAllGroupTickets`, ticket move helpers |
+| `js/settings.js` | Settings modal: `openCfg`, `initSettings`, validation helpers |
+| `js/beam.js` | Jira Beam protocol: popup↔page messaging, `?beam=` URL param processing |
 | `js/init.js` | DOM event wiring, app startup (`init()`) |
 
 ### CSS File Map

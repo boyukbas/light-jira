@@ -2,7 +2,7 @@
 
 ## Stack
 
-Vanilla JS / HTML5 / CSS3. No framework, no build step. Node.js proxy only for CORS.
+Chrome Extension (Manifest V3). Vanilla JS / HTML5 / CSS3. No framework, no build step, no bundler. The extension uses `host_permissions` to talk directly to Jira's REST API — no proxy needed.
 
 ## Linting (run before committing)
 
@@ -58,9 +58,9 @@ Key `state` fields (persisted in `localStorage` as `jira_state`):
 - `state.groups` — array of group objects `{ id, name, keys[], isFilter?, query? }`
 - `state.activeGroupId` — currently selected group id
 - `state.activeKey` — currently selected ticket key
-- `state.appMode` — `'jira'` | `'notes'` | `'history'`
+- `state.appMode` — `'jira'` | `'labels'` | `'notes'` | `'mindmap'` | `'history'`
 - `state.labels` — `{ [ticketKey]: string[] }`
-- `state.standAloneNotes` — array of standalone note objects `{ id, title, body, created, updated }`
+- `state.standAloneNotes` — array of standalone note objects `{ id, title, blocks[], created, updated }`
 - `state.activeNoteId` — currently selected note id (notes mode)
 
 Special group ids: `'history'` (always present, never shown in sidebar). History keys are `{key, added}` objects, not plain strings. No group is "special" otherwise — `getDefaultGroup()` finds the first non-history, non-filter group as a safe fallback instead of hardcoding `'inbox'`.
@@ -72,15 +72,46 @@ Special group ids: `'history'` (always present, never shown in sidebar). History
 `updateViewMode()` is the single entry point for all re-renders. Call it after any state change. It:
 1. Sets `body[data-app-mode]` and `body[data-active-view]` attributes
 2. **jira mode** → `renderSidebar()`, `renderMiddle()`, `renderReading()`
-3. **notes mode** → `renderNotesSidebar()`, `renderNoteEditor()`
-4. **history mode** → `renderSidebar()`, `renderHistoryTable()`
+3. **labels mode** → `renderLabelsSidebar()`, `renderLabelsMiddle()`, `renderReading()`
+4. **notes mode** → `renderNotesSidebar()`, `renderNoteCanvas()`
+5. **mindmap mode** → `renderMindMapSidebar()`, `renderMindMap()`
+6. **history mode** → `renderSidebar()`, `renderHistoryTable()`
 
-## Notes editor
+## JS file map
 
-The notes editor uses a `contenteditable` div (`#note-editor-body`, class `.note-editor-body`) — not a textarea. Images are pasted/dropped inline as `<img data-img-id="img_xxx">` elements; their `src` is stripped before saving and restored from `screenshotStore` on load. Key helpers:
-- `noteBodyToHtml(body)` — migrates old plain-text / `![screenshot](img_xxx)` format to HTML on load
-- `serializeEditorBody(el)` — clones the editor, strips `src` attributes, returns innerHTML for storage
-- `resolveImages(el)` — sets `src` on all `img[data-img-id]` elements from `screenshotStore`
+| File | Responsibility |
+|---|---|
+| `api.js` | Jira API calls (`fetchIssue`, `fetchByJql`, etc.), config load/save, `HISTORY_LIMIT` |
+| `utils.js` | `esc()`, `relDate()`, `avBadge()`, `statusClass()`, `stripHtml()`, `AV_COLORS` |
+| `js/state.js` | App state object, `loadState`/`saveState`, group helpers, migrations |
+| `js/layout.js` | `updateViewMode()` (master render dispatcher), pane collapse, resizer drag |
+| `js/sidebar.js` | Group list rendering, inline create/rename, drag reorder |
+| `js/middle.js` | Ticket list rendering (fast-path optimisation), bulk select mode |
+| `js/history.js` | History table render, sort, column resize, batch-fetch with per-row error states |
+| `js/reading.js` | Slim orchestrator: assembles HTML from builders, calls binders, then `renderHierarchy()` |
+| `js/reading-content.js` | Pure HTML builders: `buildLabelsHtml`, `buildMetaGridHtml`, `buildContentHtml`, `buildLinkedIssuesHtml`, `buildCommentsHtml` |
+| `js/reading-bindings.js` | DOM binders: `bindReadingHandlers`, `bindCodeCopyButtons`, `bindJiraLinks`, `bindAuthImages`, `renderHierarchy` |
+| `js/labels.js` | Label picker modal, `applyLabel`, `removeLabel`, `viewByLabel` |
+| `js/labels-tab.js` | Labels tab render functions (`renderLabelsSidebar`, `renderLabelsMiddle`) |
+| `js/notes.js` | Notes view: `renderNotesSidebar`, `renderNoteCanvas`, note CRUD |
+| `js/notes-canvas.js` | Canvas block builder, drag, image paste/drop, Mermaid inline blocks |
+| `js/mindmap.js` | Multi-diagram Mindmap tab, sidebar, Mermaid render loop, pan/zoom |
+| `js/drag-drop.js` | All drag-and-drop handlers (tickets and groups) |
+| `js/filters.js` | `parseFilterInput`, `runFilterLoad`, `applyFilterGroup` |
+| `js/tickets.js` | `openFromHistory`, `loadAllGroupTickets`, ticket move helpers |
+| `js/settings.js` | Settings modal: `openCfg`, `initSettings`, validation helpers |
+| `js/beam.js` | Jira Beam protocol: `handleBeam`, chrome runtime message listener, `?beam=` URL param |
+| `js/init.js` | DOM event wiring, app startup (`init()`) |
+
+## Notes canvas
+
+The notes editor is a freeform infinite canvas (2400×2400 px). Each note contains an array of absolutely-positioned `blocks[]`. Block types: `text`, `image`, `mermaid`. Key helpers in `js/notes-canvas.js`:
+- `buildBlock(blk, note)` — creates the `.cb` DOM element for a block
+- `addNoteBlock(note, type, x, y, content)` — creates a block object, appends DOM element
+- `renderMermaidInBlock(previewEl, code)` — renders Mermaid SVG into a block's preview area
+- `handleCanvasPaste` / `handleCanvasDrop` — image paste/drop → `readImageFile` → `addNoteBlock`
+
+Images are stored as data URLs in `screenshotStore` (keyed by `img_xxx` id). The `src` attribute is stripped before saving and restored on load.
 
 ## Search bar
 
@@ -106,10 +137,6 @@ Every group item has a `.g-drag-handle` (6-dot grip icon). Dragging from that ha
 
 `bulkSelectMode` (module-level boolean) and `selectedKeys` (module-level `Set`) drive multi-selection. `enterBulkMode()` / `exitBulkMode()` toggle the `#middle.bulk-mode` class (which CSS uses to show checkboxes via `::before`/`::after` pseudo-elements) and the `#bulk-toolbar.visible` class. Card clicks in bulk mode toggle `selectedKeys` and call `updateBulkToolbar()` — no full re-render. `renderMiddle()` adds the `.selected` class to pre-selected cards so state survives re-renders. Bulk mode is cleared automatically when switching groups.
 
-## Mock server
-
-`proxy.js` supports `MOCK=1` env var (or `--mock` CLI flag). When active, `/api/jira/rest/api/3/*` requests are intercepted by `serveMock()` — no real Jira is needed. Ten pre-built `DEMO-*` issues are defined in `MOCK_ISSUES`; any other key generates a placeholder. Start with `npm run mock`. In the browser, set Jira URL to `http://localhost:3000` with any email/token.
-
 ## History entry keys
 
 History group keys are `{key, added}` objects; all other groups use plain strings. Always use `entryKey(e)` (defined in `js/state.js`) to extract the plain string — never inline `typeof e === 'string' ? e : e.key`.
@@ -128,7 +155,7 @@ When the visible key list hasn't changed, `renderMiddle()` skips the full innerH
 
 ## Settings validation
 
-The settings-save handler validates `cfg-url` and `cfg-proxy-url` with `new URL()` before saving. On failure it shows a `.field-error` div and adds `.input-error` to the input. `clearSettingsErrors()` removes both before each save attempt. Focus moves into the modal on open and returns to `#settings-btn` on close.
+The settings-save handler validates `cfg-url` with `new URL()` before saving. On failure it shows a `.field-error` div and adds `.input-error` to the input. `clearSettingsErrors()` removes both before each save attempt. Focus moves into the modal on open and returns to `#settings-btn` on close.
 
 ## Accessibility
 

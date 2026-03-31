@@ -18,7 +18,7 @@ module.exports = defineConfig({
     },
   ],
   webServer: {
-    command: 'node proxy.js',
+    command: 'node serve-test.js',
     port: 3001,
     reuseExistingServer: true,
     env: { PORT: '3001' },
