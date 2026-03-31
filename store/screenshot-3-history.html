@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>Screenshot 3 — History Tab</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1280px;
+        height: 800px;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #060b18;
+      }
+      .frame {
+        width: 1280px;
+        height: 800px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 28px;
+        background: radial-gradient(ellipse at 50% 40%, #1e1b4b 0%, #060b18 65%);
+        position: relative;
+      }
+      .frame::after {
+        content: '';
+        position: absolute;
+        width: 800px;
+        height: 300px;
+        background: radial-gradient(ellipse, #6366f110 0%, transparent 70%);
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .headline {
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+      .headline h2 {
+        font-size: 26px;
+        font-weight: 700;
+        color: #e2e8f0;
+        letter-spacing: -0.6px;
+        margin-bottom: 6px;
+      }
+      .headline h2 span {
+        color: #6366f1;
+      }
+      .headline p {
+        font-size: 13px;
+        color: #64748b;
+      }
+
+      .table-wrap {
+        width: 1100px;
+        background: #0d1117;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow:
+          0 30px 80px #00000070,
+          0 0 0 1px #ffffff10;
+        position: relative;
+        z-index: 1;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      thead {
+        background: #161b27;
+      }
+      thead th {
+        padding: 10px 14px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        text-align: left;
+        border-bottom: 1px solid #21293a;
+        white-space: nowrap;
+        position: relative;
+      }
+      thead th.sortable {
+        cursor: pointer;
+        user-select: none;
+      }
+      thead th.sortable:hover {
+        color: #94a3b8;
+      }
+      thead th.sorted {
+        color: #6366f1;
+      }
+      .sort-arrow {
+        margin-left: 4px;
+        font-size: 9px;
+      }
+      .resize-handle {
+        position: absolute;
+        right: 0;
+        top: 20%;
+        height: 60%;
+        width: 3px;
+        background: #21293a;
+        border-radius: 2px;
+        cursor: col-resize;
+      }
+
+      tbody tr {
+        border-bottom: 1px solid #21293a18;
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+      tbody tr:hover {
+        background: #161b2760;
+      }
+      tbody tr.active {
+        background: #161b27;
+      }
+      tbody td {
+        padding: 10px 14px;
+        font-size: 12px;
+        color: #94a3b8;
+        white-space: nowrap;
+      }
+
+      .key-text {
+        font-weight: 600;
+        color: #6366f1;
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .summary-text {
+        color: #cbd5e1;
+        max-width: 320px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .status-badge {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .sb-done {
+        background: #14532d40;
+        color: #4ade80;
+      }
+      .sb-prog {
+        background: #1e3a8a40;
+        color: #60a5fa;
+      }
+      .sb-todo {
+        background: #1e293b;
+        color: #64748b;
+      }
+      .sb-review {
+        background: #78350f40;
+        color: #fbbf24;
+      }
+      .av-cell {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .av {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        font-weight: 700;
+        color: white;
+        flex-shrink: 0;
+      }
+      .date-text {
+        color: #64748b;
+        font-size: 11px;
+      }
+      .remove-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4a5568;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .remove-btn:hover {
+        background: #21293a;
+        color: #94a3b8;
+      }
+
+      .table-footer {
+        padding: 10px 14px;
+        background: #161b2750;
+        border-top: 1px solid #21293a;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .table-footer span {
+        font-size: 11px;
+        color: #4a5568;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div class="headline">
+        <h2>Every ticket you've opened. <span>Always there.</span></h2>
+        <p>Sortable by any column · Resizable columns · Click any row to reopen · Remove individual entries</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable sorted" style="width:100px">
+                Key <span class="sort-arrow">▲</span>
+                <div class="resize-handle"></div>
+              </th>
+              <th class="sortable" style="width:340px">
+                Summary <span class="sort-arrow" style="opacity:0.3">▲</span>
+                <div class="resize-handle"></div>
+              </th>
+              <th class="sortable" style="width:130px">
+                Status <span class="sort-arrow" style="opacity:0.3">▲</span>
+                <div class="resize-handle"></div>
+              </th>
+              <th class="sortable" style="width:160px">
+                Assignee <span class="sort-arrow" style="opacity:0.3">▲</span>
+                <div class="resize-handle"></div>
+              </th>
+              <th class="sortable" style="width:120px">
+                Created <span class="sort-arrow" style="opacity:0.3">▲</span>
+                <div class="resize-handle"></div>
+              </th>
+              <th class="sortable" style="width:120px">
+                Viewed <span class="sort-arrow" style="opacity:0.3">▲</span>
+                <div class="resize-handle"></div>
+              </th>
+              <th style="width:40px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="active">
+              <td><span class="key-text">PROJ-501</span></td>
+              <td><span class="summary-text">Migrate CI pipeline to GitHub Actions</span></td>
+              <td><span class="status-badge sb-todo">To Do</span></td>
+              <td>
+                <div class="av-cell">
+                  <div class="av" style="background:#6366f1">MR</div>
+                  Maya Rodriguez
+                </div>
+              </td>
+              <td class="date-text">3 days ago</td>
+              <td class="date-text">just now</td>
+              <td><div class="remove-btn">✕</div></td>
+            </tr>
+            <tr>
+              <td><span class="key-text">PROJ-498</span></td>
+              <td><span class="summary-text">Add dark mode to customer portal</span></td>
+              <td><span class="status-badge sb-prog">In Progress</span></td>
+              <td>
+                <div class="av-cell">
+                  <div class="av" style="background:#0891b2">SL</div>
+                  Sara Lim
+                </div>
+              </td>
+              <td class="date-text">1 week ago</td>
+              <td class="date-text">2 min ago</td>
+              <td><div class="remove-btn">✕</div></td>
+            </tr>
+            <tr>
+              <td><span class="key-text">PROJ-495</span></td>
+              <td><span class="summary-text">Fix timezone offset in scheduled reports</span></td>
+              <td><span class="status-badge sb-done">Done</span></td>
+              <td>
+                <div class="av-cell">
+                  <div class="av" style="background:#059669">JW</div>
+                  James Wu
+                </div>
+              </td>
+              <td class="date-text">2 weeks ago</td>
+              <td class="date-text">5 min ago</td>
+              <td><div class="remove-btn">✕</div></td>
+            </tr>
+            <tr>
+              <td><span class="key-text">PROJ-491</span></td>
+              <td><span class="summary-text">Update dependency: lodash 4.17.19 → 4.17.21</span></td>
+              <td><span class="status-badge sb-prog">In Progress</span></td>
+              <td>
+                <div class="av-cell">
+                  <div class="av" style="background:#7c3aed">AK</div>
+                  Alex Kim
+                </div>
+              </td>
+              <td class="date-text">3 weeks ago</td>
+              <td class="date-text">12 min ago</td>
+              <td><div class="remove-btn">✕</div></td>
+            </tr>
+            <tr>
+              <td><span class="key-text">PROJ-488</span></td>
+              <td><span class="summary-text">Introduce rate limiting on the public API</span></td>
+              <td><span class="status-badge sb-review">In Review</span></td>
+              <td>
+                <div class="av-cell">
+                  <div class="av" style="background:#be185d">EP</div>
+                  Elena Park
+                </div>
+              </td>
+              <td class="date-text">3 weeks ago</td>
+              <td class="date-text">1 hour ago</td>
+              <td><div class="remove-btn">✕</div></td>
+            </tr>
+            <tr>
+              <td><span class="key-text">PROJ-476</span></td>
+              <td><span class="summary-text">Redesign onboarding email sequence</span></td>
+              <td><span class="status-badge sb-done">Done</span></td>
+              <td>
+                <div class="av-cell">
+                  <div class="av" style="background:#b45309">TC</div>
+                  Tom Chen
+                </div>
+              </td>
+              <td class="date-text">1 month ago</td>
+              <td class="date-text">2 hours ago</td>
+              <td><div class="remove-btn">✕</div></td>
+            </tr>
+            <tr>
+              <td><span class="key-text">PROJ-464</span></td>
+              <td><span class="summary-text">Add support for SSO login via Google</span></td>
+              <td><span class="status-badge sb-todo">To Do</span></td>
+              <td>
+                <div class="av-cell">
+                  <div class="av" style="background:#0891b2">SL</div>
+                  Sara Lim
+                </div>
+              </td>
+              <td class="date-text">1 month ago</td>
+              <td class="date-text">yesterday</td>
+              <td><div class="remove-btn">✕</div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-footer">
+          <span>7 of 48 shown (most recent first)</span>
+          <span>Click any column header to sort · Drag edges to resize</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280" />
+    <title>Screenshot 4 — Notes Canvas</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1280px;
+        height: 800px;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #060b18;
+      }
+      .frame {
+        width: 1280px;
+        height: 800px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        background: radial-gradient(ellipse at 55% 45%, #14213d 0%, #060b18 65%);
+        padding: 30px 50px;
+        position: relative;
+      }
+
+      /* sidebar */
+      .notes-sidebar {
+        width: 180px;
+        background: #0d1117;
+        border: 1px solid #21293a;
+        border-radius: 12px;
+        overflow: hidden;
+        flex-shrink: 0;
+        box-shadow:
+          0 20px 60px #00000060,
+          0 0 0 1px #ffffff08;
+        align-self: stretch;
+      }
+      .ns-header {
+        padding: 12px;
+        border-bottom: 1px solid #21293a;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .ns-header span {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .ns-add {
+        width: 20px;
+        height: 20px;
+        background: #161b27;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: #64748b;
+        cursor: pointer;
+      }
+      .ns-note {
+        padding: 10px 12px;
+        border-bottom: 1px solid #21293a18;
+        cursor: pointer;
+      }
+      .ns-note.active {
+        background: #161b27;
+      }
+      .ns-note-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: #94a3b8;
+        margin-bottom: 3px;
+      }
+      .ns-note.active .ns-note-title {
+        color: #e2e8f0;
+      }
+      .ns-note-preview {
+        font-size: 10px;
+        color: #4a5568;
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* canvas area */
+      .canvas-wrap {
+        flex: 1;
+        background: #0d1117;
+        border: 1px solid #21293a;
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow:
+          0 30px 80px #00000070,
+          0 0 0 1px #ffffff08;
+        align-self: stretch;
+      }
+      .canvas-header {
+        padding: 10px 14px;
+        background: #161b27;
+        border-bottom: 1px solid #21293a;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .canvas-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e2e8f0;
+      }
+      .canvas-btn {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 5px;
+        background: #21293a;
+        color: #94a3b8;
+        cursor: pointer;
+      }
+      .canvas-btn.accent {
+        background: #1e1b4b;
+        color: #a5b4fc;
+      }
+
+      .canvas-body {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background-image: radial-gradient(circle, #21293a 1px, transparent 1px);
+        background-size: 24px 24px;
+      }
+
+      /* blocks */
+      .block {
+        position: absolute;
+        background: #161b27;
+        border: 1px solid #21293a;
+        border-radius: 10px;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: 0 4px 20px #00000040;
+      }
+      .block.focused {
+        border-color: #6366f140;
+        box-shadow:
+          0 4px 20px #00000040,
+          0 0 0 2px #6366f120;
+      }
+      .block-handle {
+        width: 100%;
+        height: 24px;
+        background: #1a2035;
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        gap: 6px;
+        cursor: grab;
+        border-bottom: 1px solid #21293a;
+      }
+      .dots {
+        display: grid;
+        grid-template-columns: repeat(3, 4px);
+        grid-template-rows: repeat(2, 4px);
+        gap: 2px;
+      }
+      .dots span {
+        width: 3px;
+        height: 3px;
+        background: #4a5568;
+        border-radius: 50%;
+        display: block;
+      }
+      .block-type {
+        font-size: 9px;
+        font-weight: 600;
+        color: #4a5568;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: auto;
+      }
+      .block-del {
+        font-size: 12px;
+        color: #4a5568;
+        cursor: pointer;
+        margin-left: 4px;
+      }
+      .block-content {
+        padding: 10px 12px;
+        font-size: 12px;
+        color: #94a3b8;
+        line-height: 1.6;
+      }
+      .block-content strong {
+        color: #e2e8f0;
+        font-weight: 600;
+      }
+
+      /* mermaid block */
+      .mermaid-block {
+        display: flex;
+        width: 100%;
+      }
+      .mermaid-code {
+        width: 200px;
+        padding: 10px 12px;
+        border-right: 1px solid #21293a;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #64748b;
+        line-height: 1.7;
+        background: #0d1117;
+      }
+      .mermaid-preview {
+        flex: 1;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* Simple SVG diagram mock */
+      .diagram-mock {
+        font-size: 10px;
+      }
+
+      /* label badges */
+      .lbl {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 10px;
+        margin-right: 4px;
+        margin-top: 4px;
+      }
+
+      /* right side headline */
+      .side-text {
+        width: 220px;
+        flex-shrink: 0;
+      }
+      .side-text h2 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #e2e8f0;
+        letter-spacing: -0.5px;
+        line-height: 1.25;
+        margin-bottom: 10px;
+      }
+      .side-text h2 span {
+        color: #6366f1;
+      }
+      .side-text p {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      .feature-pill {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: #161b27;
+        border: 1px solid #21293a;
+        border-radius: 8px;
+        margin-bottom: 8px;
+      }
+      .feature-pill .icon {
+        font-size: 16px;
+      }
+      .feature-pill .text {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+      .feature-pill .text strong {
+        color: #e2e8f0;
+        font-weight: 600;
+        display: block;
+        font-size: 12px;
+        margin-bottom: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <!-- Notes sidebar -->
+      <div class="notes-sidebar">
+        <div class="ns-header">
+          <span>Notes</span>
+          <div class="ns-add">+</div>
+        </div>
+        <div class="ns-note active">
+          <div class="ns-note-title">Sprint planning</div>
+          <div class="ns-note-preview">Auth refactor → needs design review before…</div>
+        </div>
+        <div class="ns-note">
+          <div class="ns-note-title">Architecture sketch</div>
+          <div class="ns-note-preview">Microservice split proposal for Q3</div>
+        </div>
+        <div class="ns-note">
+          <div class="ns-note-title">Meeting notes</div>
+          <div class="ns-note-preview">Stakeholder sync 28 Mar — decisions…</div>
+        </div>
+        <div class="ns-note">
+          <div class="ns-note-title">Blocked tickets</div>
+          <div class="ns-note-preview">PROJ-422 waiting on design, PROJ-418…</div>
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <div class="canvas-wrap">
+        <div class="canvas-header">
+          <span class="canvas-title">Sprint planning</span>
+          <div style="display:flex;gap:6px">
+            <div class="canvas-btn accent">+ Diagram</div>
+            <div class="canvas-btn">+ Image</div>
+          </div>
+        </div>
+        <div class="canvas-body">
+          <!-- Text block 1 -->
+          <div class="block focused" style="left:16px;top:12px;width:310px">
+            <div class="block-handle">
+              <div class="dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <span class="block-type">text</span>
+              <span class="block-del">✕</span>
+            </div>
+            <div class="block-content">
+              <strong>Auth refactor (PROJ-418)</strong><br />
+              Needs design sign-off before implementation starts. Sara to update the strategy doc with token refresh
+              notes.<br />
+              <span class="lbl" style="background:#1e1b4b;color:#a5b4fc">blocked</span>
+              <span class="lbl" style="background:#14532d40;color:#4ade80">Q2</span>
+            </div>
+          </div>
+
+          <!-- Text block 2 -->
+          <div class="block" style="left:344px;top:12px;width:260px">
+            <div class="block-handle">
+              <div class="dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <span class="block-type">text</span>
+              <span class="block-del">✕</span>
+            </div>
+            <div class="block-content">
+              <strong>CI migration (PROJ-501)</strong><br />
+              Maya owns. Target: this sprint. Unblocks the Docker layer caching work in PROJ-510.
+            </div>
+          </div>
+
+          <!-- Mermaid block -->
+          <div class="block" style="left:16px;top:190px;width:530px">
+            <div class="block-handle">
+              <div class="dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <span class="block-type">diagram</span>
+              <span class="block-del">✕</span>
+            </div>
+            <div class="mermaid-block">
+              <div class="mermaid-code">
+                flowchart LR<br />
+                &nbsp;&nbsp;A[PR merged] --&gt; B<br />
+                &nbsp;&nbsp;B[GitHub Action] --&gt; C<br />
+                &nbsp;&nbsp;B --&gt; D[Tests]<br />
+                &nbsp;&nbsp;C[Build image] --&gt; E<br />
+                &nbsp;&nbsp;D --&gt; E[Deploy]
+              </div>
+              <div class="mermaid-preview">
+                <svg width="200" height="120" viewBox="0 0 200 120">
+                  <!-- Nodes -->
+                  <rect x="2" y="45" width="40" height="22" rx="5" fill="#1e3a8a40" stroke="#60a5fa60" stroke-width="1" />
+                  <text x="22" y="60" text-anchor="middle" font-size="7" fill="#94a3b8">PR merged</text>
+
+                  <rect x="56" y="25" width="50" height="22" rx="5" fill="#14532d40" stroke="#4ade8060" stroke-width="1" />
+                  <text x="81" y="40" text-anchor="middle" font-size="7" fill="#94a3b8">GitHub Action</text>
+
+                  <rect x="120" y="8" width="40" height="22" rx="5" fill="#21293a" stroke="#4a5568" stroke-width="1" />
+                  <text x="140" y="23" text-anchor="middle" font-size="7" fill="#64748b">Build</text>
+
+                  <rect x="120" y="40" width="34" height="22" rx="5" fill="#21293a" stroke="#4a5568" stroke-width="1" />
+                  <text x="137" y="55" text-anchor="middle" font-size="7" fill="#64748b">Tests</text>
+
+                  <rect x="170" y="25" width="28" height="22" rx="5" fill="#78350f40" stroke="#fbbf2460" stroke-width="1" />
+                  <text x="184" y="40" text-anchor="middle" font-size="7" fill="#fbbf24">Deploy</text>
+
+                  <!-- Arrows -->
+                  <line x1="42" y1="56" x2="56" y2="40" stroke="#4a5568" stroke-width="1" marker-end="url(#arr)" />
+                  <line x1="106" y1="33" x2="120" y2="19" stroke="#4a5568" stroke-width="1" />
+                  <line x1="106" y1="38" x2="120" y2="49" stroke="#4a5568" stroke-width="1" />
+                  <line x1="160" y1="19" x2="170" y2="30" stroke="#4a5568" stroke-width="1" />
+                  <line x1="154" y1="51" x2="170" y2="40" stroke="#4a5568" stroke-width="1" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Text block 3 -->
+          <div class="block" style="left:344px;top:115px;width:240px">
+            <div class="block-handle">
+              <div class="dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <span class="block-type">text</span>
+              <span class="block-del">✕</span>
+            </div>
+            <div class="block-content">
+              📌 <strong>Decisions this sprint:</strong><br />
+              • Auth = Sara leads<br />
+              • CI = Maya leads<br />
+              • SSO blocked by PROJ-418
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right copy -->
+      <div class="side-text">
+        <h2>A canvas for<br /><span>your thinking.</span></h2>
+        <p>
+          Drop text blocks anywhere. Paste screenshots. Draw live Mermaid diagrams. Everything stays where you put it.
+        </p>
+        <div class="feature-pill">
+          <span class="icon">📝</span>
+          <div class="text">
+            <strong>Text blocks</strong>
+            Click anywhere to create
+          </div>
+        </div>
+        <div class="feature-pill">
+          <span class="icon">🖼️</span>
+          <div class="text">
+            <strong>Images</strong>
+            Paste or drag-and-drop
+          </div>
+        </div>
+        <div class="feature-pill">
+          <span class="icon">🗺️</span>
+          <div class="text">
+            <strong>Live diagrams</strong>
+            Mermaid, rendered inline
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

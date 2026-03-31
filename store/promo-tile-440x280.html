@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Promo Tile 440×280 — Crisp for Jira</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 440px;
+        height: 280px;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #060b18;
+      }
+
+      .tile {
+        width: 440px;
+        height: 280px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* ambient grid lines */
+      .tile::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(#6366f108 1px, transparent 1px),
+          linear-gradient(90deg, #6366f108 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+      }
+
+      /* glow blobs */
+      .blob1 {
+        position: absolute;
+        width: 280px;
+        height: 180px;
+        background: radial-gradient(ellipse, #6366f125 0%, transparent 70%);
+        top: -40px;
+        left: -40px;
+        pointer-events: none;
+      }
+      .blob2 {
+        position: absolute;
+        width: 200px;
+        height: 160px;
+        background: radial-gradient(ellipse, #fbbf2412 0%, transparent 70%);
+        bottom: -30px;
+        right: -20px;
+        pointer-events: none;
+      }
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+        text-align: center;
+      }
+
+      .icon-wrap {
+        margin-bottom: 16px;
+        filter: drop-shadow(0 8px 24px #6366f140);
+      }
+
+      .wordmark {
+        font-size: 13px;
+        font-weight: 700;
+        color: #94a3b8;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .headline {
+        font-size: 28px;
+        font-weight: 800;
+        color: #f1f5f9;
+        letter-spacing: -0.8px;
+        line-height: 1.15;
+        margin-bottom: 10px;
+      }
+      .headline span {
+        color: #818cf8;
+      }
+
+      .tagline {
+        font-size: 12px;
+        color: #64748b;
+        letter-spacing: 0.2px;
+      }
+
+      /* pill row */
+      .pills {
+        display: flex;
+        gap: 8px;
+        margin-top: 18px;
+      }
+      .pill {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        border: 1px solid #21293a;
+        color: #64748b;
+        background: #0d111780;
+      }
+      .pill.accent {
+        border-color: #6366f140;
+        color: #818cf8;
+        background: #1e1b4b60;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="tile">
+      <div class="blob1"></div>
+      <div class="blob2"></div>
+
+      <div class="content">
+        <div class="icon-wrap">
+          <svg width="52" height="52" viewBox="0 0 128 128" fill="none">
+            <defs>
+              <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#0f172a" />
+                <stop offset="100%" stop-color="#1e1b4b" />
+              </linearGradient>
+              <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff" />
+                <stop offset="100%" stop-color="#a5b4fc" />
+              </linearGradient>
+            </defs>
+            <rect width="128" height="128" rx="24" fill="url(#bg)" />
+            <path
+              d="M 69 43 A 30 30 0 1 0 69 85"
+              fill="none"
+              stroke="url(#cg)"
+              stroke-width="13"
+              stroke-linecap="round"
+            />
+            <line x1="74" y1="53" x2="105" y2="53" stroke="white" stroke-width="5.5" stroke-linecap="round" opacity="0.95" />
+            <line x1="74" y1="64" x2="112" y2="64" stroke="white" stroke-width="5.5" stroke-linecap="round" opacity="0.55" />
+            <line x1="74" y1="75" x2="98" y2="75" stroke="white" stroke-width="5.5" stroke-linecap="round" opacity="0.28" />
+            <circle cx="69" cy="43" r="5.5" fill="#fbbf24" />
+          </svg>
+        </div>
+
+        <div class="wordmark">Crisp for Jira</div>
+        <div class="headline">
+          Your Jira.<br />
+          <span>Without the noise.</span>
+        </div>
+        <div class="tagline">Fast · Keyboard-first · No proxy · Offline cache</div>
+
+        <div class="pills">
+          <div class="pill accent">JQL Filters</div>
+          <div class="pill accent">Canvas Notes</div>
+          <div class="pill accent">Mermaid</div>
+          <div class="pill">History</div>
+          <div class="pill">Labels</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
