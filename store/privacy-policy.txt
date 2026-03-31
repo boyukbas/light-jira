@@ -1,0 +1,26 @@
+──────────────────────────────────────
+🔒 PRIVACY & DATA SECURITY
+──────────────────────────────────────
+
+Your company's Jira data is highly sensitive. Crisp is designed with a strict, local-first architecture to guarantee that your information remains entirely in your control.
+
+Zero Third-Party Servers
+Crisp communicates directly and exclusively between your browser and your Atlassian instance. There are no intermediary servers, no proxies, and no "call home" functions.
+
+100% Local Storage
+Everything you create or view inside Crisp never leaves your machine. Tickets, custom groups, history, Mermaid diagrams, and freeform notes (including pasted images) are saved strictly to your browser's local storage. If you clear your browser data or uninstall the extension, your Crisp data is wiped with it.
+
+Zero Tracking
+Crisp includes absolutely no analytics, telemetry, crash reporting, or user tracking.
+
+Required Permissions Explained:
+Because Crisp operates entirely within your browser, it requires specific permissions to function. Here is exactly what they do:
+
+https://*.atlassian.net/* (Host Permission): Required to securely authenticate via your API token and make direct REST API calls to your Jira instance.
+
+tabs / activeTab: Required exclusively for the "Jira Beam" feature. This allows the popup to read the active URL and scan the current page text specifically to detect Jira ticket keys so you can bulk-import them.
+
+storage: Required to save your Jira credentials, cached tickets, notes, diagrams, and custom groups locally on your hard drive.
+
+Verifiable Security
+Crisp is entirely open-source and built with pure vanilla JavaScript. There are no minified frameworks or obfuscated code. You or your security team can inspect the source code directly to verify every claim made above.
