@@ -36,6 +36,19 @@ function truncate(s, max) {
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
 
+// Load non-history, non-filter groups from the app's shared localStorage.
+// Returns [] if state is missing or unparseable.
+function loadAppGroups() {
+  try {
+    const raw = localStorage.getItem('jira_state');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return (parsed.groups || []).filter((g) => g.id !== 'history' && !g.isFilter);
+  } catch {
+    return [];
+  }
+}
+
 async function init() {
   const statusEl = document.getElementById('app-status');
   const openAppBtn = document.getElementById('open-app-btn');
@@ -43,6 +56,7 @@ async function init() {
   const sectionNotJira = document.getElementById('section-not-jira');
   const sectionKeys = document.getElementById('section-keys');
   const urlDisplay = document.getElementById('url-display');
+  const beamUrlGroup = document.getElementById('beam-url-group');
   const beamUrlBtn = document.getElementById('beam-url-btn');
   const keysLoading = document.getElementById('keys-loading');
   const keysList = document.getElementById('keys-list');
@@ -51,18 +65,22 @@ async function init() {
   const beamGroupBtn = document.getElementById('beam-group-btn');
   const selectAllLink = document.getElementById('select-all-link');
 
-  // ── App status ────────────────────────────────────────────────────────────
+  // ── App status + Open App button (always visible) ─────────────────────────
   const appTab = await getAppTab();
   if (appTab) {
     statusEl.textContent = 'App open';
     statusEl.classList.add('online');
   } else {
     statusEl.textContent = 'App closed';
-    openAppBtn.classList.remove('hidden');
   }
 
-  openAppBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: getAppUrl() });
+  openAppBtn.addEventListener('click', async () => {
+    const tab = await getAppTab();
+    if (tab) {
+      await chrome.tabs.update(tab.id, { active: true });
+    } else {
+      chrome.tabs.create({ url: getAppUrl() });
+    }
     window.close();
   });
 
@@ -90,8 +108,27 @@ async function init() {
     urlDisplay.textContent = truncate(currentTab.url, 80);
   }
 
+  // Populate group selector from app's saved state
+  const appGroups = loadAppGroups();
+  if (appGroups.length) {
+    beamUrlGroup.classList.remove('hidden');
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'Active list';
+    beamUrlGroup.appendChild(defaultOpt);
+    for (const g of appGroups) {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.name;
+      beamUrlGroup.appendChild(opt);
+    }
+  }
+
   beamUrlBtn.addEventListener('click', () => {
-    beamToApp({ type: 'open-url', url: currentTab.url });
+    const targetGroupId = beamUrlGroup.value || null;
+    const payload = { type: 'open-url', url: currentTab.url };
+    if (targetGroupId) payload.targetGroupId = targetGroupId;
+    beamToApp(payload);
   });
 
   // ── Section B: keys extracted from the page ───────────────────────────────

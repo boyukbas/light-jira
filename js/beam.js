@@ -11,14 +11,15 @@ function handleBeam(payload) {
 
   if (payload.type === 'open-url') {
     const url = (payload.url || '').trim();
+    const targetGroupId = payload.targetGroupId || null;
     if (!url) return;
     const browseMatch = url.match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/i);
     if (browseMatch) {
-      openTicketByKey(browseMatch[1].toUpperCase());
+      openTicketByKey(browseMatch[1].toUpperCase(), targetGroupId);
       return;
     }
     if (/^[A-Z][A-Z0-9]{0,9}-\d+$/i.test(url)) {
-      openTicketByKey(url.toUpperCase());
+      openTicketByKey(url.toUpperCase(), targetGroupId);
       return;
     }
     runFilterLoad(url).catch((e) => toast('Beam error: ' + e.message, 'error'));
