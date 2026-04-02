@@ -243,6 +243,25 @@ section + section {
   cursor: pointer;
 }
 
+/* ── Group selector (Beam to App) ── */
+.group-select {
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+.group-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* ── Group form ── */
 .group-form {
   display: flex;

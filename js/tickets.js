@@ -1,14 +1,14 @@
 'use strict';
 
 // ── TICKET NAVIGATION & HISTORY ───────────────────────────────────────────────
-function openTicketByKey(val) {
+function openTicketByKey(val, targetGroupId) {
   if (!val) return;
   const key = normalise(val);
-  let g = getActiveGroup();
-  if (g.id === 'history' || g.isFilter) {
+  let g = targetGroupId ? getGroup(targetGroupId) : getActiveGroup();
+  if (!targetGroupId && (g.id === 'history' || g.isFilter)) {
     g = getDefaultGroup();
-    state.activeGroupId = g.id;
   }
+  state.activeGroupId = g.id;
   if (g.keys.includes(key)) {
     toast(key + ' is already in this list');
   } else {

@@ -105,6 +105,10 @@ function renderSidebar() {
   if (addBtn) {
     addBtn.onclick = () => startInlineGroupCreate();
   }
+  const dupBtn = document.getElementById('find-duplicates-btn');
+  if (dupBtn) {
+    dupBtn.onclick = () => findDuplicates();
+  }
 }
 
 function startInlineGroupCreate() {
@@ -220,6 +224,40 @@ function deleteGroup(id) {
     saveState();
     updateViewMode();
   }
+}
+
+// ── FIND DUPLICATES ───────────────────────────────────────────────────────────
+function findDuplicates() {
+  // Count how many non-history groups each key appears in
+  const keyCounts = new Map(); // key -> count
+  for (const g of state.groups) {
+    if (g.id === 'history') continue;
+    for (const k of g.keys) {
+      const key = entryKey(k);
+      keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
+    }
+  }
+
+  const duplicates = Array.from(keyCounts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([key]) => key);
+
+  if (!duplicates.length) {
+    toast('No duplicate tickets found across lists', 'info');
+    return;
+  }
+
+  const id = 'g_dupes_' + Date.now();
+  insertGroupBeforeHistory({ id, name: 'Duplicates', keys: duplicates });
+  state.activeGroupId = id;
+  state.activeKey = duplicates[0];
+  saveState();
+  updateViewMode();
+  toast(
+    'Found ' + duplicates.length + ' duplicate' + (duplicates.length === 1 ? '' : 's'),
+    'success'
+  );
+  if (isConfigured()) loadAllGroupTickets();
 }
 
 // ── GROUPS ────────────────────────────────────────────────────────────────────
