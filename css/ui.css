@@ -399,8 +399,3 @@
   opacity: 1;
   color: var(--accent);
 }
-
-/* Open-in-Jira action button in reading pane header */
-.btn-open-jira {
-  text-decoration: none;
-}

@@ -68,11 +68,6 @@ function renderReading() {
     buildGroupSelectHtml(key) +
     '<button class="top-btn" data-action="toggle-notes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Notes</button>' +
     '<button class="top-btn" data-action="refresh-reading"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.38-7.72"/></svg> Refresh</button>' +
-    '<a class="top-btn btn-open-jira" href="' +
-    esc(cfg.baseUrl) +
-    '/browse/' +
-    esc(key) +
-    '" target="_blank" rel="noopener noreferrer" title="Open in Jira"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Jira</a>' +
     '</div></div>';
   html += buildMetaGridHtml(f);
   html +=
