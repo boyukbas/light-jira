@@ -631,10 +631,6 @@
     <script src="js/settings.js"></script>
     <script src="js/beam.js"></script>
     <script src="js/init.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      }
-    </script>
+    <script src="js/sw-register.js"></script>
   </body>
 </html>
