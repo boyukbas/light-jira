@@ -17,13 +17,16 @@
 }
 #sidebar.collapsed .g-name,
 #sidebar.collapsed .count,
-#sidebar.collapsed .middle-header span:not(.collapse-btn),
+#sidebar.collapsed .middle-header span,
 #sidebar.collapsed #add-group-btn span {
   display: none;
 }
+#sidebar.collapsed .middle-header {
+  padding: 12px 0;
+  justify-content: center;
+}
 #sidebar.collapsed .collapse-btn {
   transform: rotate(180deg);
-  margin: 0 auto;
 }
 #sidebar.collapsed .group-item {
   justify-content: center;

@@ -4,9 +4,18 @@
 function openTicketByKey(val, targetGroupId) {
   if (!val) return;
   const key = normalise(val);
-  let g = targetGroupId ? getGroup(targetGroupId) : getActiveGroup();
-  if (!targetGroupId && (g.id === 'history' || g.isFilter)) {
-    g = getDefaultGroup();
+  let g;
+  if (targetGroupId) {
+    g = getGroup(targetGroupId);
+    if (g.id !== targetGroupId) {
+      toast('Target list not found, opening in default list', 'warn');
+      g = getDefaultGroup();
+    } else if (g.isFilter || g.id === 'history') {
+      g = getDefaultGroup();
+    }
+  } else {
+    g = getActiveGroup();
+    if (g.id === 'history' || g.isFilter) g = getDefaultGroup();
   }
   state.activeGroupId = g.id;
   if (g.keys.includes(key)) {

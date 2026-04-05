@@ -228,10 +228,10 @@ function deleteGroup(id) {
 
 // ── FIND DUPLICATES ───────────────────────────────────────────────────────────
 function findDuplicates() {
-  // Count how many non-history groups each key appears in
+  // Count how many non-history, non-duplicates groups each key appears in
   const keyCounts = new Map(); // key -> count
   for (const g of state.groups) {
-    if (g.id === 'history') continue;
+    if (g.id === 'history' || g.id.startsWith('g_dupes_')) continue;
     for (const k of g.keys) {
       const key = entryKey(k);
       keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
@@ -246,6 +246,9 @@ function findDuplicates() {
     toast('No duplicate tickets found across lists', 'info');
     return;
   }
+
+  // Remove any previously-created Duplicates group before inserting a fresh one
+  state.groups = state.groups.filter((g) => !g.id.startsWith('g_dupes_'));
 
   const id = 'g_dupes_' + Date.now();
   insertGroupBeforeHistory({ id, name: 'Duplicates', keys: duplicates });

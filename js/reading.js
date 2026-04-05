@@ -83,6 +83,7 @@ function renderReading() {
   bindAuthImages(content);
   bindCodeCopyButtons(content);
   bindJiraLinks(content);
+  bindEditableMetaFields(content, key);
   renderHierarchy(key, f.parent);
 }
 
