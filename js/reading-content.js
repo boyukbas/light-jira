@@ -87,9 +87,26 @@ function buildMetaGridHtml(f) {
         : '\u2014',
     },
     { l: 'Type', v: f.issuetype?.name || '\u2014' },
+    { l: 'Priority', v: f.priority?.name || '\u2014' },
     { l: 'Created', v: relDate(f.created) },
     { l: 'Updated', v: relDate(f.updated) },
   ];
+  if (f.duedate) {
+    items.splice(
+      items.findIndex((i) => i.l === 'Created'),
+      0,
+      {
+        l: 'Due',
+        v: relDate(f.duedate),
+      }
+    );
+  }
+  if (f.fixVersions && f.fixVersions.length) {
+    items.push({ l: 'Fix Version', v: esc(f.fixVersions.map((v) => v.name).join(', ')) });
+  }
+  if (f.components && f.components.length) {
+    items.push({ l: 'Components', v: esc(f.components.map((c) => c.name).join(', ')) });
+  }
   if (storyPoints !== null) {
     items.splice(1, 0, {
       l: 'Story Points',

@@ -384,3 +384,23 @@
   opacity: 0.85;
   flex-shrink: 0;
 }
+
+/* Open-in-Jira icon link (injected next to /browse/ links in content) */
+.jira-link-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  opacity: 0.6;
+  vertical-align: middle;
+}
+.jira-link-icon:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* Open-in-Jira action button in reading pane header */
+.btn-open-jira {
+  text-decoration: none;
+}

@@ -115,21 +115,30 @@ async function init() {
     urlDisplay.textContent = truncate(currentTab.url, 80);
   }
 
-  // Populate group selector from app's saved state
-  const appGroups = loadAppGroups();
-  if (appGroups.length) {
+  // Populate group selector from app's saved state.
+  // Re-runs on focus so stale names/IDs are refreshed if the app was edited while
+  // this popup was open in the background.
+  function refreshGroupSelector() {
+    const groups = loadAppGroups();
+    beamUrlGroup.innerHTML = '';
+    if (!groups.length) {
+      beamUrlGroup.classList.add('hidden');
+      return;
+    }
     beamUrlGroup.classList.remove('hidden');
     const defaultOpt = document.createElement('option');
     defaultOpt.value = '';
     defaultOpt.textContent = 'Active list';
     beamUrlGroup.appendChild(defaultOpt);
-    for (const g of appGroups) {
+    for (const g of groups) {
       const opt = document.createElement('option');
       opt.value = g.id;
       opt.textContent = g.name;
       beamUrlGroup.appendChild(opt);
     }
   }
+  refreshGroupSelector();
+  window.addEventListener('focus', refreshGroupSelector);
 
   beamUrlBtn.addEventListener('click', () => {
     const targetGroupId = beamUrlGroup.value || null;

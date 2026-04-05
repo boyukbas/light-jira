@@ -13,6 +13,9 @@
     "story_points": 5,
     "reporter": { "displayName": "John Smith", "emailAddress": "john@example.com" },
     "priority": { "name": "Medium" },
+    "duedate": "2026-05-01",
+    "fixVersions": [{ "name": "v2.0" }],
+    "components": [{ "name": "Backend" }, { "name": "API" }],
     "created": "2026-01-15T10:00:00.000+0000",
     "updated": "2026-03-20T14:30:00.000+0000",
     "description": {
@@ -31,7 +34,7 @@
     "parent": null
   },
   "renderedFields": {
-    "description": "<p>This is the ticket description.</p>",
+    "description": "<p>This is the ticket description. See also <a href=\"https://site.atlassian.net/browse/PROJ-999\">PROJ-999</a>.</p>",
     "comment": { "comments": [] }
   }
 }
