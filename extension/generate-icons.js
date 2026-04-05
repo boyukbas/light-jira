@@ -11,7 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const { chromium } = require('@playwright/test');
 
-const SIZES = [16, 48, 128];
+const SIZES = [16, 48, 128, 192, 512];
 const OUT_DIR = path.join(__dirname, 'icons');
 
 const html = (size) => `<!DOCTYPE html>

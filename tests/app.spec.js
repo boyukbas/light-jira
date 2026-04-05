@@ -1235,3 +1235,22 @@ test.describe('Jira Beam', () => {
     });
   });
 });
+
+// ── PWA ───────────────────────────────────────────────────────────────────────
+test.describe('PWA', () => {
+  test('registers service worker on startup', async ({ page }) => {
+    // initConfig stubs register; our spy overrides it afterwards so we can assert
+    await page.addInitScript(initConfig);
+    await page.addInitScript(() => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register = (url) => {
+          window.__swRegisteredUrl = url;
+          return Promise.resolve({});
+        };
+      }
+    });
+    await page.goto('/');
+    const swUrl = await page.evaluate(() => window.__swRegisteredUrl);
+    expect(swUrl).toBe('/sw.js');
+  });
+});

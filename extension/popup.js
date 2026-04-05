@@ -21,9 +21,15 @@ async function beamToApp(payload) {
     // runtime messaging requires no host permission — works for own extension pages
     chrome.runtime.sendMessage({ type: 'beam', payload });
     await chrome.tabs.update(appTab.id, { active: true });
+    await chrome.windows.update(appTab.windowId, { focused: true });
   } else {
     const encoded = btoa(JSON.stringify(payload));
-    await chrome.tabs.create({ url: `${getAppUrl()}?beam=${encoded}` });
+    await chrome.windows.create({
+      url: `${getAppUrl()}?beam=${encoded}`,
+      type: 'popup',
+      width: 1440,
+      height: 900,
+    });
   }
   window.close();
 }
@@ -78,8 +84,9 @@ async function init() {
     const tab = await getAppTab();
     if (tab) {
       await chrome.tabs.update(tab.id, { active: true });
+      await chrome.windows.update(tab.windowId, { focused: true });
     } else {
-      chrome.tabs.create({ url: getAppUrl() });
+      chrome.windows.create({ url: getAppUrl(), type: 'popup', width: 1440, height: 900 });
     }
     window.close();
   });
