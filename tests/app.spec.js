@@ -197,7 +197,7 @@ test.describe('Tickets', () => {
 
   test('opening a ticket key adds it to Inbox list', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     // Ticket list uses .list-card class
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
@@ -206,7 +206,7 @@ test.describe('Tickets', () => {
 
   test('selecting a ticket shows it in the reading pane', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await page.locator('#ticket-list .list-card').first().click();
 
@@ -222,7 +222,7 @@ test.describe('Tickets', () => {
     // unchanged, leaving "Loading..." stuck in the card until another item
     // was opened. The fast path must be bypassed while any key is uncached.
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     // Card must eventually show the real summary, not "Loading..."
     await expect(page.locator('#ticket-list .list-card').first()).toContainText(
@@ -233,7 +233,7 @@ test.describe('Tickets', () => {
 
   test('ticket key is normalised from lowercase input', async ({ page }) => {
     await page.fill('#search-input', 'proj-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await expect(page.locator('#ticket-list .list-card').first()).toContainText('PROJ-123', {
       timeout: 5000,
@@ -254,7 +254,7 @@ test.describe('Tickets', () => {
 
   test('ticket added to Inbox shows count of 1 in sidebar', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
 
@@ -273,17 +273,15 @@ test.describe('Filters', () => {
     await page.goto('/');
   });
 
-  test('button label changes to Load Filter when JQL is typed', async ({ page }) => {
+  test('JQL input is classified as filter and loads a filter group', async ({ page }) => {
     await page.fill('#search-input', 'project = PROJ ORDER BY updated DESC');
-    await expect(page.locator('#search-btn')).toContainText('Load Filter');
-
-    await page.fill('#search-input', 'PROJ-123');
-    await expect(page.locator('#search-btn')).toContainText('Open');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
   });
 
   test('loading JQL via search bar creates a filter group with 3 tickets', async ({ page }) => {
     await page.fill('#search-input', 'project = PROJ ORDER BY updated DESC');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     // Inbox + filter group = 2
     await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
@@ -292,7 +290,7 @@ test.describe('Filters', () => {
 
   test('loading by filter ID uses filter name as group name', async ({ page }) => {
     await page.fill('#search-input', '12345');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Test Filter', {
       timeout: 5000,
@@ -301,14 +299,14 @@ test.describe('Filters', () => {
 
   test('pasting filter URL in search bar loads tickets', async ({ page }) => {
     await page.fill('#search-input', 'https://site.atlassian.net/issues/?filter=12345');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(3, { timeout: 5000 });
   });
 
   test('filter tickets do not appear in Inbox after switching to it', async ({ page }) => {
     await page.fill('#search-input', 'project = PROJ');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
 
@@ -344,11 +342,14 @@ test.describe('Plans URL', () => {
     );
   }
 
-  test('plans URL is classified as Load Filter', async ({ page }) => {
+  test('plans URL loads a filter group when submitted', async ({ page }) => {
     await page.addInitScript(initConfig);
+    mockPlanRoute(page);
+    mockFieldsRoute(page);
     await page.goto('/');
     await page.fill('#search-input', PLAN_URL);
-    await expect(page.locator('#search-btn')).toContainText('Load Filter');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 5000 });
   });
 
   test('loading a plans URL creates a group named after the plan', async ({ page }) => {
@@ -357,7 +358,7 @@ test.describe('Plans URL', () => {
     mockFieldsRoute(page);
     await page.goto('/');
     await page.fill('#search-input', PLAN_URL);
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('My Roadmap', {
       timeout: 5000,
     });
@@ -375,7 +376,7 @@ test.describe('Plans URL', () => {
     mockFieldsRoute(page);
     await page.goto('/');
     await page.fill('#search-input', PLAN_URL);
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#toast')).toContainText('Jira Premium', { timeout: 5000 });
   });
 });
@@ -461,14 +462,13 @@ test.describe('Notes', () => {
     await expect(page.locator('#note-canvas .cb')).toHaveCount(0, { timeout: 3000 });
   });
 
-  test('Mindmap tab is between Notes and History', async ({ page }) => {
-    const tabs = await page.locator('#tab-bar .tab-btn').allTextContents();
+  test('Notes tab appears before Mindmap in aux-tab-bar', async ({ page }) => {
+    const tabs = await page.locator('#aux-tab-bar .tab-btn').allTextContents();
     const cleaned = tabs.map((t) => t.trim());
     const notesIdx = cleaned.findIndex((t) => t.includes('Notes'));
     const mindmapIdx = cleaned.findIndex((t) => t.includes('Mindmap'));
-    const historyIdx = cleaned.findIndex((t) => t.includes('History'));
+    expect(notesIdx).toBeGreaterThanOrEqual(0);
     expect(notesIdx).toBeLessThan(mindmapIdx);
-    expect(mindmapIdx).toBeLessThan(historyIdx);
   });
 
   test('Mindmap sidebar shows diagram list and add button', async ({ page }) => {
@@ -502,14 +502,13 @@ test.describe('Labels Tab', () => {
     await page.goto('/');
   });
 
-  test('Labels tab is between Jira and Notes', async ({ page }) => {
+  test('Labels tab is after Jira in main tab-bar', async ({ page }) => {
     const tabs = await page.locator('#tab-bar .tab-btn').allTextContents();
     const cleaned = tabs.map((t) => t.trim());
     const jiraIdx = cleaned.findIndex((t) => t.includes('Jira'));
     const labelsIdx = cleaned.findIndex((t) => t.includes('Labels'));
-    const notesIdx = cleaned.findIndex((t) => t.includes('Notes'));
+    expect(jiraIdx).toBeGreaterThanOrEqual(0);
     expect(jiraIdx).toBeLessThan(labelsIdx);
-    expect(labelsIdx).toBeLessThan(notesIdx);
   });
 
   test('switching to Labels tab changes app mode', async ({ page }) => {
@@ -521,7 +520,7 @@ test.describe('Labels Tab', () => {
   test('Labels tab shows no-label group when ticket has no labels', async ({ page }) => {
     // Load a ticket (has no labels by default)
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
 
     await page.click('#tab-labels');
@@ -537,7 +536,7 @@ test.describe('Labels Tab', () => {
 
     // Assign a label programmatically then switch to labels tab
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
 
     // Apply label via JS
@@ -554,7 +553,7 @@ test.describe('Labels Tab', () => {
   }) => {
     // Load ticket and add label
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.evaluate(() => window.applyLabel('PROJ-123', 'bug'));
 
@@ -584,7 +583,7 @@ test.describe('History', () => {
   test('remove button deletes the entry from history', async ({ page }) => {
     // Open a ticket so it lands in history
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
 
     await page.click('#tab-history');
@@ -607,7 +606,7 @@ test.describe('History', () => {
 
   test('opening a ticket persists it in history state', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
 
@@ -634,7 +633,7 @@ test.describe('History Column Sort', () => {
   async function openThreeTickets(page) {
     for (const key of ['PROJ-200', 'PROJ-100', 'PROJ-300']) {
       await page.fill('#search-input', key);
-      await page.click('#search-btn');
+      await page.locator('#search-input').press('Enter');
       await expect(page.locator('#ticket-list .list-card.active')).toBeVisible({ timeout: 5000 });
     }
     await page.click('#tab-history');
@@ -643,7 +642,7 @@ test.describe('History Column Sort', () => {
 
   test('sortable column headers render with sort indicators', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.click('#tab-history');
     await expect(page.locator('.ht-th-sortable[data-sort-col="key"]')).toBeVisible();
@@ -696,7 +695,7 @@ test.describe('History Column Sort', () => {
 
   test('resize handles are present on every sortable column header', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.click('#tab-history');
     // 6 sortable columns: key, summary, status, assignee, created, viewed
@@ -705,7 +704,7 @@ test.describe('History Column Sort', () => {
 
   test('dragging resize handle changes column width', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.click('#tab-history');
 
@@ -729,7 +728,7 @@ test.describe('History Column Sort', () => {
 
   test('resized column width persists after sort re-render', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.click('#tab-history');
 
@@ -758,7 +757,7 @@ test.describe('History Column Sort', () => {
 
   test('mousedown on resize handle alone does not change column width', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.click('#tab-history');
 
@@ -807,7 +806,7 @@ test.describe('Tabs', () => {
     page.on('pageerror', (err) => jsErrors.push(err.message));
 
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.locator('#ticket-list .list-card').first().click();
     await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
@@ -865,10 +864,10 @@ test.describe('Bulk Actions', () => {
 
     // Add two tickets to Inbox
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 5000 });
     await page.fill('#search-input', 'PROJ-456');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 5000 });
   });
 
@@ -942,7 +941,7 @@ test.describe('Code Block Copy', () => {
     );
     await page.goto('/');
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.locator('#ticket-list .list-card').first().click();
     await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
@@ -986,7 +985,7 @@ test.describe('Jira Link Handling', () => {
     );
     await page.goto('/');
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
     await page.locator('#ticket-list .list-card').first().click();
     await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
@@ -1055,7 +1054,7 @@ test.describe('Error Paths', () => {
     );
 
     await page.fill('#search-input', 'PROJ-401');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     // Select the ticket to trigger renderReading
     await page.locator('#ticket-list .list-card').first().click();
@@ -1074,7 +1073,7 @@ test.describe('Error Paths', () => {
     );
 
     await page.fill('#search-input', 'project = FAIL');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     await expect(page.locator('#toast')).toContainText(/error/i, { timeout: 5000 });
   });
@@ -1112,7 +1111,7 @@ test.describe('Error Paths', () => {
     );
 
     await page.fill('#search-input', 'PROJ-99');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
 
     // Wait for ticket to appear in list
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
@@ -1159,9 +1158,9 @@ test.describe('Drag and Drop', () => {
 
     // Add two tickets to Inbox
     await page.fill('#search-input', 'PROJ-1');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await page.fill('#search-input', 'PROJ-2');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 3000 });
   });
 
@@ -1449,7 +1448,7 @@ test.describe('Field Editing', () => {
     await page.goto('/');
     // Open PROJ-123 and select it
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await page.locator('#ticket-list .list-card').first().click();
     await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
@@ -1516,7 +1515,7 @@ test.describe('Open in Jira buttons', () => {
     mockFieldsRoute(page);
     await page.goto('/');
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await page.locator('#ticket-list .list-card').first().click();
     await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
   });
@@ -1552,7 +1551,7 @@ test.describe('Meta grid simple fields', () => {
     mockFieldsRoute(page);
     await page.goto('/');
     await page.fill('#search-input', 'PROJ-123');
-    await page.click('#search-btn');
+    await page.locator('#search-input').press('Enter');
     await page.locator('#ticket-list .list-card').first().click();
     await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
   });
@@ -1574,6 +1573,75 @@ test.describe('Meta grid simple fields', () => {
   test('components are shown in the meta grid', async ({ page }) => {
     await expect(page.locator('.meta-grid')).toContainText('Component');
     await expect(page.locator('.meta-grid')).toContainText('Backend');
+  });
+});
+
+// ── UI standardisation ────────────────────────────────────────────────────────
+test.describe('UI standardisation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+  });
+
+  // P3: Remove "Open" button
+  test('search bar has no submit button', async ({ page }) => {
+    await expect(page.locator('#search-btn')).toHaveCount(0);
+  });
+
+  test('pressing Enter in search input opens a ticket', async ({ page }) => {
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 5000 });
+  });
+
+  // P3: Notes and Mindmap tabs moved to aux tab bar
+  test('Notes and Mindmap tabs are NOT in the main tab-bar', async ({ page }) => {
+    const mainTabs = await page.locator('#tab-bar .tab-btn').allTextContents();
+    const names = mainTabs.map((t) => t.trim());
+    expect(names.some((t) => t.includes('Notes'))).toBe(false);
+    expect(names.some((t) => t.includes('Mindmap'))).toBe(false);
+  });
+
+  test('Notes and Mindmap tabs exist in aux-tab-bar', async ({ page }) => {
+    await expect(page.locator('#aux-tab-bar #tab-notes')).toBeVisible();
+    await expect(page.locator('#aux-tab-bar #tab-mindmap')).toBeVisible();
+  });
+
+  test('clicking Notes tab in aux-tab-bar switches to notes mode', async ({ page }) => {
+    await page.click('#aux-tab-bar #tab-notes');
+    await expect(page.locator('#tab-notes')).toHaveClass(/active/);
+  });
+
+  // P2: Standardised "+" buttons
+  test('Mindmap add button is NOT in the sidebar header', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    const headerBtn = page.locator('.mm-sidebar-header #mm-add-btn');
+    await expect(headerBtn).toHaveCount(0);
+  });
+
+  test('Mindmap add button is below the diagram list', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-add-btn')).toBeVisible();
+    // Must come after #mm-diagram-list in DOM order
+    const order = await page.evaluate(() => {
+      const list = document.getElementById('mm-diagram-list');
+      const btn = document.getElementById('mm-add-btn');
+      return list.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING;
+    });
+    expect(order).toBeTruthy();
+  });
+
+  test('all sidebar add buttons share the same class', async ({ page }) => {
+    const addGroupHasCls = await page
+      .locator('#add-group-btn')
+      .evaluate((el) => el.classList.contains('sidebar-add-btn'));
+    const addNoteHasCls = await page
+      .locator('#add-note-btn')
+      .evaluate((el) => el.classList.contains('sidebar-add-btn'));
+    expect(addGroupHasCls).toBe(true);
+    expect(addNoteHasCls).toBe(true);
   });
 });
 
