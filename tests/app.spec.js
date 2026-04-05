@@ -727,6 +727,35 @@ test.describe('History Column Sort', () => {
     expect(afterW).toBeGreaterThan(beforeW + 40);
   });
 
+  test('resized column width persists after sort re-render', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.click('#tab-history');
+
+    // Resize the Key column by 60px
+    const beforeW = await page.evaluate(() => {
+      const th = document.querySelector('.ht-th-sortable[data-sort-col="key"]');
+      const handle = th.querySelector('.ht-resize-handle');
+      handle.dispatchEvent(
+        new MouseEvent('mousedown', { clientX: 100, bubbles: true, cancelable: true })
+      );
+      document.dispatchEvent(new MouseEvent('mousemove', { clientX: 160, bubbles: true }));
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      return th.offsetWidth;
+    });
+    expect(beforeW).toBeGreaterThan(100);
+
+    // Trigger a sort (re-renders the table)
+    await page.click('.ht-th-sortable[data-sort-col="key"]');
+
+    // Width should be preserved
+    const afterSortW = await page
+      .locator('.ht-th-sortable[data-sort-col="key"]')
+      .evaluate((el) => el.offsetWidth);
+    expect(afterSortW).toBeCloseTo(beforeW, -1); // within 10px
+  });
+
   test('mousedown on resize handle alone does not change column width', async ({ page }) => {
     await page.fill('#search-input', 'PROJ-123');
     await page.click('#search-btn');
@@ -976,7 +1005,9 @@ test.describe('Jira Link Handling', () => {
         });
       }
     );
-    await page.locator('#reading-content a[href*="/browse/ENHANCE-3133"]').click();
+    await page
+      .locator('#reading-content a[href*="/browse/ENHANCE-3133"]:not(.jira-link-icon)')
+      .click();
     await expect(page.locator('#reading-content')).toContainText('ENHANCE-3133', { timeout: 5000 });
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'jira');
   });
@@ -995,7 +1026,7 @@ test.describe('Jira Link Handling', () => {
     // Record state before
     const keyBefore = await page.evaluate(() => window.state?.activeKey);
     await page
-      .locator('#reading-content a[href*="/browse/ENHANCE-3133"]')
+      .locator('#reading-content a[href*="/browse/ENHANCE-3133"]:not(.jira-link-icon)')
       .click({ modifiers: ['Control'] });
     // activeKey should not change to ENHANCE-3133 (app-navigation was skipped)
     const keyAfter = await page.evaluate(() => window.state?.activeKey);
@@ -1474,6 +1505,75 @@ test.describe('Field Editing', () => {
     await expect(async () => {
       expect(putBody?.fields?.assignee?.accountId).toBe('user-bob-456');
     }).toPass({ timeout: 3000 });
+  });
+});
+
+// ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
+test.describe('Open in Jira buttons', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('ticket card in list has an open-in-Jira link', async ({ page }) => {
+    const card = page.locator('#ticket-list .list-card').first();
+    const jiraLink = card.locator('.lc-jira-link');
+    await expect(jiraLink).toHaveAttribute('href', /\/browse\/PROJ-123/);
+    await expect(jiraLink).toHaveAttribute('target', '_blank');
+  });
+
+  test('reading pane header has an open-in-Jira button', async ({ page }) => {
+    await expect(page.locator('#reading-content .btn-open-jira')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#reading-content .btn-open-jira')).toHaveAttribute(
+      'href',
+      /\/browse\/PROJ-123/
+    );
+  });
+
+  test('browse links in description get an open-in-Jira icon appended', async ({ page }) => {
+    // The fixture description contains a /browse/PROJ-999 link
+    const icon = page.locator('#reading-content .description .jira-link-icon');
+    await expect(icon).toBeVisible({ timeout: 5000 });
+    await expect(icon).toHaveAttribute('href', /\/browse\/PROJ-999/);
+  });
+});
+
+// ── Meta grid simple fields ────────────────────────────────────────────────────
+test.describe('Meta grid simple fields', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('priority is shown in the meta grid', async ({ page }) => {
+    await expect(page.locator('.meta-grid')).toContainText('Priority');
+    await expect(page.locator('.meta-grid')).toContainText('Medium');
+  });
+
+  test('due date is shown in the meta grid', async ({ page }) => {
+    await expect(page.locator('.meta-grid')).toContainText('Due');
+  });
+
+  test('fix versions are shown in the meta grid', async ({ page }) => {
+    await expect(page.locator('.meta-grid')).toContainText('Fix Version');
+    await expect(page.locator('.meta-grid')).toContainText('v2.0');
+  });
+
+  test('components are shown in the meta grid', async ({ page }) => {
+    await expect(page.locator('.meta-grid')).toContainText('Component');
+    await expect(page.locator('.meta-grid')).toContainText('Backend');
   });
 });
 

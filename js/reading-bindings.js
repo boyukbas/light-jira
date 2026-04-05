@@ -87,6 +87,17 @@ function bindJiraLinks(container) {
       }
       openFromHistory(linkedKey);
     });
+
+    // Inject a small "open in Jira" icon link right after the intercepted anchor
+    const icon = document.createElement('a');
+    icon.className = 'jira-link-icon';
+    icon.href = href;
+    icon.target = '_blank';
+    icon.rel = 'noopener noreferrer';
+    icon.title = 'Open ' + linkedKey + ' in Jira';
+    icon.innerHTML =
+      '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+    a.after(icon);
   });
 }
 
@@ -152,16 +163,17 @@ async function renderHierarchy(rootKey, directParent) {
 
   titleEl2.style.display = '';
   let html = '';
+  const jiraIconSvg =
+    '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
   for (let i = 0; i < chain.length; i++) {
     const item = chain[i];
+    const browseUrl = esc(cfg.baseUrl) + '/browse/' + esc(item.key);
     html +=
       '<div style="padding-left:' +
       i * 16 +
-      'px;margin-bottom:4px;">' +
+      'px;margin-bottom:4px;display:flex;align-items:center;gap:6px;">' +
       '<a href="' +
-      esc(cfg.baseUrl) +
-      '/browse/' +
-      esc(item.key) +
+      browseUrl +
       '" target="_blank" class="rs-parent-link">' +
       '<span style="font-size:11px;opacity:0.6;margin-right:4px;">' +
       esc(item.type) +
@@ -169,7 +181,15 @@ async function renderHierarchy(rootKey, directParent) {
       esc(item.key) +
       ' \u2014 ' +
       esc(item.summary) +
-      '</a></div>';
+      '</a>' +
+      '<a href="' +
+      browseUrl +
+      '" target="_blank" rel="noopener noreferrer" class="jira-link-icon" title="Open ' +
+      esc(item.key) +
+      ' in Jira">' +
+      jiraIconSvg +
+      '</a>' +
+      '</div>';
   }
   chainEl2.innerHTML = html;
 }

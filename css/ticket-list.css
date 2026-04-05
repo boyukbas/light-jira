@@ -189,6 +189,24 @@
   opacity: 1 !important;
   background: rgba(248, 81, 73, 0.1);
 }
+.lc-jira-link {
+  position: absolute;
+  right: 32px;
+  bottom: 8px;
+  opacity: 0;
+  color: var(--text-tertiary);
+  padding: 4px;
+  border-radius: 4px;
+  line-height: 1;
+  text-decoration: none;
+}
+.list-card:hover .lc-jira-link {
+  opacity: 0.6;
+}
+.lc-jira-link:hover {
+  opacity: 1 !important;
+  color: var(--accent);
+}
 
 /* ── HISTORY TABLE ── */
 #history-pane {

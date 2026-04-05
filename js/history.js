@@ -4,6 +4,9 @@
 let historySortCol = null; // 'key'|'summary'|'status'|'assignee'|'created'|'viewed'
 let historySortDir = 'asc'; // 'asc' | 'desc'
 
+// ── COLUMN WIDTH STATE (session-only) ─────────────────────────────────────────
+const htColWidths = {}; // colKey -> px width, survives re-renders
+
 function sortEntries(entries) {
   if (!historySortCol) return entries;
   return [...entries].sort((a, b) => {
@@ -84,11 +87,16 @@ function initHtResize(pane) {
       const onMove = (mv) => {
         const newW = Math.max(40, startW + mv.clientX - startX);
         if (col) col.style.width = newW + 'px';
+        htColWidths[colKey] = newW;
       };
       const onUp = () => {
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
       };
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
@@ -219,6 +227,12 @@ function renderHistoryTable() {
 
   html += '</tbody></table></div>';
   pane.innerHTML = html;
+
+  // ── Restore saved column widths ───────────────────────────────────────────
+  Object.entries(htColWidths).forEach(([key, w]) => {
+    const col = pane.querySelector('col[data-col-key="' + key + '"]');
+    if (col) col.style.width = w + 'px';
+  });
 
   // ── Sort click handlers ───────────────────────────────────────────────────
   pane.querySelectorAll('th[data-sort-col]').forEach((th) => {
