@@ -1528,12 +1528,12 @@ test.describe('Open in Jira buttons', () => {
     await expect(jiraLink).toHaveAttribute('target', '_blank');
   });
 
-  test('reading pane header has an open-in-Jira button', async ({ page }) => {
-    await expect(page.locator('#reading-content .btn-open-jira')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#reading-content .btn-open-jira')).toHaveAttribute(
-      'href',
-      /\/browse\/PROJ-123/
-    );
+  test('reading pane title has an open-in-Jira icon link', async ({ page }) => {
+    // The ticket key in the title is intercepted by bindJiraLinks which injects a
+    // .jira-link-icon right after it as an escape hatch to open in Jira
+    const icon = page.locator('#reading-content .rs-title .jira-link-icon').first();
+    await expect(icon).toBeVisible({ timeout: 5000 });
+    await expect(icon).toHaveAttribute('href', /\/browse\/PROJ-123/);
   });
 
   test('browse links in description get an open-in-Jira icon appended', async ({ page }) => {
