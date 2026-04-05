@@ -209,3 +209,45 @@
   align-items: center;
   gap: 8px;
 }
+.meta-editable {
+  cursor: pointer;
+  position: relative;
+}
+.meta-editable:hover .meta-value {
+  text-decoration: underline dotted var(--text-tertiary);
+}
+.meta-edit-input {
+  font-size: 13px;
+  padding: 2px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-primary);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+input[type='number'].meta-edit-input {
+  width: 72px;
+}
+.user-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+  overflow: hidden;
+}
+.user-search-result {
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.user-search-result:hover {
+  background: var(--surface-hover);
+}

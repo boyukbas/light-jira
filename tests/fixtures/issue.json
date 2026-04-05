@@ -9,7 +9,8 @@
       "statusCategory": { "key": "indeterminate", "name": "In Progress" }
     },
     "issuetype": { "name": "Story", "iconUrl": "" },
-    "assignee": { "displayName": "Jane Doe", "emailAddress": "jane@example.com" },
+    "assignee": { "accountId": "user-jane-123", "displayName": "Jane Doe", "emailAddress": "jane@example.com" },
+    "story_points": 5,
     "reporter": { "displayName": "John Smith", "emailAddress": "john@example.com" },
     "priority": { "name": "Medium" },
     "created": "2026-01-15T10:00:00.000+0000",

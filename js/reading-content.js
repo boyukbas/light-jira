@@ -62,7 +62,8 @@ function buildLabelsHtml(key) {
 }
 
 function buildMetaGridHtml(f) {
-  const metas = [
+  const storyPoints = f.story_points ?? null;
+  const items = [
     {
       l: 'Status',
       v:
@@ -74,6 +75,7 @@ function buildMetaGridHtml(f) {
     },
     {
       l: 'Assignee',
+      editable: 'assignee',
       v: f.assignee
         ? avBadge(f.assignee.displayName, 'av-rg') + ' ' + esc(f.assignee.displayName)
         : 'Unassigned',
@@ -88,14 +90,28 @@ function buildMetaGridHtml(f) {
     { l: 'Created', v: relDate(f.created) },
     { l: 'Updated', v: relDate(f.updated) },
   ];
+  if (storyPoints !== null) {
+    items.splice(1, 0, {
+      l: 'Story Points',
+      editable: 'story-points',
+      v: String(storyPoints),
+    });
+  }
   let html = '<div class="meta-grid">';
-  for (const m of metas)
+  for (const m of items) {
+    const edAttr = m.editable ? ' data-editable="' + m.editable + '"' : '';
+    const editCls = m.editable ? ' meta-editable' : '';
     html +=
-      '<div class="meta-item"><div class="meta-label">' +
+      '<div class="meta-item' +
+      editCls +
+      '"' +
+      edAttr +
+      '><div class="meta-label">' +
       m.l +
       '</div><div class="meta-value">' +
       m.v +
       '</div></div>';
+  }
   return html + '</div>';
 }
 

@@ -173,3 +173,153 @@ async function renderHierarchy(rootKey, directParent) {
   }
   chainEl2.innerHTML = html;
 }
+
+// ── INLINE FIELD EDITING ──────────────────────────────────────────────────────
+
+function bindEditableMetaFields(container, issueKey) {
+  container.querySelectorAll('[data-editable]').forEach((item) => {
+    const type = item.dataset.editable;
+    const valueEl = item.querySelector('.meta-value');
+    if (!valueEl) return;
+
+    item.addEventListener('click', () => {
+      if (item.querySelector('input')) return; // already editing
+      if (type === 'story-points') startStoryPointsEdit(item, valueEl, issueKey);
+      if (type === 'assignee') startAssigneeEdit(item, valueEl, issueKey);
+    });
+  });
+}
+
+function startStoryPointsEdit(item, valueEl, issueKey) {
+  const current = parseFloat(valueEl.textContent) || 0;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '0';
+  input.step = '1';
+  input.value = current;
+  input.className = 'meta-edit-input';
+  valueEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const commit = async () => {
+    const val = parseFloat(input.value);
+    if (!isNaN(val) && val !== current) {
+      try {
+        await updateIssueFields(issueKey, { story_points: val });
+        // Update cache so re-render shows new value
+        if (issueCache[issueKey]?.fields) issueCache[issueKey].fields.story_points = val;
+        toast('Story points updated', 'success');
+      } catch (e) {
+        toast('Failed to save: ' + e.message, 'error');
+      }
+    }
+    const newValueEl = document.createElement('div');
+    newValueEl.className = 'meta-value';
+    newValueEl.textContent = isNaN(val) ? current : val;
+    input.replaceWith(newValueEl);
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') {
+      const newValueEl = document.createElement('div');
+      newValueEl.className = 'meta-value';
+      newValueEl.textContent = current;
+      input.replaceWith(newValueEl);
+    }
+  });
+  input.addEventListener('blur', commit);
+}
+
+function startAssigneeEdit(item, valueEl, issueKey) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Search user…';
+  input.className = 'meta-edit-input';
+  valueEl.replaceWith(input);
+  input.focus();
+
+  let debounceTimer = null;
+  let dropdown = null;
+
+  const removeDropdown = () => {
+    if (dropdown) {
+      dropdown.remove();
+      dropdown = null;
+    }
+  };
+
+  const showDropdown = (users) => {
+    removeDropdown();
+    if (!users.length) return;
+    dropdown = document.createElement('div');
+    dropdown.className = 'user-search-dropdown';
+    users.forEach((u) => {
+      const row = document.createElement('div');
+      row.className = 'user-search-result';
+      row.textContent = u.displayName;
+      row.addEventListener('mousedown', async (e) => {
+        e.preventDefault(); // prevent input blur before click registers
+        removeDropdown();
+        try {
+          await updateIssueFields(issueKey, { assignee: { accountId: u.accountId } });
+          if (issueCache[issueKey]?.fields)
+            issueCache[issueKey].fields.assignee = {
+              accountId: u.accountId,
+              displayName: u.displayName,
+            };
+          toast('Assignee updated to ' + u.displayName, 'success');
+        } catch (e2) {
+          toast('Failed to save: ' + e2.message, 'error');
+        }
+        const newValueEl = document.createElement('div');
+        newValueEl.className = 'meta-value';
+        newValueEl.textContent = u.displayName;
+        input.replaceWith(newValueEl);
+      });
+      dropdown.appendChild(row);
+    });
+    item.appendChild(dropdown);
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = input.value.trim();
+    if (!q) {
+      removeDropdown();
+      return;
+    }
+    debounceTimer = setTimeout(async () => {
+      try {
+        const users = await searchUsers(q);
+        showDropdown(users);
+      } catch {
+        /* ignore */
+      }
+    }, 300);
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      removeDropdown();
+      if (!item.querySelector('.meta-value')) {
+        const newValueEl = document.createElement('div');
+        newValueEl.className = 'meta-value';
+        newValueEl.textContent =
+          issueCache[issueKey]?.fields?.assignee?.displayName || 'Unassigned';
+        input.replaceWith(newValueEl);
+      }
+    }, 150);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      removeDropdown();
+      const newValueEl = document.createElement('div');
+      newValueEl.className = 'meta-value';
+      newValueEl.textContent = issueCache[issueKey]?.fields?.assignee?.displayName || 'Unassigned';
+      input.replaceWith(newValueEl);
+    }
+  });
+}

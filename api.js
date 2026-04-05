@@ -85,7 +85,32 @@ async function fetchBlob(url) {
   }
 }
 
-// ── JQL SEARCH ────────────────────────────────────────────────────────────────
+async function updateIssueFields(key, fields) {
+  const url = apiBase() + '/rest/api/3/issue/' + encodeURIComponent(key);
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: { ...commonHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields }),
+  });
+  if (!r.ok && r.status !== 204) {
+    let msg = r.status + ' ' + r.statusText;
+    try {
+      const j = await r.json();
+      msg += ': ' + (j.errorMessages?.[0] || j.message || '');
+    } catch {}
+    throw new Error(msg);
+  }
+}
+
+async function searchUsers(query) {
+  const url =
+    apiBase() + '/rest/api/3/user/search?query=' + encodeURIComponent(query) + '&maxResults=5';
+  const r = await fetch(url, { headers: commonHeaders() });
+  if (!r.ok) return [];
+  return r.json();
+}
+
+// ── JQL SEARCH ─────────────────────────────────────────────────────────────────
 async function fetchByJql(jql, maxResults = 50) {
   const url =
     apiBase() +

@@ -101,6 +101,27 @@ test.describe('Layout', () => {
     await expect(page.locator('#reading-empty')).toBeVisible();
     await expect(page.locator('#reading-empty h2')).toContainText('No ticket selected');
   });
+
+  test('sidebar collapses and can be uncollapsed via its own button', async ({ page }) => {
+    await page.click('#sidebar-collapse-btn');
+    await expect(page.locator('#sidebar')).toHaveClass(/collapsed/);
+    // Wait for the 100ms CSS width transition to settle before measuring
+    await page.waitForTimeout(200);
+    // The uncollapse button must be fully within the 48px collapsed sidebar (not clipped by overflow:hidden)
+    const sidebarBox = await page.locator('#sidebar').boundingBox();
+    const btnBox = await page.locator('#sidebar-collapse-btn').boundingBox();
+    expect(btnBox.x + btnBox.width).toBeLessThanOrEqual(sidebarBox.x + sidebarBox.width);
+    await page.click('#sidebar-collapse-btn');
+    await expect(page.locator('#sidebar')).not.toHaveClass(/collapsed/);
+  });
+
+  test('middle pane collapses and can be uncollapsed via its own button', async ({ page }) => {
+    await page.click('#middle-collapse-btn');
+    await expect(page.locator('#middle')).toHaveClass(/collapsed/);
+    await expect(page.locator('#middle-collapse-btn')).toBeVisible();
+    await page.click('#middle-collapse-btn');
+    await expect(page.locator('#middle')).not.toHaveClass(/collapsed/);
+  });
 });
 
 // ── 2. SETTINGS ───────────────────────────────────────────────────────────────
@@ -1169,6 +1190,68 @@ test.describe('Drag and Drop', () => {
   });
 });
 
+// ── openTicketByKey guards ────────────────────────────────────────────────────
+test.describe('openTicketByKey guards', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('beaming to a deleted targetGroupId falls back with a toast warning', async ({ page }) => {
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('jira-beam', {
+          detail: { type: 'open-url', url: 'PROJ-99', targetGroupId: 'nonexistent-group' },
+        })
+      );
+    });
+    // Ticket should still be added somewhere (default group)
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    // A warning toast must inform the user the target was not found
+    await expect(page.locator('#toast')).toContainText('not found', { timeout: 3000 });
+  });
+
+  test('beaming to a filter group targetGroupId routes to default group instead', async ({
+    page,
+  }) => {
+    // Seed a filter group into state
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
+      s.groups = s.groups || [];
+      s.groups.unshift({
+        id: 'g_filter',
+        name: 'My Filter',
+        keys: ['PROJ-10'],
+        isFilter: true,
+        query: 'project = PROJ',
+      });
+      localStorage.setItem('jira_state', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('jira-beam', {
+          detail: { type: 'open-url', url: 'PROJ-99', targetGroupId: 'g_filter' },
+        })
+      );
+    });
+    // PROJ-99 must NOT appear in the filter group's keys
+    const filterKeys = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state'));
+      return s.groups.find((g) => g.id === 'g_filter').keys;
+    });
+    expect(filterKeys).not.toContain('PROJ-99');
+    // It should be in the default group (Inbox)
+    const inboxKeys = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state'));
+      return s.groups.find((g) => g.id === 'inbox').keys;
+    });
+    expect(inboxKeys).toContain('PROJ-99');
+  });
+});
+
 // ── 12. JIRA BEAM EXTENSION INTEGRATION ──────────────────────────────────────
 test.describe('Jira Beam', () => {
   test.beforeEach(async ({ page }) => {
@@ -1233,6 +1316,164 @@ test.describe('Jira Beam', () => {
     await expect(page.locator('#group-list .group-item').nth(1)).toContainText('Param Group', {
       timeout: 3000,
     });
+  });
+});
+
+// ── FIND DUPLICATES ───────────────────────────────────────────────────────────
+test.describe('Find Duplicates', () => {
+  // Seed state: PROJ-1 appears in both Inbox and Other → 1 duplicate
+  const seedWithDupes = () => {
+    localStorage.setItem(
+      'jira_state',
+      JSON.stringify({
+        groups: [
+          { id: 'inbox', name: 'Inbox', keys: ['PROJ-1', 'PROJ-2'] },
+          { id: 'g_other', name: 'Other', keys: ['PROJ-1', 'PROJ-3'] },
+          { id: 'history', name: 'History', keys: [] },
+        ],
+        activeGroupId: 'inbox',
+        activeKey: null,
+        appMode: 'jira',
+        labels: {},
+        labelColors: {},
+        notes: {},
+        standAloneNotes: [],
+        mindMaps: [],
+      })
+    );
+  };
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.addInitScript(seedWithDupes);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('clicking find duplicates creates a Duplicates group', async ({ page }) => {
+    await page.click('#find-duplicates-btn');
+    await expect(page.locator('#group-list .group-item[data-id="inbox"]')).toBeVisible();
+    const dupGroups = page.locator('#group-list .group-item').filter({ hasText: 'Duplicates' });
+    await expect(dupGroups).toHaveCount(1);
+  });
+
+  test('clicking find duplicates twice creates only one Duplicates group', async ({ page }) => {
+    await page.click('#find-duplicates-btn');
+    await page.click('#find-duplicates-btn');
+    const dupGroups = page.locator('#group-list .group-item').filter({ hasText: 'Duplicates' });
+    await expect(dupGroups).toHaveCount(1);
+  });
+
+  test('second run reports same duplicate count as first run', async ({ page }) => {
+    await page.click('#find-duplicates-btn');
+    await expect(page.locator('#toast')).toContainText('Found 1 duplicate', { timeout: 3000 });
+    await page.click('#find-duplicates-btn');
+    await expect(page.locator('#toast')).toContainText('Found 1 duplicate', { timeout: 3000 });
+  });
+});
+
+// ── FIELD EDITING (Story Points & Assignee) ───────────────────────────────────
+test.describe('Field Editing', () => {
+  const usersFixture = [
+    { accountId: 'user-bob-456', displayName: 'Bob Builder', emailAddress: 'bob@example.com' },
+  ];
+
+  function mockPutRoute(page, onBody) {
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/PROJ-123'),
+      async (route) => {
+        if (route.request().method() === 'PUT') {
+          const body = route.request().postDataJSON();
+          onBody(body);
+          await route.fulfill({ status: 204, body: '' });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(issueFixture),
+          });
+        }
+      }
+    );
+  }
+
+  function mockUserSearchRoute(page) {
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/user/search'),
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(usersFixture),
+        });
+      }
+    );
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    // Open PROJ-123 and select it
+    await page.fill('#search-input', 'PROJ-123');
+    await page.click('#search-btn');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('story points are shown in the meta grid', async ({ page }) => {
+    await expect(page.locator('.meta-label:text("Story Points")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-editable="story-points"] .meta-value')).toContainText('5');
+  });
+
+  test('clicking story points shows an inline number input', async ({ page }) => {
+    await page.locator('[data-editable="story-points"] .meta-value').click();
+    await expect(page.locator('[data-editable="story-points"] input[type="number"]')).toBeVisible();
+  });
+
+  test('editing story points saves to Jira API', async ({ page }) => {
+    let putBody = null;
+    mockPutRoute(page, (b) => (putBody = b));
+
+    await page.locator('[data-editable="story-points"] .meta-value').click();
+    const input = page.locator('[data-editable="story-points"] input[type="number"]');
+    await input.fill('8');
+    await input.press('Enter');
+
+    await expect(async () => {
+      expect(putBody?.fields?.story_points).toBe(8);
+    }).toPass({ timeout: 3000 });
+  });
+
+  test('clicking assignee shows an inline text input for searching', async ({ page }) => {
+    await page.locator('[data-editable="assignee"] .meta-value').click();
+    await expect(page.locator('[data-editable="assignee"] input[type="text"]')).toBeVisible();
+  });
+
+  test('typing in assignee input shows matching users in a dropdown', async ({ page }) => {
+    mockUserSearchRoute(page);
+    await page.locator('[data-editable="assignee"] .meta-value').click();
+    await page.locator('[data-editable="assignee"] input[type="text"]').fill('Bob');
+    await expect(page.locator('.user-search-result:text("Bob Builder")')).toBeVisible({
+      timeout: 3000,
+    });
+  });
+
+  test('selecting a user from dropdown saves assignee to Jira API', async ({ page }) => {
+    mockUserSearchRoute(page);
+    let putBody = null;
+    mockPutRoute(page, (b) => (putBody = b));
+
+    await page.locator('[data-editable="assignee"] .meta-value').click();
+    await page.locator('[data-editable="assignee"] input[type="text"]').fill('Bob');
+    await page.locator('.user-search-result:text("Bob Builder")').click({ timeout: 3000 });
+
+    await expect(async () => {
+      expect(putBody?.fields?.assignee?.accountId).toBe('user-bob-456');
+    }).toPass({ timeout: 3000 });
   });
 });
 
