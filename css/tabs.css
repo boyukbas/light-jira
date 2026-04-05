@@ -9,6 +9,17 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* Auxiliary tab group — Notes + Mindmap, sits near the settings icon */
+#aux-tab-bar {
+  display: flex;
+  gap: 2px;
+  margin-right: 8px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
 .tab-btn {
   display: flex;
   align-items: center;
@@ -761,30 +772,6 @@ body[data-app-mode='mindmap'] #mindmap-pane {
   font-size: 10px;
   color: var(--text-tertiary);
   margin-top: 2px;
-}
-
-#add-note-btn {
-  background: transparent;
-  border: 1px dashed var(--border);
-  color: var(--text-tertiary);
-  margin: 0 6px 8px;
-  padding: 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: var(--transition);
-  font-family: var(--font);
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-#add-note-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
-  background: var(--bg);
 }
 
 /* Search within notes */

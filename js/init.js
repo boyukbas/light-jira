@@ -20,9 +20,8 @@ function init() {
 
   // ── Smart search bar ──────────────────────────────────────────────────────
   const searchInput = document.getElementById('search-input');
-  const searchBtn = document.getElementById('search-btn');
 
-  // Classify the search bar value so the button label matches user intent.
+  // Classify the search bar value to decide whether to open a ticket or load a filter.
   // Returns 'filter' for JQL / filter IDs / filter URLs, 'open' for ticket keys.
   function classifySearchInput(val) {
     const t = val.trim();
@@ -40,33 +39,26 @@ function init() {
     return 'filter'; // everything else is JQL
   }
 
-  searchInput.addEventListener('input', () => {
-    searchBtn.textContent =
-      classifySearchInput(searchInput.value) === 'filter' ? 'Load Filter' : 'Open';
-  });
-
+  let filterLoading = false;
   document.getElementById('search-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (filterLoading) return;
     const val = searchInput.value.trim();
     if (!val) return;
 
     if (classifySearchInput(val) === 'filter') {
-      searchBtn.disabled = true;
-      searchBtn.textContent = 'Loading\u2026';
+      filterLoading = true;
       try {
         await runFilterLoad(val);
         searchInput.value = '';
-        searchBtn.textContent = 'Open';
       } catch (err) {
         toast('Error loading filter: ' + err.message, 'error');
-        searchBtn.textContent = 'Load Filter';
       } finally {
-        searchBtn.disabled = false;
+        filterLoading = false;
       }
     } else {
       openTicketByKey(val);
       searchInput.value = '';
-      searchBtn.textContent = 'Open';
     }
   });
 

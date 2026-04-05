@@ -172,23 +172,3 @@
   background: var(--accent-muted);
   gap: 8px;
 }
-
-#add-group-btn {
-  background: transparent;
-  border: 1px dashed var(--border);
-  color: var(--text-tertiary);
-  margin-top: 12px;
-  padding: 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: var(--transition);
-  width: 100%;
-}
-#add-group-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
-  background: var(--bg);
-}

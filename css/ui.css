@@ -76,22 +76,6 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-muted);
 }
-#search-btn {
-  background: var(--accent);
-  color: #0d1117;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 14px;
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-  transition: var(--transition);
-  min-width: 96px;
-  white-space: nowrap;
-}
-#search-btn:hover {
-  background: #b36be0;
-}
 
 /* Common UI */
 .section-title {
@@ -398,4 +382,27 @@
 .jira-link-icon:hover {
   opacity: 1;
   color: var(--accent);
+}
+
+/* ── SIDEBAR ADD BUTTON (shared by Jira, Notes, Mindmap sidebars) ── */
+.sidebar-add-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-tertiary);
+  margin: 8px 0 4px;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  width: 100%;
+  flex-shrink: 0;
+  font-family: var(--font);
+}
+.sidebar-add-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+  background: var(--bg);
 }
