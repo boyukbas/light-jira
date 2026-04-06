@@ -46,6 +46,8 @@ function updateViewMode() {
     renderLabelsSidebar();
     renderLabelsMiddle();
     renderReading();
+  } else if (state.appMode === 'timeline') {
+    renderTimeline();
   } else {
     renderSidebar();
     renderMiddle();

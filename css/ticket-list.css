@@ -459,6 +459,55 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+.bulk-assign-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+#bulk-assign-input {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+  width: 120px;
+}
+#bulk-assign-input:focus {
+  border-color: var(--accent);
+}
+#bulk-assign-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.bulk-assign-results {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  list-style: none;
+  padding: 4px;
+  margin: 0 0 4px;
+  z-index: 200;
+}
+.bulk-assign-results.open {
+  display: block;
+}
+.bulk-assign-result {
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+.bulk-assign-result:hover {
+  background: var(--surface-hover);
+}
 #bulk-select-btn.active {
   background: var(--accent-muted);
   color: var(--accent);

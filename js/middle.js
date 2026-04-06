@@ -29,6 +29,9 @@ function updateBulkToolbar() {
   deleteBtn.disabled = count === 0;
   deleteBtn.textContent = count > 0 ? 'Delete (' + count + ')' : 'Delete';
 
+  const assignInput = document.getElementById('bulk-assign-input');
+  if (assignInput) assignInput.disabled = count === 0;
+
   const moveSelect = document.getElementById('bulk-move-select');
   const currentGroup = getActiveGroup();
   const targets = state.groups.filter((g) => g.id !== currentGroup.id && g.id !== 'history');
