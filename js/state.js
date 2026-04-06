@@ -8,6 +8,7 @@ let state = {
   notes: {}, // key -> string (ticket notes)
   labels: {}, // key -> [string]
   labelColors: {}, // label text -> color
+  timelines: {}, // key -> { start?: 'YYYY-MM-DD', eta?: 'YYYY-MM-DD' }
   layout: {
     sidebarWidth: 240,
     middleWidth: 320,
@@ -87,6 +88,7 @@ function applyMigrations() {
   }
   if (!state.standAloneNotes) state.standAloneNotes = [];
   if (state.activeNoteId === undefined) state.activeNoteId = null;
+  if (!state.timelines) state.timelines = {};
 
   // Migrate old note body string → canvas blocks format
   for (const note of state.standAloneNotes) {
@@ -181,6 +183,7 @@ function saveState() {
       activeNoteId: state.activeNoteId,
       activeMindMapId: state.activeMindMapId,
       layout: state.layout,
+      timelines: state.timelines,
     };
     chrome.storage.sync
       .set({

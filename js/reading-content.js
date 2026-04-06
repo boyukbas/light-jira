@@ -61,7 +61,7 @@ function buildLabelsHtml(key) {
   return html;
 }
 
-function buildMetaGridHtml(f) {
+function buildMetaGridHtml(f, key) {
   const storyPoints = f.story_points ?? null;
   const items = [
     {
@@ -114,6 +114,17 @@ function buildMetaGridHtml(f) {
       v: String(storyPoints),
     });
   }
+  const tl = (key && state.timelines[key]) || {};
+  const fmtTlDate = (d) =>
+    d
+      ? new Date(d).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: '2-digit',
+        })
+      : '\u2014';
+  items.push({ l: 'Start', editable: 'tl-start', v: fmtTlDate(tl.start) });
+  items.push({ l: 'ETA', editable: 'tl-eta', v: fmtTlDate(tl.eta) });
   let html = '<div class="meta-grid">';
   for (const m of items) {
     const edAttr = m.editable ? ' data-editable="' + m.editable + '"' : '';

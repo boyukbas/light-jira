@@ -914,6 +914,79 @@ test.describe('Bulk Actions', () => {
     // Inbox should now have 1 ticket
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
   });
+
+  test('bulk-assign-input is visible when bulk mode is active', async ({ page }) => {
+    await page.click('#bulk-select-btn');
+    await expect(page.locator('#bulk-assign-input')).toBeVisible();
+  });
+
+  test('typing in bulk-assign-input shows matching users', async ({ page }) => {
+    const usersFixture = [
+      { accountId: 'user-bob-456', displayName: 'Bob Builder', emailAddress: 'bob@example.com' },
+    ];
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/user/search'),
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(usersFixture),
+        });
+      }
+    );
+    await page.click('#bulk-select-btn');
+    await page.locator('#ticket-list .list-card').first().click();
+    await page.fill('#bulk-assign-input', 'Bob');
+    await expect(
+      page.locator('#bulk-assign-results .bulk-assign-result:text("Bob Builder")')
+    ).toBeVisible({ timeout: 3000 });
+  });
+
+  test('selecting a user from bulk-assign dropdown calls PUT for each selected ticket', async ({
+    page,
+  }) => {
+    const usersFixture = [
+      { accountId: 'user-bob-456', displayName: 'Bob Builder', emailAddress: 'bob@example.com' },
+    ];
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/user/search'),
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(usersFixture),
+        });
+      }
+    );
+    const putBodies = [];
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/'),
+      async (route) => {
+        if (route.request().method() === 'PUT') {
+          putBodies.push(route.request().postDataJSON());
+          await route.fulfill({ status: 204, body: '' });
+        } else {
+          await route.continue();
+        }
+      }
+    );
+
+    await page.click('#bulk-select-btn');
+    // Select both tickets
+    await page.locator('#ticket-list .list-card').nth(0).click();
+    await page.locator('#ticket-list .list-card').nth(1).click();
+    await expect(page.locator('#bulk-count')).toContainText('2 selected');
+
+    await page.fill('#bulk-assign-input', 'Bob');
+    await page
+      .locator('#bulk-assign-results .bulk-assign-result:text("Bob Builder")')
+      .click({ timeout: 3000 });
+
+    await expect(async () => {
+      expect(putBodies.length).toBe(2);
+      expect(putBodies.every((b) => b?.fields?.assignee?.accountId === 'user-bob-456')).toBe(true);
+    }).toPass({ timeout: 5000 });
+  });
 });
 
 // ── 7b. READING PANE — CODE BLOCK COPY ───────────────────────────────────────
@@ -1642,6 +1715,87 @@ test.describe('UI standardisation', () => {
       .evaluate((el) => el.classList.contains('sidebar-add-btn'));
     expect(addGroupHasCls).toBe(true);
     expect(addNoteHasCls).toBe(true);
+  });
+});
+
+// ── TIMELINE ─────────────────────────────────────────────────────────────────
+test.describe('Timeline', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('Timeline tab is visible in aux-tab-bar', async ({ page }) => {
+    await expect(page.locator('#aux-tab-bar #tab-timeline')).toBeVisible();
+  });
+
+  test('clicking Timeline tab switches to timeline mode', async ({ page }) => {
+    await page.click('#tab-timeline');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'timeline');
+  });
+
+  test('timeline pane is visible in timeline mode', async ({ page }) => {
+    await page.click('#tab-timeline');
+    await expect(page.locator('#timeline-pane')).toBeVisible();
+  });
+
+  test('Start field is shown in the reading pane meta grid', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.meta-label:text("Start")')).toBeVisible();
+  });
+
+  test('ETA field is shown in the reading pane meta grid', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.meta-label:text("ETA")')).toBeVisible();
+  });
+
+  test('clicking Start field shows a date input', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-editable="tl-start"] .meta-value').click();
+    await expect(page.locator('[data-editable="tl-start"] input[type="date"]')).toBeVisible();
+  });
+
+  test('setting a start date saves to state.timelines', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-editable="tl-start"] .meta-value').click();
+    await page.locator('[data-editable="tl-start"] input[type="date"]').fill('2026-06-01');
+    await page.locator('[data-editable="tl-start"] input[type="date"]').press('Enter');
+    const saved = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
+      return s.timelines?.['PROJ-123']?.start;
+    });
+    expect(saved).toBe('2026-06-01');
+  });
+
+  test('timeline pane lists tickets that have a scheduled date', async ({ page }) => {
+    // Seed a ticket with a timeline date
+    await page.addInitScript(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
+      s.timelines = { 'PROJ-123': { start: '2026-06-01', eta: '2026-06-15' } };
+      localStorage.setItem('jira_state', JSON.stringify(s));
+    });
+    await page.goto('/');
+    // Add PROJ-123 to inbox so it's in a group
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.click('#tab-timeline');
+    await expect(page.locator('#timeline-pane')).toBeVisible();
+    await expect(page.locator('#timeline-pane')).toContainText('PROJ-123', { timeout: 3000 });
   });
 });
 

@@ -184,6 +184,66 @@ async function init() {
     updateViewMode();
   });
 
+  // ── Bulk assign ───────────────────────────────────────────────────────────
+  let bulkAssignTimer = null;
+  const bulkAssignInput = document.getElementById('bulk-assign-input');
+  const bulkAssignResults = document.getElementById('bulk-assign-results');
+
+  bulkAssignInput.addEventListener('input', () => {
+    clearTimeout(bulkAssignTimer);
+    const q = bulkAssignInput.value.trim();
+    if (!q) {
+      bulkAssignResults.innerHTML = '';
+      bulkAssignResults.classList.remove('open');
+      return;
+    }
+    bulkAssignTimer = setTimeout(async () => {
+      const users = await searchUsers(q);
+      bulkAssignResults.innerHTML = '';
+      if (!users.length) {
+        bulkAssignResults.classList.remove('open');
+        return;
+      }
+      for (const u of users) {
+        const li = document.createElement('li');
+        li.className = 'bulk-assign-result';
+        li.textContent = u.displayName;
+        li.addEventListener('mousedown', async (e) => {
+          e.preventDefault(); // prevent input blur before click registers
+          bulkAssignResults.classList.remove('open');
+          bulkAssignInput.value = '';
+          const keys = Array.from(selectedKeys);
+          const count = keys.length;
+          try {
+            await Promise.all(
+              keys.map((k) => updateIssueFields(k, { assignee: { accountId: u.accountId } }))
+            );
+            // Invalidate cache so assignee badge refreshes on next open
+            for (const k of keys) {
+              if (issueCache[k]?.fields)
+                issueCache[k].fields.assignee = {
+                  displayName: u.displayName,
+                  accountId: u.accountId,
+                };
+            }
+            saveState();
+            toast(count + ' ticket' + (count === 1 ? '' : 's') + ' assigned to ' + u.displayName);
+          } catch (err) {
+            toast('Assign failed: ' + err.message, 'error');
+          }
+        });
+        bulkAssignResults.appendChild(li);
+      }
+      bulkAssignResults.classList.add('open');
+    }, 250);
+  });
+
+  bulkAssignInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      bulkAssignResults.classList.remove('open');
+    }, 150);
+  });
+
   // ── Pane collapse / notes pane ────────────────────────────────────────────
   document
     .getElementById('sidebar-collapse-btn')
