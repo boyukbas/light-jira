@@ -42,10 +42,16 @@ function truncate(s, max) {
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
 
-// Load non-history, non-filter groups from the app's shared localStorage.
+// Load non-history, non-filter groups from chrome.storage.sync.
+// Falls back to localStorage for backwards compatibility.
 // Returns [] if state is missing or unparseable.
-function loadAppGroups() {
+async function loadAppGroups() {
   try {
+    const synced = await chrome.storage.sync.get('crisp_groups');
+    if (synced.crisp_groups) {
+      return synced.crisp_groups.filter((g) => g.id !== 'history' && !g.isFilter);
+    }
+    // Fallback: legacy localStorage (pre-sync migration)
     const raw = localStorage.getItem('jira_state');
     if (!raw) return [];
     const parsed = JSON.parse(raw);
@@ -118,8 +124,8 @@ async function init() {
   // Populate group selector from app's saved state.
   // Re-runs on focus so stale names/IDs are refreshed if the app was edited while
   // this popup was open in the background.
-  function refreshGroupSelector() {
-    const groups = loadAppGroups();
+  async function refreshGroupSelector() {
+    const groups = await loadAppGroups();
     beamUrlGroup.innerHTML = '';
     if (!groups.length) {
       beamUrlGroup.classList.add('hidden');
