@@ -1,10 +1,10 @@
 'use strict';
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
   loadConfig();
   if (!isConfigured()) openCfg();
-  loadState();
+  await loadState();
   initResizing();
   initMindMap();
   updateViewMode();
@@ -200,4 +200,4 @@ function init() {
   initSettings();
 }
 
-init();
+init().catch(console.error);
