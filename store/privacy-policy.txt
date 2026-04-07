@@ -7,8 +7,16 @@ Your company's Jira data is highly sensitive. Crisp is designed with a strict, l
 Zero Third-Party Servers
 Crisp communicates directly and exclusively between your browser and your Atlassian instance. There are no intermediary servers, no proxies, and no "call home" functions.
 
-100% Local Storage
-Everything you create or view inside Crisp never leaves your machine. Tickets, custom groups, history, Mermaid diagrams, and freeform notes (including pasted images) are saved strictly to your browser's local storage. If you clear your browser data or uninstall the extension, your Crisp data is wiped with it.
+Where Your Data Lives
+Crisp stores data in three places — all within your browser or Google account, never on third-party servers:
+
+• chrome.storage.sync: Your groups, labels, label colours, notes, Mermaid diagrams, timelines (Start/ETA dates), and preferences are synced across your Chrome devices via your Google account. This is the same mechanism used by Chrome bookmarks and settings. Google acts as the sync carrier only — no Crisp server is involved.
+
+• chrome.storage.local: The ticket cache (Jira API responses) and pasted images are stored on this device only. They can be large and are not synced. Clearing extension storage or uninstalling Crisp removes this data.
+
+• localStorage (credentials only): Your Jira URL, email address, and API token are stored locally on this device only and are never synced. This keeps your credentials off any sync server.
+
+If you uninstall the extension, all locally-stored data is wiped. Synced data (groups, labels, notes, etc.) can be cleared by removing the extension from all signed-in Chrome profiles.
 
 Zero Tracking
 Crisp includes absolutely no analytics, telemetry, crash reporting, or user tracking.
@@ -18,9 +26,11 @@ Because Crisp operates entirely within your browser, it requires specific permis
 
 https://*.atlassian.net/* (Host Permission): Required to securely authenticate via your API token and make direct REST API calls to your Jira instance.
 
-tabs / activeTab: Required exclusively for the "Jira Beam" feature. This allows the popup to read the active URL and scan the current page text specifically to detect Jira ticket keys so you can bulk-import them.
+tabs: Required exclusively for the "Jira Beam" feature. This allows the popup to read the active URL and scan the current page text specifically to detect Jira ticket keys so you can bulk-import them.
 
-storage: Required to save your Jira credentials, cached tickets, notes, diagrams, and custom groups locally on your hard drive.
+windows: Required to open the extension popup window.
+
+storage: Required to save your data. Uses chrome.storage.sync to sync groups, labels, notes, and preferences across your Chrome devices, and chrome.storage.local to cache ticket data and screenshots on this device. Also uses localStorage to store your Jira credentials locally (never synced).
 
 Verifiable Security
 Crisp is entirely open-source and built with pure vanilla JavaScript. There are no minified frameworks or obfuscated code. You or your security team can inspect the source code directly to verify every claim made above.
