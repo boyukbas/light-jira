@@ -214,8 +214,46 @@
   cursor: pointer;
   position: relative;
 }
+.meta-editable:hover {
+  background: var(--surface-hover);
+  border-radius: 5px;
+  margin: -3px;
+  padding: 3px;
+}
 .meta-editable:hover .meta-value {
   text-decoration: underline dotted var(--text-tertiary);
+}
+.edit-hint {
+  display: none;
+  font-size: 11px;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+.meta-editable:hover .edit-hint {
+  display: inline;
+}
+.edit-hint::before {
+  content: '✏';
+}
+.field-scope {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.field-scope-jira {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+.field-scope-local {
+  background: color-mix(in srgb, #22c55e 15%, transparent);
+  color: #22c55e;
 }
 .meta-edit-input {
   font-size: 13px;

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Crisp for Jira",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Crisp for Jira — fast Jira client. Organise tickets into groups add labels, take canvas notes, run JQL filters, and build diagrams.",
   "permissions": ["tabs", "windows", "storage"],
   "host_permissions": [

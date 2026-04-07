@@ -76,6 +76,7 @@ function buildMetaGridHtml(f, key) {
     {
       l: 'Assignee',
       editable: 'assignee',
+      jira: true,
       v: f.assignee
         ? avBadge(f.assignee.displayName, 'av-rg') + ' ' + esc(f.assignee.displayName)
         : 'Unassigned',
@@ -91,16 +92,17 @@ function buildMetaGridHtml(f, key) {
     { l: 'Created', v: relDate(f.created) },
     { l: 'Updated', v: relDate(f.updated) },
   ];
-  if (f.duedate) {
-    items.splice(
-      items.findIndex((i) => i.l === 'Created'),
-      0,
-      {
-        l: 'Due',
-        v: relDate(f.duedate),
-      }
-    );
-  }
+  // Due date is always shown (editable) — value is '—' when unset
+  items.splice(
+    items.findIndex((i) => i.l === 'Created'),
+    0,
+    {
+      l: 'Due',
+      editable: 'due-date',
+      jira: true,
+      v: f.duedate ? relDate(f.duedate) : '\u2014',
+    }
+  );
   if (f.fixVersions && f.fixVersions.length) {
     items.push({ l: 'Fix Version', v: esc(f.fixVersions.map((v) => v.name).join(', ')) });
   }
@@ -111,6 +113,7 @@ function buildMetaGridHtml(f, key) {
     items.splice(1, 0, {
       l: 'Story Points',
       editable: 'story-points',
+      jira: true,
       v: String(storyPoints),
     });
   }
@@ -123,12 +126,16 @@ function buildMetaGridHtml(f, key) {
           year: '2-digit',
         })
       : '\u2014';
-  items.push({ l: 'Start', editable: 'tl-start', v: fmtTlDate(tl.start) });
-  items.push({ l: 'ETA', editable: 'tl-eta', v: fmtTlDate(tl.eta) });
+  items.push({ l: 'Start', editable: 'tl-start', local: true, v: fmtTlDate(tl.start) });
+  items.push({ l: 'ETA', editable: 'tl-eta', local: true, v: fmtTlDate(tl.eta) });
+  const jiraBadge = '<span class="field-scope field-scope-jira" title="Saves to Jira">Jira</span>';
+  const localBadge =
+    '<span class="field-scope field-scope-local" title="Stored locally only">Local</span>';
   let html = '<div class="meta-grid">';
   for (const m of items) {
     const edAttr = m.editable ? ' data-editable="' + m.editable + '"' : '';
     const editCls = m.editable ? ' meta-editable' : '';
+    const scopeBadge = m.jira ? jiraBadge : m.local ? localBadge : '';
     html +=
       '<div class="meta-item' +
       editCls +
@@ -136,8 +143,10 @@ function buildMetaGridHtml(f, key) {
       edAttr +
       '><div class="meta-label">' +
       m.l +
+      scopeBadge +
       '</div><div class="meta-value">' +
       m.v +
+      (m.editable ? '<span class="edit-hint" aria-hidden="true"></span>' : '') +
       '</div></div>';
   }
   return html + '</div>';

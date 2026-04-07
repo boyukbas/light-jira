@@ -206,6 +206,7 @@ function bindEditableMetaFields(container, issueKey) {
       if (item.querySelector('input')) return; // already editing
       if (type === 'story-points') startStoryPointsEdit(item, valueEl, issueKey);
       if (type === 'assignee') startAssigneeEdit(item, valueEl, issueKey);
+      if (type === 'due-date') startDueDateEdit(item, valueEl, issueKey);
       if (type === 'tl-start' || type === 'tl-eta')
         startTimelineEdit(type, item, valueEl, issueKey);
     });
@@ -344,6 +345,56 @@ function startAssigneeEdit(item, valueEl, issueKey) {
       input.replaceWith(newValueEl);
     }
   });
+}
+
+function startDueDateEdit(item, valueEl, issueKey) {
+  const current = issueCache[issueKey]?.fields?.duedate || '';
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = current;
+  input.className = 'meta-edit-input';
+  valueEl.replaceWith(input);
+  input.focus();
+
+  const formatDisplay = (d) =>
+    d
+      ? new Date(d).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: '2-digit',
+        })
+      : '\u2014';
+
+  const commit = async () => {
+    const val = input.value; // 'YYYY-MM-DD' or ''
+    if (val !== current) {
+      try {
+        await updateIssueFields(issueKey, { duedate: val || null });
+        if (issueCache[issueKey]?.fields) issueCache[issueKey].fields.duedate = val || null;
+        toast('Due date updated', 'success');
+      } catch (e) {
+        toast('Failed to save: ' + e.message, 'error');
+      }
+    }
+    const newValueEl = document.createElement('div');
+    newValueEl.className = 'meta-value';
+    newValueEl.textContent = formatDisplay(val);
+    input.replaceWith(newValueEl);
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      input.blur();
+    }
+    if (e.key === 'Escape') {
+      const newValueEl = document.createElement('div');
+      newValueEl.className = 'meta-value';
+      newValueEl.textContent = formatDisplay(current);
+      input.replaceWith(newValueEl);
+    }
+  });
+  input.addEventListener('blur', commit);
 }
 
 function startTimelineEdit(type, item, valueEl, issueKey) {
