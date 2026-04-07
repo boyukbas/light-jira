@@ -145,11 +145,21 @@ async function init() {
   });
 
   // ── Bulk select ───────────────────────────────────────────────────────────
-  document.getElementById('bulk-select-btn').addEventListener('click', () => {
-    if (bulkSelectMode) exitBulkMode();
-    else enterBulkMode();
+  document.getElementById('bulk-check-all-btn').addEventListener('click', () => {
+    document.querySelectorAll('#ticket-list .list-card').forEach((el) => {
+      selectedKeys.add(el.dataset.key);
+      el.classList.add('selected');
+    });
+    updateBulkToolbar();
   });
-  document.getElementById('bulk-done-btn').addEventListener('click', exitBulkMode);
+
+  document.getElementById('bulk-clear-btn').addEventListener('click', () => {
+    selectedKeys.clear();
+    document.querySelectorAll('#ticket-list .list-card').forEach((el) => {
+      el.classList.remove('selected');
+    });
+    updateBulkToolbar();
+  });
 
   document.getElementById('bulk-delete-btn').addEventListener('click', () => {
     if (!selectedKeys.size) return;
@@ -160,7 +170,6 @@ async function init() {
     selectedKeys.clear();
     saveState();
     toast(count + ' ticket' + (count === 1 ? '' : 's') + ' removed');
-    exitBulkMode();
     updateViewMode();
   });
 
@@ -180,7 +189,6 @@ async function init() {
     e.target.value = '';
     saveState();
     toast(count + ' ticket' + (count === 1 ? '' : 's') + ' moved to ' + targetGroup.name);
-    exitBulkMode();
     updateViewMode();
   });
 

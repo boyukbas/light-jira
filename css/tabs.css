@@ -745,8 +745,8 @@ body[data-app-mode='timeline'] #timeline-pane {
 .mm-diagram-title {
   flex: 1;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -800,11 +800,20 @@ body[data-app-mode='timeline'] #timeline-pane {
   flex-shrink: 0;
 }
 
-.mm-editor-label {
-  font-size: 11px;
+.mm-diagram-name-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  outline: none;
+  padding: 2px 0;
+}
+
+.mm-diagram-name-input::placeholder {
   color: var(--text-tertiary);
 }
 

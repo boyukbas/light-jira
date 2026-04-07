@@ -8,6 +8,192 @@ const MM_DEFAULT_CODE = `sequenceDiagram
     System-->>User: Response
     User-)System: Follow-up`;
 
+// One worked example per Mermaid diagram type — shown via the dice button
+const MM_EXAMPLES = [
+  {
+    name: 'Flowchart',
+    code: `flowchart TD
+    A([Start]) --> B{Ticket ready?}
+    B -- Yes --> C[Assign developer]
+    B -- No --> D[Add to backlog]
+    C --> E[In Progress]
+    E --> F{Review passed?}
+    F -- Yes --> G([Done ✓])
+    F -- No --> E`,
+  },
+  {
+    name: 'Sequence Diagram',
+    code: `sequenceDiagram
+    actor User
+    participant API
+    participant DB
+    User->>API: POST /login
+    API->>DB: SELECT user WHERE email=?
+    DB-->>API: user record
+    API-->>User: 200 OK + JWT
+    User->>API: GET /tickets
+    API-->>User: ticket list`,
+  },
+  {
+    name: 'Class Diagram',
+    code: `classDiagram
+    class Issue {
+        +String key
+        +String summary
+        +String status
+        +assign(user)
+        +transition(status)
+    }
+    class Sprint {
+        +String name
+        +Date startDate
+        +Date endDate
+        +addIssue(issue)
+    }
+    class User {
+        +String accountId
+        +String displayName
+    }
+    Sprint "1" o-- "*" Issue : contains
+    Issue "*" --> "1" User : assigned to`,
+  },
+  {
+    name: 'State Diagram',
+    code: `stateDiagram-v2
+    [*] --> Backlog
+    Backlog --> InProgress : Start work
+    InProgress --> Review : Open PR
+    Review --> InProgress : Changes requested
+    Review --> Done : Approved
+    InProgress --> Blocked : Dependency
+    Blocked --> InProgress : Unblocked
+    Done --> [*]`,
+  },
+  {
+    name: 'ER Diagram',
+    code: `erDiagram
+    PROJECT ||--o{ ISSUE : contains
+    ISSUE {
+        string key PK
+        string summary
+        string status
+        string priority
+    }
+    ISSUE }o--|| USER : "assigned to"
+    ISSUE }o--o{ LABEL : "tagged with"
+    USER {
+        string accountId PK
+        string displayName
+    }`,
+  },
+  {
+    name: 'Gantt Chart',
+    code: `gantt
+    title Sprint 42
+    dateFormat YYYY-MM-DD
+    section Backend
+        Auth refactor    :a1, 2025-01-06, 3d
+        Rate limiting    :a2, after a1, 2d
+        DB migration     :crit, 2025-01-09, 1d
+    section Frontend
+        Login redesign   :b1, 2025-01-06, 2d
+        Dashboard        :b2, after b1, 4d
+    section QA
+        Integration tests :after b2, 3d`,
+  },
+  {
+    name: 'Pie Chart',
+    code: `pie title Bug Distribution by Priority
+    "Critical" : 8
+    "High" : 23
+    "Medium" : 41
+    "Low" : 28`,
+  },
+  {
+    name: 'Git Graph',
+    code: `gitGraph
+    commit id: "init"
+    branch feature/auth
+    checkout feature/auth
+    commit id: "add JWT"
+    commit id: "add refresh"
+    checkout main
+    branch hotfix/login
+    commit id: "fix null check"
+    checkout main
+    merge hotfix/login
+    merge feature/auth
+    commit id: "v2.1 release"`,
+  },
+  {
+    name: 'Mind Map',
+    code: `mindmap
+    root((Project Health))
+        Velocity
+            This sprint: 38pts
+            Target: 40pts
+        Risks
+            Dependency on Auth team
+            2 engineers on leave
+        Wins
+            Zero P1 bugs
+            Deploy pipeline fixed`,
+  },
+  {
+    name: 'Timeline',
+    code: `timeline
+    title Product Roadmap 2025
+    section Q1
+        January  : Auth v2 launch
+                 : Mobile beta
+        March    : Public API release
+    section Q2
+        April    : Enterprise tier
+        June     : v3.0 launch`,
+  },
+  {
+    name: 'User Journey',
+    code: `journey
+    title Filing a Bug Report
+    section Discover
+        Find the issue : 3 : User
+        Search existing tickets : 4 : User
+    section Report
+        Click Create issue : 5 : User
+        Fill summary and steps : 4 : User
+        Attach screenshot : 3 : User, System
+        Submit : 5 : User
+    section Follow-up
+        Receive confirmation : 4 : System
+        Check ticket status : 3 : User`,
+  },
+  {
+    name: 'Quadrant Chart',
+    code: `quadrantChart
+    title Feature Prioritisation
+    x-axis Low Effort --> High Effort
+    y-axis Low Impact --> High Impact
+    quadrant-1 Plan later
+    quadrant-2 Do first
+    quadrant-3 Deprioritise
+    quadrant-4 Quick wins
+    Dark mode: [0.3, 0.6]
+    Export CSV: [0.45, 0.85]
+    SSO login: [0.7, 0.9]
+    Changelog: [0.2, 0.3]
+    Shortcuts: [0.35, 0.7]`,
+  },
+  {
+    name: 'XY Chart',
+    code: `xychart-beta
+    title "Monthly Active Users"
+    x-axis [Jan, Feb, Mar, Apr, May, Jun]
+    y-axis "Users (k)" 0 --> 50
+    bar [12, 18, 22, 28, 35, 42]
+    line [12, 18, 22, 28, 35, 42]`,
+  },
+];
+
 let mmRenderTimer = null;
 let mmRenderSeq = 0;
 let mmZoom = 1;
@@ -118,6 +304,21 @@ function createDiagram() {
   updateViewMode();
 }
 
+function loadRandomExample() {
+  const diagram = getActiveDiagram();
+  if (!diagram) return;
+  const example = MM_EXAMPLES[Math.floor(Math.random() * MM_EXAMPLES.length)];
+  diagram.code = example.code;
+  diagram.name = example.name;
+  saveState();
+  // Mirror name into sidebar title immediately
+  const sidebarTitle = document.querySelector(
+    '.mm-diagram-item[data-id="' + diagram.id + '"] .mm-diagram-title'
+  );
+  if (sidebarTitle) sidebarTitle.textContent = example.name;
+  renderMindMap();
+}
+
 function deleteDiagram(id) {
   if (!confirm('Delete this diagram?')) return;
   state.mindMaps = state.mindMaps.filter((m) => m.id !== id);
@@ -196,6 +397,20 @@ async function renderMindMap() {
     return;
   }
 
+  const nameInput = document.getElementById('mm-diagram-name');
+  if (nameInput) {
+    nameInput.value = diagram.name || '';
+    nameInput.oninput = () => {
+      diagram.name = nameInput.value;
+      saveState();
+      // Mirror into sidebar title live (same pattern as Notes nc-title-input)
+      const sidebarTitle = document.querySelector(
+        '.mm-diagram-item[data-id="' + diagram.id + '"] .mm-diagram-title'
+      );
+      if (sidebarTitle) sidebarTitle.textContent = diagram.name || 'Untitled';
+    };
+  }
+
   if (ta) {
     ta.value = diagram.code || '';
     ta.oninput = () => {
@@ -215,6 +430,11 @@ async function renderMindMap() {
   const refreshBtn = document.getElementById('mm-refresh-btn');
   if (refreshBtn) {
     refreshBtn.onclick = () => doRender();
+  }
+
+  const diceBtn = document.getElementById('mm-dice-btn');
+  if (diceBtn) {
+    diceBtn.onclick = loadRandomExample;
   }
 
   doRender();

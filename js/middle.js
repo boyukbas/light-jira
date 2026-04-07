@@ -1,48 +1,59 @@
 'use strict';
 
 // ── BULK SELECT ───────────────────────────────────────────────────────────────
-function enterBulkMode() {
+
+// Activates bulk UI (checkbox + toolbar) without touching selectedKeys.
+// Safe to call on every Jira-mode render cycle.
+function activateBulkUi() {
   bulkSelectMode = true;
-  selectedKeys.clear();
   document.getElementById('middle').classList.add('bulk-mode');
-  document.getElementById('bulk-select-btn').classList.add('active');
   document.getElementById('bulk-toolbar').classList.add('visible');
   updateBulkToolbar();
-  renderMiddle();
 }
 
+// Clears selection then activates UI. Call when first entering Jira mode or switching groups.
+function enterBulkMode() {
+  selectedKeys.clear();
+  activateBulkUi();
+}
+
+// Deactivates bulk UI and clears selection. Call when leaving Jira mode.
 function exitBulkMode() {
   bulkSelectMode = false;
   selectedKeys.clear();
   document.getElementById('middle').classList.remove('bulk-mode');
-  document.getElementById('bulk-select-btn').classList.remove('active');
   document.getElementById('bulk-toolbar').classList.remove('visible');
-  renderMiddle();
 }
 
 function updateBulkToolbar() {
   const count = selectedKeys.size;
-  document.getElementById('bulk-count').textContent =
-    count === 0 ? 'Select tickets' : count + ' selected';
 
   const deleteBtn = document.getElementById('bulk-delete-btn');
-  deleteBtn.disabled = count === 0;
-  deleteBtn.textContent = count > 0 ? 'Delete (' + count + ')' : 'Delete';
+  if (deleteBtn) deleteBtn.disabled = count === 0;
 
   const assignInput = document.getElementById('bulk-assign-input');
   if (assignInput) assignInput.disabled = count === 0;
 
   const moveSelect = document.getElementById('bulk-move-select');
-  const currentGroup = getActiveGroup();
-  const targets = state.groups.filter((g) => g.id !== currentGroup.id && g.id !== 'history');
-  moveSelect.innerHTML = '<option value="">Move to\u2026</option>';
-  for (const g of targets) {
-    const opt = document.createElement('option');
-    opt.value = g.id;
-    opt.textContent = g.name;
-    moveSelect.appendChild(opt);
+  if (moveSelect) {
+    const currentGroup = getActiveGroup();
+    const targets = state.groups.filter((g) => g.id !== currentGroup.id && g.id !== 'history');
+    moveSelect.innerHTML = '<option value="">Move to\u2026</option>';
+    for (const g of targets) {
+      const opt = document.createElement('option');
+      opt.value = g.id;
+      opt.textContent = g.name;
+      moveSelect.appendChild(opt);
+    }
+    moveSelect.disabled = count === 0 || targets.length === 0;
   }
-  moveSelect.disabled = count === 0 || targets.length === 0;
+
+  // Check All: disabled when no cards visible or all already selected
+  const totalVisible = document.querySelectorAll('#ticket-list .list-card').length;
+  const checkAllBtn = document.getElementById('bulk-check-all-btn');
+  const clearBtn = document.getElementById('bulk-clear-btn');
+  if (checkAllBtn) checkAllBtn.disabled = totalVisible === 0 || count === totalVisible;
+  if (clearBtn) clearBtn.disabled = count === 0;
 }
 
 // ── RENDER MIDDLE ─────────────────────────────────────────────────────────────

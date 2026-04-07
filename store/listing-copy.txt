@@ -9,7 +9,7 @@ Crisp for Jira
 
 SHORT DESCRIPTION (max 132 chars — shown in search results)
 ────────────────────────────────────────────────────────
-Fast, keyboard-friendly Jira client. Organise tickets into groups, run JQL filters, take canvas notes, and build diagrams.
+Fast Jira client. Organise tickets into groups, add labels, take canvas notes, run JQL filters, build diagrams, and plan with a Timeline.
 
 
 CATEGORY
@@ -64,6 +64,15 @@ JUSTIFICATION FOR PERMISSIONS (required by Google on submission)
 ────────────────────────────────────────────────────────
 "tabs" — used to read the URL of the currently active tab so the popup can
   detect whether the user is on a Jira page and extract visible ticket keys.
+
+"windows" — used to open the extension popup window when the user activates
+  the toolbar icon.
+
+"storage" — used to save and sync the user's groups, labels, notes, diagrams,
+  timelines, and preferences via chrome.storage.sync (synced across devices)
+  and to cache ticket data and screenshots via chrome.storage.local (device-only).
+  No data is sent to any third-party server; all data stays in the user's
+  own browser storage or syncs via their Google account.
 
 "https://*.atlassian.net/*" — used to call the Jira REST API directly
   (fetchIssue, fetchByJql, fetchFilter) using the user's own API token.

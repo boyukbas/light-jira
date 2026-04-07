@@ -491,6 +491,41 @@ test.describe('Notes', () => {
       timeout: 3000,
     });
   });
+
+  test('diagram name input is visible and pre-filled in editor header', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-diagram-name')).toBeVisible({ timeout: 3000 });
+    // Default diagram name is pre-filled (not empty)
+    const val = await page.locator('#mm-diagram-name').inputValue();
+    expect(val.trim().length).toBeGreaterThan(0);
+  });
+
+  test('typing in diagram name input updates sidebar title live', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-diagram-list .mm-diagram-item')).toHaveCount(1, {
+      timeout: 3000,
+    });
+    await page.fill('#mm-diagram-name', 'My Custom Diagram');
+    await expect(page.locator('#mm-diagram-list .mm-diagram-title').first()).toHaveText(
+      'My Custom Diagram'
+    );
+  });
+
+  test('diagram name persists after switching diagrams and back', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-diagram-list .mm-diagram-item')).toHaveCount(1, {
+      timeout: 3000,
+    });
+    await page.fill('#mm-diagram-name', 'First Renamed');
+    // Create a second diagram and switch to it
+    await page.click('#mm-add-btn');
+    await expect(page.locator('#mm-diagram-list .mm-diagram-item')).toHaveCount(2, {
+      timeout: 3000,
+    });
+    // Switch back to the first diagram
+    await page.locator('#mm-diagram-list .mm-diagram-item').first().click();
+    await expect(page.locator('#mm-diagram-name')).toHaveValue('First Renamed');
+  });
 });
 
 // ── 6b. LABELS TAB ───────────────────────────────────────────────────────────
@@ -852,6 +887,88 @@ test.describe('Tabs', () => {
     // Preview should have content again after refresh
     await expect(page.locator('#mm-preview')).not.toBeEmpty({ timeout: 3000 });
   });
+
+  test('docs button is visible and links to Mermaid docs', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    const docsBtn = page.locator('#mm-docs-btn');
+    await expect(docsBtn).toBeVisible({ timeout: 3000 });
+    const href = await docsBtn.getAttribute('href');
+    expect(href).toContain('mermaid.js.org');
+  });
+
+  test('dice button is visible in editor header', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-dice-btn')).toBeVisible({ timeout: 3000 });
+  });
+
+  test('dice button loads a valid Mermaid example into the textarea', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await page.click('#mm-dice-btn');
+    const code = await page.locator('#mm-code').inputValue();
+    const knownTypes = [
+      'flowchart',
+      'sequenceDiagram',
+      'classDiagram',
+      'stateDiagram',
+      'erDiagram',
+      'gantt',
+      'pie',
+      'gitGraph',
+      'mindmap',
+      'timeline',
+      'journey',
+      'quadrantChart',
+      'xychart-beta',
+    ];
+    expect(knownTypes.some((t) => code.includes(t))).toBe(true);
+  });
+
+  test('dice button updates the diagram name to the example type', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await page.click('#mm-dice-btn');
+    const name = await page.locator('#mm-diagram-name').inputValue();
+    const knownNames = [
+      'Flowchart',
+      'Sequence Diagram',
+      'Class Diagram',
+      'State Diagram',
+      'ER Diagram',
+      'Gantt Chart',
+      'Pie Chart',
+      'Git Graph',
+      'Mind Map',
+      'Timeline',
+      'User Journey',
+      'Quadrant Chart',
+      'XY Chart',
+    ];
+    expect(knownNames.includes(name)).toBe(true);
+  });
+
+  test('dice button updates the sidebar title to the example type', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await page.click('#mm-dice-btn');
+    const sidebarTitle = await page
+      .locator('#mm-diagram-list .mm-diagram-title')
+      .first()
+      .textContent();
+    const knownNames = [
+      'Flowchart',
+      'Sequence Diagram',
+      'Class Diagram',
+      'State Diagram',
+      'ER Diagram',
+      'Gantt Chart',
+      'Pie Chart',
+      'Git Graph',
+      'Mind Map',
+      'Timeline',
+      'User Journey',
+      'Quadrant Chart',
+      'XY Chart',
+    ];
+    expect(knownNames.includes(sidebarTitle.trim())).toBe(true);
+  });
 });
 
 // ── 9. BULK ACTIONS ───────────────────────────────────────────────────────────
@@ -871,52 +988,101 @@ test.describe('Bulk Actions', () => {
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 5000 });
   });
 
-  test('clicking bulk-select-btn enters bulk mode', async ({ page }) => {
-    await page.click('#bulk-select-btn');
+  test('Jira mode always has bulk-mode class and visible toolbar', async ({ page }) => {
     await expect(page.locator('#middle')).toHaveClass(/bulk-mode/);
     await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
   });
 
-  test('clicking bulk-done-btn exits bulk mode', async ({ page }) => {
-    await page.click('#bulk-select-btn');
-    await page.click('#bulk-done-btn');
+  test('Labels mode never shows bulk-mode class or toolbar', async ({ page }) => {
+    await page.click('#tab-labels');
     await expect(page.locator('#middle')).not.toHaveClass(/bulk-mode/);
     await expect(page.locator('#bulk-toolbar')).not.toHaveClass(/visible/);
   });
 
-  test('clicking a card in bulk mode selects it', async ({ page }) => {
-    await page.click('#bulk-select-btn');
+  test('switching back to Jira from Labels re-activates bulk UI', async ({ page }) => {
+    await page.click('#tab-labels');
+    await page.click('#tab-jira');
+    await expect(page.locator('#middle')).toHaveClass(/bulk-mode/);
+    await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
+  });
+
+  test('clicking a card selects it', async ({ page }) => {
     await page.locator('#ticket-list .list-card').first().click();
     await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(1);
-    await expect(page.locator('#bulk-count')).toContainText('1 selected');
+  });
+
+  test('bulk toolbar is positioned above the ticket list in DOM', async ({ page }) => {
+    const order = await page.evaluate(() => {
+      const mid = document.getElementById('middle');
+      const ids = Array.from(mid.children).map((el) => el.id);
+      return { toolbar: ids.indexOf('bulk-toolbar'), list: ids.indexOf('ticket-list') };
+    });
+    expect(order.toolbar).toBeGreaterThanOrEqual(0);
+    expect(order.toolbar).toBeLessThan(order.list);
+  });
+
+  test('bulk action buttons are icon-only with title attributes', async ({ page }) => {
+    await expect(page.locator('#bulk-check-all-btn')).toHaveAttribute('title');
+    await expect(page.locator('#bulk-clear-btn')).toHaveAttribute('title');
+    await expect(page.locator('#bulk-delete-btn')).toHaveAttribute('title');
+    // Buttons must contain no visible text — SVG only
+    const text = await page.locator('#bulk-delete-btn').textContent();
+    expect(text.trim()).toBe('');
+  });
+
+  test('Delete button is disabled when no tickets are selected', async ({ page }) => {
+    await expect(page.locator('#bulk-delete-btn')).toBeDisabled();
+  });
+
+  test('Delete button is enabled when tickets are selected', async ({ page }) => {
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#bulk-delete-btn')).toBeEnabled();
   });
 
   test('bulk delete removes selected tickets', async ({ page }) => {
-    await page.click('#bulk-select-btn');
     await page.locator('#ticket-list .list-card').first().click();
     await page.click('#bulk-delete-btn');
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
   });
 
+  test('bulk delete stays in Jira mode with empty selection', async ({ page }) => {
+    await page.locator('#ticket-list .list-card').first().click();
+    await page.click('#bulk-delete-btn');
+    await expect(page.locator('#middle')).toHaveClass(/bulk-mode/);
+  });
+
   test('bulk move transfers selected tickets to another group', async ({ page }) => {
-    // Create a second group
     await createGroup(page, 'Target Group');
     await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
 
-    // Switch back to Inbox and enter bulk mode
     await page.locator('#group-list .group-item').first().click();
-    await page.click('#bulk-select-btn');
     await page.locator('#ticket-list .list-card').first().click();
-
-    // Move via dropdown
     await page.selectOption('#bulk-move-select', { label: 'Target Group' });
 
-    // Inbox should now have 1 ticket
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
   });
 
-  test('bulk-assign-input is visible when bulk mode is active', async ({ page }) => {
-    await page.click('#bulk-select-btn');
+  test('Check All selects all visible tickets', async ({ page }) => {
+    await page.click('#bulk-check-all-btn');
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(2);
+  });
+
+  test('Clear deselects all selected tickets', async ({ page }) => {
+    await page.click('#bulk-check-all-btn');
+    await page.click('#bulk-clear-btn');
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(0);
+  });
+
+  test('Check All is disabled when all tickets already selected', async ({ page }) => {
+    await page.click('#bulk-check-all-btn');
+    await expect(page.locator('#bulk-check-all-btn')).toBeDisabled();
+  });
+
+  test('Clear is disabled when nothing is selected', async ({ page }) => {
+    await expect(page.locator('#bulk-clear-btn')).toBeDisabled();
+  });
+
+  test('bulk-assign-input is visible in Jira mode toolbar', async ({ page }) => {
     await expect(page.locator('#bulk-assign-input')).toBeVisible();
   });
 
@@ -934,7 +1100,6 @@ test.describe('Bulk Actions', () => {
         });
       }
     );
-    await page.click('#bulk-select-btn');
     await page.locator('#ticket-list .list-card').first().click();
     await page.fill('#bulk-assign-input', 'Bob');
     await expect(
@@ -971,11 +1136,9 @@ test.describe('Bulk Actions', () => {
       }
     );
 
-    await page.click('#bulk-select-btn');
     // Select both tickets
     await page.locator('#ticket-list .list-card').nth(0).click();
     await page.locator('#ticket-list .list-card').nth(1).click();
-    await expect(page.locator('#bulk-count')).toContainText('2 selected');
 
     await page.fill('#bulk-assign-input', 'Bob');
     await page

@@ -2,7 +2,7 @@
 
 **A high-performance, minimalist Jira client built for speed and deep productivity.**
 
-Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a streamlined, keyboard-friendly interface. Organise tickets into custom groups, tag them with labels, take freeform canvas notes, sketch diagrams, load from JQL filters, and maintain a full browsing history — all cached locally for instant offline access.
+Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a streamlined, keyboard-friendly interface. Organise tickets into custom groups, tag them with labels, take freeform canvas notes, sketch diagrams, plan work on a Timeline, load from JQL filters, and maintain a full browsing history — all cached locally for instant offline access.
 
 ---
 
@@ -13,32 +13,37 @@ Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a str
 3. [App Tabs](#app-tabs)
    - [Jira Tab](#jira-tab)
    - [Labels Tab](#labels-tab)
+   - [Timeline Tab](#timeline-tab)
+   - [History Tab](#history-tab)
    - [Notes Tab](#notes-tab)
    - [Mindmap Tab](#mindmap-tab)
-   - [History Tab](#history-tab)
 4. [Smart Search Bar](#smart-search-bar)
 5. [Reading Pane](#reading-pane)
 6. [Keyboard Shortcuts](#keyboard-shortcuts)
 7. [Configuration](#configuration)
-8. [Development](#development)
-9. [Architecture](#architecture)
-10. [State Model](#state-model)
+8. [Data Sync](#data-sync)
+9. [Development](#development)
+10. [Architecture](#architecture)
+11. [State Model](#state-model)
 
 ---
 
 ## Key Features
 
 - **Performance-First** — Pure vanilla JS, no framework overhead, instant loads. No bundler, no transpiler.
-- **Five-Tab Workspace** — Jira groups, Labels view, freeform Notes canvas, Mermaid Mindmaps, and History table.
+- **Six-Tab Workspace** — Jira groups, Labels view, Timeline (Gantt), History table, freeform Notes canvas, and Mermaid Mindmaps.
 - **Smart Search Bar** — Single input handles ticket keys, filter IDs, JQL queries, and Jira URLs. Press `F2` from anywhere to focus instantly.
 - **Custom Groups** — Create, rename, reorder (drag), and delete ticket lists. Filter groups (JQL) shown with a funnel badge.
+- **Bulk Actions** — Select multiple tickets to move, delete, or re-assign to any Jira user in one operation.
+- **Editable Fields** — Click Story Points, Assignee, or Due Date to edit directly in the reading pane (saved to Jira). Click Start or ETA to set internal planning dates (saved locally).
 - **Labels System** — Tag tickets with coloured labels. The Labels tab auto-generates groups from your tags. Tickets with no labels appear in a "no-label" bucket.
+- **Internal Timeline** — Assign private Start and ETA dates to any ticket. The Timeline tab renders a Gantt-style chart across all scheduled tickets — no Jira configuration required.
 - **Freeform Notes Canvas** — Click anywhere to place a text block. Drag blocks freely. Paste or drop images. Insert live Mermaid diagrams inline.
 - **Mermaid Diagrams** — Full Mermaid v11 support with multiple named diagrams, live preview, copy-to-clipboard, and a refresh button. Pan and zoom the preview.
 - **History Tab** — Full-width grid of every ticket you've opened, with Key, Summary, Status, Assignee, Created, and Last Viewed. Sortable and resizable columns.
+- **Cross-Device Sync** — Groups, labels, notes, diagrams, timeline dates, and preferences sync automatically via `chrome.storage.sync` across all Chrome instances signed into the same Google account.
 - **Code Block Copy** — Every code block in a ticket description gets a hover-reveal Copy button.
 - **Jira Link Interception** — `/browse/KEY-123` links open inside the app. Ctrl/Cmd+click opens in the browser. User profile links always open externally.
-- **Offline Persistence** — Ticket data, notes, screenshots, and state stored in `localStorage`. Works without a connection for already-cached tickets.
 - **Jira Beam** — Content script on Jira pages detects ticket keys in the current view and surfaces them in the extension popup for one-click navigation.
 
 ---
@@ -65,11 +70,16 @@ Click the **gear icon** inside the extension (or the popup), and enter:
 
 Click **Save**. The extension connects directly to Jira's REST API using your credentials.
 
+> **Note:** Credentials are stored in `localStorage` on each device. They are **not** synced between devices — you must configure them on each Chrome installation separately.
+
 ---
 
 ## App Tabs
 
-The tab bar lives at the top-right. Tab order: **Jira → Labels → Notes → Mindmap → History**.
+The tab bar is split into two groups:
+
+- **Main tab bar** (top-left): **Jira → Labels → Timeline → History**
+- **Aux tab bar** (top-right, near the settings icon): **Notes → Mindmap**
 
 ### Jira Tab
 
@@ -107,8 +117,10 @@ Enter a filter URL, filter ID, or JQL query in the search bar. The app creates a
 **Bulk Actions**
 
 Click the checkbox icon in the middle header to enter bulk mode. Cards grow checkboxes. Select any number of tickets, then use the toolbar to:
-- **Move** — Select destination group from the dropdown
-- **Delete** — Remove all selected tickets from the current group
+
+- **Assign** — Type a name in the "Assign to…" input; a dropdown of matching Jira users appears. Click a user to reassign all selected tickets via the Jira API.
+- **Move** — Select destination group from the dropdown.
+- **Delete** — Remove all selected tickets from the current group.
 
 **Group Search**
 
@@ -134,13 +146,56 @@ Labels use the same colour system as label badges: colours are assigned determin
 
 ---
 
+### Timeline Tab
+
+An internal planning view. Assign private **Start** and **ETA** dates to any ticket from the reading pane, then switch to the Timeline tab to see a Gantt-style overview of all your scheduled work.
+
+**Setting dates**
+
+Open any ticket in the reading pane. The meta grid at the top shows two editable fields:
+
+| Field | Badge | Description |
+|---|---|---|
+| **Start** | `Local` | Internal start date. Stored locally only — never sent to Jira. |
+| **ETA** | `Local` | Internal completion estimate. Stored locally only. |
+
+Click a field to open a date picker. Press Enter or click elsewhere to save. Press Escape to cancel.
+
+**Timeline chart**
+
+The Timeline tab shows a table of all tickets that have at least one date set, across all groups. The rightmost column renders a proportional Gantt bar:
+
+| Has Start + ETA | Has ETA only | Has Start only |
+|---|---|---|
+| Solid bar from Start to ETA | Milestone dot at ETA | Faded bar from Start with open end |
+
+The chart axis auto-scales to the earliest and latest dates in your data — no manual range configuration.
+
+> **Sync:** Start and ETA dates are part of `state.timelines`, which is stored in `chrome.storage.sync`. They **sync across devices** automatically.
+
+---
+
+### History Tab
+
+A full-width table of every ticket you've opened in the app.
+
+- Columns: **Key**, **Summary**, **Status**, **Assignee**, **Created**, **Last Viewed**
+- Click a column header to sort; click again to reverse; click a third time to clear sorting.
+- Drag column edges to resize.
+- Entries are added when a ticket is loaded (not when a filter is imported).
+- Click any row to open that ticket in the Jira tab.
+- Remove individual entries with the `✕` button on each row.
+- History is capped at 150 entries (`HISTORY_LIMIT` in `api.js`).
+
+---
+
 ### Notes Tab
 
 A freeform infinite canvas for each standalone note. Multiple notes are managed from the left sidebar.
 
 **Creating and selecting notes**
 
-- Click `+` in the sidebar header to create a new note.
+- Click `+` in the sidebar to create a new note.
 - Click any note in the sidebar to switch to it.
 - Notes are ordered most-recently-updated first.
 - Click `✕` on a note to delete it (with confirmation).
@@ -153,14 +208,13 @@ The canvas is a large scrollable area (`2400px × 2400px`) with a subtle dot-gri
 
 - Click anywhere on the empty canvas to create a text block at that position.
 - Text blocks use `contenteditable` with placeholder text.
-- Supports rich formatting via the browser's built-in selection menu (or paste rich text from other apps).
 - Drag the six-dot grip handle (top-left of each block) to move it.
 
 **Image blocks**
 
 - **Paste** — Copy an image to your clipboard, click on the canvas, and paste (`Ctrl/Cmd+V`). The image is placed at the bottom of existing content.
 - **Drag and drop** — Drop an image file directly onto the canvas. It appears at the drop coordinates.
-- Images are stored as data URLs in `screenshotStore` (separate from main state to manage size).
+- Images are stored as data URLs in `screenshotStore`, which is kept **device-local only** (not synced — see [Data Sync](#data-sync)).
 
 **Mermaid diagram blocks**
 
@@ -174,7 +228,6 @@ The canvas is a large scrollable area (`2400px × 2400px`) with a subtle dot-gri
 |---|---|
 | Move a block | Drag from the grip handle |
 | Delete a block | Click the `✕` button |
-| Resize a block | (width set at creation: 400px text, 520px diagrams) |
 
 ---
 
@@ -206,34 +259,20 @@ Any Mermaid diagram type works: `flowchart`, `sequenceDiagram`, `classDiagram`, 
 
 ---
 
-### History Tab
-
-A full-width table of every ticket you've opened in the app.
-
-- Columns: **Key**, **Summary**, **Status**, **Assignee**, **Created**, **Last Viewed**
-- Click a column header to sort; click again to reverse; click a third time to clear sorting.
-- Drag column edges to resize.
-- Entries are added when a ticket is loaded (not when a filter is imported).
-- Click any row to open that ticket in the Jira tab.
-- Remove individual entries with the `✕` button on each row.
-- History is capped at 150 entries (`HISTORY_LIMIT` in `api.js`).
-
----
-
 ## Smart Search Bar
 
-The single search input at the top handles multiple input types. The button label adapts in real-time:
+The single search input at the top handles multiple input types:
 
-| Input | Detected As | Button Label | Action |
-|---|---|---|---|
-| `PROJ-123` | Ticket key | **Open** | Fetches and opens the ticket |
-| `https://…/browse/PROJ-123` | Jira browse URL | **Open** | Same as a bare key |
-| `12345` (numeric) | Filter ID | **Load Filter** | Loads filter results into current group |
-| `https://…/issues/?filter=12345` | Filter URL | **Load Filter** | Same |
-| `project = PROJ ORDER BY created DESC` | JQL | **Load Filter** | Runs JQL and creates a filter group |
-| `https://…/issues/?jql=…` | JQL URL | **Load Filter** | Extracts and runs the JQL |
+| Input | Detected As | Action |
+|---|---|---|
+| `PROJ-123` | Ticket key | Fetches and opens the ticket |
+| `https://…/browse/PROJ-123` | Jira browse URL | Same as a bare key |
+| `12345` (numeric) | Filter ID | Loads filter results into a new filter group |
+| `https://…/issues/?filter=12345` | Filter URL | Same |
+| `project = PROJ ORDER BY created DESC` | JQL | Runs JQL and creates a filter group |
+| `https://…/issues/?jql=…` | JQL URL | Extracts and runs the JQL |
 
-**Press `F2`** from anywhere in the app to instantly focus the search bar. **Press `Escape`** to blur it.
+**Press `F2`** from anywhere in the app to instantly focus the search bar. **Press `Enter`** to execute. **Press `Escape`** to blur.
 
 ---
 
@@ -245,19 +284,45 @@ The right pane shows full ticket details when a ticket is selected.
 
 ```
 ┌───────────────────────────────────────┐
-│  KEY  Title                 [⤢] [↗]  │
-│  Status · Assignee                    │
-│  Reporter  Labels  (+ add label)      │
+│  [Labels]  + Add Label                │
+│  KEY  Title                           │
+│  [Group selector]  [Notes]  [Refresh] │
+├───────────────────────────────────────┤
+│  META GRID  (details below)           │
 ├───────────────────────────────────────┤
 │  PARENT CHAIN (if epic/story/subtask) │
 ├───────────────────────────────────────┤
 │  DESCRIPTION (rendered HTML)          │
-│                                       │
 │  LINKED TICKETS (if any)              │
-│                                       │
 │  COMMENTS                             │
 └───────────────────────────────────────┘
 ```
+
+### Editable Fields
+
+The meta grid at the top of every ticket shows key fields. Editable fields have a hover state (highlighted background + ✏ pencil icon) to signal they can be clicked. Each editable field carries a coloured badge indicating where changes are saved:
+
+| Badge | Colour | Meaning |
+|---|---|---|
+| `Jira` | Blue | Change is sent to Jira via `PUT /rest/api/3/issue/{key}` |
+| `Local` | Green | Change is saved in the extension only, never sent to Jira |
+
+**Jira-synced fields (blue `Jira` badge)**
+
+| Field | Input type | Notes |
+|---|---|---|
+| **Story Points** | Number input | Saves to `story_points` field |
+| **Assignee** | Text search → dropdown | Searches Jira users; click to assign |
+| **Due Date** | Date picker | Saves Jira's built-in `duedate` field; clear to remove |
+
+**Locally-stored fields (green `Local` badge)**
+
+| Field | Input type | Notes |
+|---|---|---|
+| **Start** | Date picker | Internal start date; stored in `state.timelines` |
+| **ETA** | Date picker | Internal completion estimate; stored in `state.timelines` |
+
+To edit any field: click it once to open the input, make your change, then press **Enter** or click elsewhere to save. Press **Escape** to cancel without saving. Fields can be re-edited any number of times.
 
 ### Code Blocks
 
@@ -277,7 +342,7 @@ Click **+ Add Label** to open the label picker. Type a new label name or click a
 
 ### Private Notes
 
-The floating notes panel (bottom of the reading pane, toggled with the notepad icon) is a plain textarea for private thoughts attached to the ticket. Notes are local-only and never sent to Jira.
+The floating notes panel (toggled with the notepad icon) is a plain textarea for private thoughts attached to the ticket. Notes are local-only and never sent to Jira.
 
 ### Parent Hierarchy
 
@@ -296,7 +361,7 @@ Linked tickets (blocks/is blocked by, relates to, etc.) appear in a section with
 | `F2` | Focus the search bar | Anywhere |
 | `↑` / `↓` | Navigate ticket list | Jira tab, no input focused |
 | `Enter` | Open ticket / Load filter | Search bar focused |
-| `Escape` | Blur search bar | Search bar focused |
+| `Escape` | Blur search bar / cancel edit | Search bar or editable field |
 | `Ctrl/Cmd + V` | Paste image | Notes canvas |
 | `Ctrl/Cmd + click` | Open Jira link in browser | Reading pane links |
 
@@ -313,6 +378,41 @@ Click the **gear icon** (top-right) to open Settings.
 | **API Token** | [Generate here](https://id.atlassian.com/manage-profile/security/api-tokens) |
 
 Settings are validated: Jira URL must be a valid URL. Errors are shown inline next to the relevant field.
+
+> **Credentials are stored in `localStorage` on the current device only and are never synced.** You must re-enter them on each Chrome installation.
+
+---
+
+## Data Sync
+
+Crisp uses **`chrome.storage.sync`** for your personal data, enabling automatic cross-device synchronisation across all Chrome instances signed into the same Google account.
+
+### What syncs between devices
+
+| Data | Storage key | Notes |
+|---|---|---|
+| Ticket groups (names, keys) | `crisp_groups` | All custom and filter groups |
+| Labels assigned to tickets | `crisp_labels` | Per-ticket label arrays |
+| Label colours | `crisp_colors` | Label → hex colour map |
+| Per-ticket private notes | `crisp_notes` | Textarea content from the notes panel |
+| Standalone canvas notes | `crisp_canvas` | Note structure and text blocks |
+| Mind maps | `crisp_maps` | All diagram names and Mermaid code |
+| Timeline dates (Start / ETA) | `crisp_prefs` | Internal planning dates per ticket |
+| Preferences & layout | `crisp_prefs` | Active group, active tab, pane widths |
+
+### What does NOT sync (device-local only)
+
+| Data | Storage | Reason |
+|---|---|---|
+| **Credentials** (URL, email, API token) | `localStorage` | Security — tokens should not leave the device |
+| **Issue cache** (ticket data from Jira) | `chrome.storage.local` | Too large to sync; re-fetched from Jira on demand |
+| **Canvas images** (pasted screenshots) | `chrome.storage.local` | Base64 data can be megabytes per image; exceeds sync quota |
+
+> **Practical effect:** If you open Crisp on a new device, your groups, labels, notes, and diagrams will appear immediately. You will need to re-enter credentials and open tickets once to re-populate the issue cache. Images pasted into canvas notes will be missing on other devices (the note structure and text blocks will still sync).
+
+### Sync quota and fallback
+
+`chrome.storage.sync` has a 100 KB total quota and an 8 KB per-item limit. Crisp splits state across seven keys to stay under the per-item limit. If the total quota is exceeded (very heavy use), Crisp automatically falls back to `chrome.storage.local` and shows a warning toast: *"Sync quota full — data saved locally"*. No data is lost; sync is simply paused.
 
 ---
 
@@ -342,7 +442,7 @@ To catch JS runtime errors in a test, register a `page.on('pageerror', ...)` lis
 
 ### Commit Discipline
 
-Commit after each logical change. Push only when all changes for a session are complete.
+Commit after each logical change. Push only when all changes for a session are complete. Bump `manifest.json` `version` on every commit that changes functionality (patch for bug fixes, minor for new features).
 
 ---
 
@@ -354,7 +454,9 @@ Commit after each logical change. Push only when all changes for a session are c
 |---|---|
 | Extension | Chrome Manifest V3 (`extension/` folder) |
 | Front-end | Vanilla JavaScript (ES2020) / HTML5 / CSS3 |
-| Storage | `localStorage` (state + issue cache + screenshots) |
+| Synced storage | `chrome.storage.sync` — groups, labels, notes, diagrams, preferences |
+| Local storage | `chrome.storage.local` — issue cache, images |
+| Credentials | `localStorage` — Jira URL, email, API token (device-only) |
 | Tests | Playwright E2E |
 | Linting | Stylelint + custom class checker + Prettier |
 
@@ -362,22 +464,21 @@ No build step. No framework. No bundler. The extension uses `host_permissions` t
 
 ### JS Module Layout
 
-The app is split into focused files loaded via plain `<script>` tags in `index.html`:
-
 | File | Responsibility |
 |---|---|
-| `api.js` | Jira API calls (`fetchIssue`, `fetchByJql`, `fetchFilter`), config load/save |
+| `api.js` | Jira API calls (`fetchIssue`, `fetchByJql`, `fetchFilter`, `updateIssueFields`, `searchUsers`), config load/save |
 | `utils.js` | `esc()`, `relDate()`, `avBadge()`, `statusClass()`, `stripHtml()`, `AV_COLORS` |
-| `js/state.js` | App state object, `loadState`/`saveState`, group helpers, migrations |
+| `js/state.js` | App state object, `loadState`/`saveState` (chrome.storage), group helpers, migrations |
 | `js/layout.js` | `updateViewMode()` (master render dispatcher), pane collapse, resizer drag |
 | `js/sidebar.js` | Group list rendering, inline create/rename, drag reorder |
 | `js/middle.js` | Ticket list rendering (fast-path optimisation), bulk select mode |
 | `js/history.js` | History table render, sort, column resize, batch-fetch with per-row error states |
 | `js/reading.js` | Slim orchestrator: assembles reading pane HTML, calls binders |
-| `js/reading-content.js` | Pure HTML builders: labels, meta grid, description, linked issues, comments |
-| `js/reading-bindings.js` | DOM binders: action handlers, code copy, Jira link interception, auth images, hierarchy |
+| `js/reading-content.js` | Pure HTML builders: labels, meta grid (with editable fields + scope badges), description, linked issues, comments |
+| `js/reading-bindings.js` | DOM binders: action handlers, inline field editing (`startStoryPointsEdit`, `startAssigneeEdit`, `startDueDateEdit`, `startTimelineEdit`), code copy, Jira link interception, auth images, hierarchy |
 | `js/labels.js` | Label picker modal, `applyLabel`, `removeLabel`, `viewByLabel` |
 | `js/labels-tab.js` | Labels tab render functions (`renderLabelsSidebar`, `renderLabelsMiddle`) |
+| `js/timeline.js` | Timeline tab: `renderTimeline()` — Gantt chart from `state.timelines` |
 | `js/notes.js` | Notes view: sidebar, canvas mount, note CRUD |
 | `js/notes-canvas.js` | Canvas block builder, drag, image paste/drop, Mermaid inline blocks |
 | `js/mindmap.js` | Multi-diagram Mindmap tab, sidebar, Mermaid render loop, pan/zoom |
@@ -395,11 +496,11 @@ The app is split into focused files loaded via plain `<script>` tags in `index.h
 | `css/base.css` | Variables, reset, scrollbars |
 | `css/layout.css` | Topbar, three-pane flex layout, resizer handles |
 | `css/sidebar.css` | Group list, group item, badges, action buttons |
-| `css/ticket-list.css` | Middle pane, ticket cards, middle-header; history table (`.ht-*`) |
-| `css/reading.css` | Reading pane, ticket details, notes panel |
+| `css/ticket-list.css` | Middle pane, ticket cards, middle-header, bulk toolbar; history table (`.ht-*`) |
+| `css/reading.css` | Reading pane, meta grid, editable fields, scope badges, notes panel |
 | `css/jira-content.css` | Jira description HTML rendering, code block copy button |
 | `css/ui.css` | Button system (`.top-btn`), search bar, modals, toasts, badges, forms |
-| `css/tabs.css` | Tab bar, per-mode layout overrides, Notes canvas, Mindmap pane styles |
+| `css/tabs.css` | Tab bar (main + aux), per-mode layout overrides, Timeline pane, Notes canvas, Mindmap pane |
 
 ### Rendering Pipeline
 
@@ -411,6 +512,7 @@ The app is split into focused files loaded via plain `<script>` tags in `index.h
 ```
 appMode === 'jira'     → renderSidebar() + renderMiddle() + renderReading()
 appMode === 'labels'   → renderLabelsSidebar() + renderLabelsMiddle() + renderReading()
+appMode === 'timeline' → renderTimeline()
 appMode === 'notes'    → renderNotesSidebar() + renderNoteCanvas()
 appMode === 'mindmap'  → renderMindMapSidebar() + renderMindMap()
 appMode === 'history'  → renderSidebar() + renderHistoryTable()
@@ -422,40 +524,47 @@ CSS `data-app-mode` attribute selectors handle which panes are visible — no JS
 
 `renderMiddle()` has an optimisation: if the visible key list hasn't changed and no "Loading..." card now has cache data, it skips the full `innerHTML` rebuild and only toggles `.active` / `.selected` on existing DOM nodes. Each card carries a `data-cached="true/false"` watermark for this check.
 
-### State Model
+---
 
-All persistent app state lives in a single `state` object, serialised to `localStorage` as `jira_state`:
+## State Model
+
+All persistent app state lives in a single `state` object, split across `chrome.storage.sync` keys:
 
 ```js
 state = {
-  groups: [{ id, name, keys[], isFilter?, query? }],
+  groups: [{ id, name, keys[], isFilter?, query? }],  // crisp_groups
+  labels: { [ticketKey]: string[] },                  // crisp_labels
+  labelColors: { [label]: string },                   // crisp_colors
+  notes: { [ticketKey]: string },                     // crisp_notes
+  standAloneNotes: [{ id, title, blocks[], created, updated }], // crisp_canvas
+  mindMaps: [{ id, name, code }],                     // crisp_maps
+
+  // All below are stored together in crisp_prefs:
   activeGroupId: string,
   activeKey: string | null,
-  notes: { [ticketKey]: string },          // private per-ticket notes
-  labels: { [ticketKey]: string[] },       // assigned labels
-  labelColors: { [label]: string },        // label → hex color
-  labelsActiveGroup: string | null,        // active label in Labels tab
-  layout: { sidebarWidth, middleWidth, notesWidth, sidebarCollapsed, middleCollapsed },
-  appMode: 'jira' | 'labels' | 'notes' | 'history' | 'mindmap',
-  standAloneNotes: [{ id, title, blocks[], created, updated }],
+  appMode: 'jira' | 'labels' | 'timeline' | 'notes' | 'mindmap' | 'history',
+  labelsActiveGroup: string | null,
   activeNoteId: string | null,
-  mindMaps: [{ id, name, code }],
   activeMindMapId: string | null,
+  layout: { sidebarWidth, middleWidth, notesWidth, sidebarCollapsed,
+            middleCollapsed, notesSidebarWidth, mmSidebarWidth, mmEditorWidth },
+  timelines: { [ticketKey]: { start?: 'YYYY-MM-DD', eta?: 'YYYY-MM-DD' } },
 }
 ```
 
-Special groups: `'history'` (always present, never shown in sidebar, keys are `{key, added}` objects). All other groups use plain string keys.
+Special groups: `'history'` (always present, never shown in sidebar, keys are `{key, added}` objects). All other groups use plain string keys. Always use `entryKey(e)` to extract the plain key string.
 
-`issueCache` is stored separately as `jira_issue_cache`. `screenshotStore` (base64 image data URLs) is stored as `jira_screenshots`.
+`issueCache` is stored separately in `chrome.storage.local` as `jira_issue_cache`. `screenshotStore` (base64 image data URLs) is stored in `chrome.storage.local` as `jira_screenshots`. Neither is synced.
 
 ### State Migrations
 
-`loadState()` automatically migrates old data formats:
+`applyMigrations()` runs on every load and automatically upgrades old data formats:
 
 - Old single `mindMapCode` string → `mindMaps[0]`
 - Old note `body` string → `blocks[]` array (canvas format)
 - Old history keys (plain strings) → `{key, added}` objects
-- Ensures all required fields exist on old state objects
+- Old `localStorage` state → migrated to `chrome.storage.sync` on first run after upgrade
+- Ensures all required fields (`timelines`, `standAloneNotes`, etc.) exist on state loaded from older versions
 
 ---
 

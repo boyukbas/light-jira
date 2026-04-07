@@ -22,7 +22,7 @@ Create named groups (e.g. "This Sprint", "On Hold", "Reviewing") and drag ticket
 
 • Create, rename, reorder (drag), and delete groups
 • Drag tickets between groups; drag groups to reorder the sidebar
-• Bulk select: move or remove multiple tickets at once
+• Bulk select: move, remove, or bulk-assign multiple tickets at once
 • Group search: filter the ticket list by key or summary
 
 ──────────────────────────────────────
@@ -42,6 +42,12 @@ One search bar handles everything:
 ──────────────────────────────────────
 
 Add colour-coded labels to any ticket. The Labels tab auto-generates groups from your tags — no setup required. Click a label badge in the reading pane to filter across all your tickets by that label. Great for cross-project themes like "needs-design", "blocked", or "Q2".
+
+──────────────────────────────────────
+📅 TIMELINE TAB
+──────────────────────────────────────
+
+Plan your own schedule without touching Jira. Set a Start date and ETA on any ticket (stored locally — no changes pushed to Jira) and the Timeline tab visualises all your planned tickets as a Gantt-style chart. See what's running in parallel, what's overdue, and what's coming up — at a glance.
 
 ──────────────────────────────────────
 📝 FREEFORM NOTES CANVAS
@@ -80,13 +86,30 @@ Every ticket you've opened is saved in a sortable, searchable history table. Col
 Click the toolbar icon while browsing Jira and the popup detects all ticket keys visible on the current page. Select any combination of tickets and beam them into a named group in Crisp — no manual searching.
 
 ──────────────────────────────────────
-🔒 PRIVACY
+✏️ EDIT TICKETS FROM THE READING PANE
 ──────────────────────────────────────
 
-Crisp talks directly to your Jira instance using your own API token. No data is sent to any third-party server. No analytics. No tracking. Everything — tickets, notes, labels, history — is stored locally in your browser's localStorage.
+Update tickets without opening Jira. Editable fields are highlighted with a pencil hint on hover:
+
+• Story Points, Assignee, Due Date — saved directly to Jira (marked "Jira")
+• Start Date, ETA — stored locally for your personal planning (marked "Local")
+
+──────────────────────────────────────
+🔒 PRIVACY & DATA SYNC
+──────────────────────────────────────
+
+Crisp talks directly to your Jira instance using your own API token. No data is sent to any third-party server. No analytics. No tracking.
+
+Your data is stored in three places:
+
+• chrome.storage.sync — groups, labels, notes, diagrams, timelines, and preferences are synced across your Chrome devices automatically via your Google account
+• chrome.storage.local — ticket cache and screenshot images stay on this device only (not synced, can be large)
+• localStorage — your Jira credentials (URL, email, API token) are stored only on this device and never synced
 
 Required permissions:
 • tabs — to read the current tab URL for Jira Beam
+• windows — to open the extension popup
+• storage — to save and sync your groups, labels, notes, and preferences
 • https://*.atlassian.net/* — direct API access to your Jira instance
 
 ──────────────────────────────────────
