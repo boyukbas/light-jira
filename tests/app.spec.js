@@ -1727,8 +1727,18 @@ test.describe('Timeline', () => {
     await page.goto('/');
   });
 
-  test('Timeline tab is visible in aux-tab-bar', async ({ page }) => {
-    await expect(page.locator('#aux-tab-bar #tab-timeline')).toBeVisible();
+  test('Timeline tab is visible in the main tab-bar', async ({ page }) => {
+    await expect(page.locator('#tab-bar #tab-timeline')).toBeVisible();
+  });
+
+  test('Timeline tab is between Labels and History in main tab-bar', async ({ page }) => {
+    const tabs = await page.locator('#tab-bar .tab-btn').allTextContents();
+    const cleaned = tabs.map((t) => t.trim());
+    const labelsIdx = cleaned.findIndex((t) => t.includes('Labels'));
+    const timelineIdx = cleaned.findIndex((t) => t.includes('Timeline'));
+    const historyIdx = cleaned.findIndex((t) => t.includes('History'));
+    expect(timelineIdx).toBeGreaterThan(labelsIdx);
+    expect(timelineIdx).toBeLessThan(historyIdx);
   });
 
   test('clicking Timeline tab switches to timeline mode', async ({ page }) => {
@@ -1796,6 +1806,65 @@ test.describe('Timeline', () => {
     await page.click('#tab-timeline');
     await expect(page.locator('#timeline-pane')).toBeVisible();
     await expect(page.locator('#timeline-pane')).toContainText('PROJ-123', { timeout: 3000 });
+  });
+});
+
+// ── META GRID DISCOVERABILITY ─────────────────────────────────────────────────
+test.describe('Meta grid discoverability', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('Due field is editable (has data-editable="due-date")', async ({ page }) => {
+    await expect(page.locator('[data-editable="due-date"]')).toBeVisible();
+  });
+
+  test('clicking Due field shows a date input', async ({ page }) => {
+    await page.locator('[data-editable="due-date"] .meta-value').click();
+    await expect(page.locator('[data-editable="due-date"] input[type="date"]')).toBeVisible();
+  });
+
+  test('setting Due date sends PUT to Jira with duedate field', async ({ page }) => {
+    let putBody = null;
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/PROJ-123'),
+      async (route) => {
+        if (route.request().method() === 'PUT') {
+          putBody = route.request().postDataJSON();
+          await route.fulfill({ status: 204, body: '' });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(issueFixture),
+          });
+        }
+      }
+    );
+    await page.locator('[data-editable="due-date"] .meta-value').click();
+    await page.locator('[data-editable="due-date"] input[type="date"]').fill('2026-07-01');
+    await page.locator('[data-editable="due-date"] input[type="date"]').press('Enter');
+    await expect(async () => {
+      expect(putBody?.fields?.duedate).toBe('2026-07-01');
+    }).toPass({ timeout: 3000 });
+  });
+
+  test('Jira-synced editable fields have a Jira scope badge', async ({ page }) => {
+    await expect(page.locator('[data-editable="assignee"] .field-scope-jira')).toBeVisible();
+    await expect(page.locator('[data-editable="story-points"] .field-scope-jira')).toBeVisible();
+    await expect(page.locator('[data-editable="due-date"] .field-scope-jira')).toBeVisible();
+  });
+
+  test('local editable fields have a Local scope badge', async ({ page }) => {
+    await expect(page.locator('[data-editable="tl-start"] .field-scope-local')).toBeVisible();
+    await expect(page.locator('[data-editable="tl-eta"] .field-scope-local')).toBeVisible();
   });
 });
 
