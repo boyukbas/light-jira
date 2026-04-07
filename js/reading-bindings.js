@@ -199,18 +199,34 @@ async function renderHierarchy(rootKey, directParent) {
 function bindEditableMetaFields(container, issueKey) {
   container.querySelectorAll('[data-editable]').forEach((item) => {
     const type = item.dataset.editable;
-    const valueEl = item.querySelector('.meta-value');
-    if (!valueEl) return;
 
     item.addEventListener('click', () => {
       if (item.querySelector('input')) return; // already editing
-      if (type === 'story-points') startStoryPointsEdit(item, valueEl, issueKey);
-      if (type === 'assignee') startAssigneeEdit(item, valueEl, issueKey);
-      if (type === 'due-date') startDueDateEdit(item, valueEl, issueKey);
+      // Always look up the current .meta-value — never use a captured reference,
+      // because replaceWith() detaches the original node and any closure over it
+      // will silently operate on a detached (invisible) element.
+      const currentValueEl = item.querySelector('.meta-value');
+      if (!currentValueEl) return;
+      if (type === 'story-points') startStoryPointsEdit(item, currentValueEl, issueKey);
+      if (type === 'assignee') startAssigneeEdit(item, currentValueEl, issueKey);
+      if (type === 'due-date') startDueDateEdit(item, currentValueEl, issueKey);
       if (type === 'tl-start' || type === 'tl-eta')
-        startTimelineEdit(type, item, valueEl, issueKey);
+        startTimelineEdit(type, item, currentValueEl, issueKey);
     });
   });
+}
+
+// Build a fresh .meta-value div that includes the .edit-hint span so
+// hover state is preserved after the input is committed and replaced.
+function makeMetaValue(text) {
+  const div = document.createElement('div');
+  div.className = 'meta-value';
+  div.textContent = text;
+  const hint = document.createElement('span');
+  hint.className = 'edit-hint';
+  hint.setAttribute('aria-hidden', 'true');
+  div.appendChild(hint);
+  return div;
 }
 
 function startStoryPointsEdit(item, valueEl, issueKey) {
@@ -237,20 +253,12 @@ function startStoryPointsEdit(item, valueEl, issueKey) {
         toast('Failed to save: ' + e.message, 'error');
       }
     }
-    const newValueEl = document.createElement('div');
-    newValueEl.className = 'meta-value';
-    newValueEl.textContent = isNaN(val) ? current : val;
-    input.replaceWith(newValueEl);
+    input.replaceWith(makeMetaValue(isNaN(val) ? current : val));
   };
 
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') input.blur();
-    if (e.key === 'Escape') {
-      const newValueEl = document.createElement('div');
-      newValueEl.className = 'meta-value';
-      newValueEl.textContent = current;
-      input.replaceWith(newValueEl);
-    }
+    if (e.key === 'Escape') input.replaceWith(makeMetaValue(current));
   });
   input.addEventListener('blur', commit);
 }
@@ -296,10 +304,7 @@ function startAssigneeEdit(item, valueEl, issueKey) {
         } catch (e2) {
           toast('Failed to save: ' + e2.message, 'error');
         }
-        const newValueEl = document.createElement('div');
-        newValueEl.className = 'meta-value';
-        newValueEl.textContent = u.displayName;
-        input.replaceWith(newValueEl);
+        input.replaceWith(makeMetaValue(u.displayName));
       });
       dropdown.appendChild(row);
     });
@@ -327,11 +332,9 @@ function startAssigneeEdit(item, valueEl, issueKey) {
     setTimeout(() => {
       removeDropdown();
       if (!item.querySelector('.meta-value')) {
-        const newValueEl = document.createElement('div');
-        newValueEl.className = 'meta-value';
-        newValueEl.textContent =
-          issueCache[issueKey]?.fields?.assignee?.displayName || 'Unassigned';
-        input.replaceWith(newValueEl);
+        input.replaceWith(
+          makeMetaValue(issueCache[issueKey]?.fields?.assignee?.displayName || 'Unassigned')
+        );
       }
     }, 150);
   });
@@ -339,10 +342,9 @@ function startAssigneeEdit(item, valueEl, issueKey) {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       removeDropdown();
-      const newValueEl = document.createElement('div');
-      newValueEl.className = 'meta-value';
-      newValueEl.textContent = issueCache[issueKey]?.fields?.assignee?.displayName || 'Unassigned';
-      input.replaceWith(newValueEl);
+      input.replaceWith(
+        makeMetaValue(issueCache[issueKey]?.fields?.assignee?.displayName || 'Unassigned')
+      );
     }
   });
 }
@@ -376,10 +378,7 @@ function startDueDateEdit(item, valueEl, issueKey) {
         toast('Failed to save: ' + e.message, 'error');
       }
     }
-    const newValueEl = document.createElement('div');
-    newValueEl.className = 'meta-value';
-    newValueEl.textContent = formatDisplay(val);
-    input.replaceWith(newValueEl);
+    input.replaceWith(makeMetaValue(formatDisplay(val)));
   };
 
   input.addEventListener('keydown', (e) => {
@@ -387,12 +386,7 @@ function startDueDateEdit(item, valueEl, issueKey) {
       e.preventDefault();
       input.blur();
     }
-    if (e.key === 'Escape') {
-      const newValueEl = document.createElement('div');
-      newValueEl.className = 'meta-value';
-      newValueEl.textContent = formatDisplay(current);
-      input.replaceWith(newValueEl);
-    }
+    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current)));
   });
   input.addEventListener('blur', commit);
 }
@@ -426,10 +420,7 @@ function startTimelineEdit(type, item, valueEl, issueKey) {
       if (!Object.keys(state.timelines[issueKey]).length) delete state.timelines[issueKey];
     }
     saveState();
-    const newValueEl = document.createElement('div');
-    newValueEl.className = 'meta-value';
-    newValueEl.textContent = formatDisplay(val);
-    input.replaceWith(newValueEl);
+    input.replaceWith(makeMetaValue(formatDisplay(val)));
   };
 
   input.addEventListener('keydown', (e) => {
@@ -437,12 +428,7 @@ function startTimelineEdit(type, item, valueEl, issueKey) {
       e.preventDefault();
       input.blur();
     }
-    if (e.key === 'Escape') {
-      const newValueEl = document.createElement('div');
-      newValueEl.className = 'meta-value';
-      newValueEl.textContent = formatDisplay(current);
-      input.replaceWith(newValueEl);
-    }
+    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current)));
   });
   input.addEventListener('blur', commit);
 }

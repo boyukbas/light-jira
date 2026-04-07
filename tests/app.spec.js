@@ -1868,6 +1868,104 @@ test.describe('Meta grid discoverability', () => {
   });
 });
 
+// ── EDITABLE FIELD RE-ACTIVATION ─────────────────────────────────────────────
+// Regression tests: clicking an editable field a second time (after blur/Escape)
+// must show the input again. The original bug was a stale DOM reference captured
+// once at bind-time; after replaceWith() the closure held a detached node.
+test.describe('Editable field re-activation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+  });
+
+  // Helper: open field → set value → blur → re-open → assert input visible again
+  async function roundTrip(page, selector, inputType, fillValue) {
+    const valueLocator = page.locator(`${selector} .meta-value`);
+    const inputLocator = page.locator(`${selector} input[type="${inputType}"]`);
+    // First activation
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+    if (fillValue !== null) await inputLocator.fill(fillValue);
+    await inputLocator.press('Escape');
+    await expect(inputLocator).not.toBeVisible({ timeout: 2000 });
+    // Second activation — this failed before the fix
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+  }
+
+  test('Due date is re-activatable after Escape', async ({ page }) => {
+    await roundTrip(page, '[data-editable="due-date"]', 'date', null);
+  });
+
+  test('Due date is re-activatable after committing a date', async ({ page }) => {
+    const valueLocator = page.locator('[data-editable="due-date"] .meta-value');
+    const inputLocator = page.locator('[data-editable="due-date"] input[type="date"]');
+    // First: set a date and commit via Enter
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+    await inputLocator.fill('2026-08-01');
+    await inputLocator.press('Enter');
+    await expect(inputLocator).not.toBeVisible({ timeout: 2000 });
+    // Second activation
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+  });
+
+  test('Start date is re-activatable after Escape', async ({ page }) => {
+    await roundTrip(page, '[data-editable="tl-start"]', 'date', null);
+  });
+
+  test('ETA date is re-activatable after committing a date', async ({ page }) => {
+    const valueLocator = page.locator('[data-editable="tl-eta"] .meta-value');
+    const inputLocator = page.locator('[data-editable="tl-eta"] input[type="date"]');
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+    await inputLocator.fill('2026-09-01');
+    await inputLocator.press('Enter');
+    await expect(inputLocator).not.toBeVisible({ timeout: 2000 });
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+  });
+
+  test('Story Points is re-activatable after Escape', async ({ page }) => {
+    await roundTrip(page, '[data-editable="story-points"]', 'number', null);
+  });
+
+  test('Story Points is re-activatable after committing a value', async ({ page }) => {
+    const valueLocator = page.locator('[data-editable="story-points"] .meta-value');
+    const inputLocator = page.locator('[data-editable="story-points"] input[type="number"]');
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+    await inputLocator.fill('13');
+    await inputLocator.press('Enter');
+    await expect(inputLocator).not.toBeVisible({ timeout: 2000 });
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+  });
+
+  test('Assignee is re-activatable after Escape', async ({ page }) => {
+    await roundTrip(page, '[data-editable="assignee"]', 'text', null);
+  });
+
+  test('edit-hint pencil is still shown on hover after a commit', async ({ page }) => {
+    // After committing, the new .meta-value must still contain .edit-hint
+    const valueLocator = page.locator('[data-editable="due-date"] .meta-value');
+    const inputLocator = page.locator('[data-editable="due-date"] input[type="date"]');
+    await valueLocator.click();
+    await expect(inputLocator).toBeVisible({ timeout: 3000 });
+    await inputLocator.press('Escape');
+    await expect(inputLocator).not.toBeVisible({ timeout: 2000 });
+    // The replaced .meta-value should still have the .edit-hint span
+    await expect(page.locator('[data-editable="due-date"] .meta-value .edit-hint')).toBeAttached();
+  });
+});
+
 // ── PWA ───────────────────────────────────────────────────────────────────────
 test.describe('PWA', () => {
   test('registers service worker on startup', async ({ page }) => {
