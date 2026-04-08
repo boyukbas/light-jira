@@ -101,3 +101,43 @@ function avBadge(name, cls) {
     '</div>'
   );
 }
+
+const TRASH_SVG =
+  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+  '<polyline points="3 6 5 6 21 6"/>' +
+  '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>' +
+  '<path d="M10 11v6"/><path d="M14 11v6"/>' +
+  '<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>' +
+  '</svg>';
+
+function startInlineCreate(listEl, placeholder, onCommit) {
+  if (!listEl || listEl.querySelector('.group-item-new')) return;
+  const row = document.createElement('div');
+  row.className = 'group-item group-item-new';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'g-name-input';
+  input.placeholder = placeholder;
+  row.appendChild(input);
+  listEl.appendChild(row);
+  input.focus();
+
+  let done = false;
+  function commit() {
+    if (done) return;
+    done = true;
+    const name = input.value.trim();
+    row.remove();
+    onCommit(name);
+  }
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    } else if (e.key === 'Escape') {
+      done = true;
+      row.remove();
+    }
+  });
+  input.addEventListener('blur', commit);
+}

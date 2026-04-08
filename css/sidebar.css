@@ -163,7 +163,8 @@
 }
 
 /* Hide Jira-only controls in other modes */
-body[data-app-mode='labels'] #find-duplicates-btn {
+body[data-app-mode='labels'] #find-duplicates-btn,
+body[data-app-mode='labels'] #add-group-btn {
   display: none;
 }
 

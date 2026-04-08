@@ -79,6 +79,8 @@ function applyMigrations() {
   if (!state.layout.mmEditorWidth) state.layout.mmEditorWidth = 280;
   if (state.layout.ncSidebarCollapsed === undefined) state.layout.ncSidebarCollapsed = false;
   if (state.layout.mmSidebarCollapsed === undefined) state.layout.mmSidebarCollapsed = false;
+  if (!state.layout.ncGroupsPaneWidth) state.layout.ncGroupsPaneWidth = 180;
+  if (!state.layout.mmGroupsPaneWidth) state.layout.mmGroupsPaneWidth = 180;
   if (!state.appMode) state.appMode = 'jira';
   if (state.labelsActiveGroup === undefined) state.labelsActiveGroup = null;
 

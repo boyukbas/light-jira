@@ -25,11 +25,17 @@ function updateViewMode() {
     nts.style.width = state.layout.notesWidth + 'px';
   }
 
+  const ncGroupsPane = document.getElementById('nc-groups-pane');
+  if (ncGroupsPane) ncGroupsPane.style.width = state.layout.ncGroupsPaneWidth + 'px';
+
   const ncSidebar = document.getElementById('nc-sidebar');
   if (ncSidebar) {
     ncSidebar.style.width = state.layout.notesSidebarWidth + 'px';
     ncSidebar.classList.toggle('collapsed', state.layout.ncSidebarCollapsed);
   }
+
+  const mmGroupsPane = document.getElementById('mm-groups-pane');
+  if (mmGroupsPane) mmGroupsPane.style.width = state.layout.mmGroupsPaneWidth + 'px';
 
   const mmSidebarPanel = document.getElementById('mm-sidebar-panel');
   const mmEditorPanel = document.getElementById('mm-editor-panel');
@@ -115,7 +121,9 @@ function initResizing() {
   setup('resizer-sidebar', 'sidebar', 'sidebarWidth', 120, 'left');
   setup('resizer-middle', 'middle', 'middleWidth', 150, 'left');
   setup('resizer-notes', 'notes-pane', 'notesWidth', 200, 'right');
+  setup('resizer-nc-groups', 'nc-groups-pane', 'ncGroupsPaneWidth', 100, 'left');
   setup('resizer-nc-sidebar', 'nc-sidebar', 'notesSidebarWidth', 140, 'left');
+  setup('resizer-mm-groups', 'mm-groups-pane', 'mmGroupsPaneWidth', 100, 'left');
   setup('resizer-mm-sidebar', 'mm-sidebar-panel', 'mmSidebarWidth', 120, 'left');
   setup('resizer-mm-editor', 'mm-editor-panel', 'mmEditorWidth', 150, 'left');
 }
