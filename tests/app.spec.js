@@ -988,28 +988,118 @@ test.describe('Bulk Actions', () => {
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 5000 });
   });
 
-  test('Jira mode always has bulk-mode class and visible toolbar', async ({ page }) => {
-    await expect(page.locator('#middle')).toHaveClass(/bulk-mode/);
-    await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
+  // ── Core click behaviour ───────────────────────────────────────────────────
+
+  test('plain click opens ticket — not checkbox selection', async ({ page }) => {
+    await page.locator('#ticket-list .list-card').first().click();
+    // Reading pane content should become visible
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 3000 });
+    // No card should be "selected" (bulk-selected)
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(0);
   });
 
-  test('Labels mode never shows bulk-mode class or toolbar', async ({ page }) => {
-    await page.click('#tab-labels');
-    await expect(page.locator('#middle')).not.toHaveClass(/bulk-mode/);
+  test('ctrl+click selects ticket without making it active', async ({ page }) => {
+    // ctrl+click the second card (no prior active)
+    await page
+      .locator('#ticket-list .list-card')
+      .nth(1)
+      .click({ modifiers: ['Control'] });
+    // second card should have .selected but NOT .active
+    await expect(page.locator('#ticket-list .list-card').nth(1)).toHaveClass(/selected/);
+    await expect(page.locator('#ticket-list .list-card').nth(1)).not.toHaveClass(/active/);
+  });
+
+  test('ctrl+click toggles deselection of already selected ticket', async ({ page }) => {
+    const card = page.locator('#ticket-list .list-card').first();
+    await card.click({ modifiers: ['Control'] });
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(1);
+    await card.click({ modifiers: ['Control'] });
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(0);
+  });
+
+  test('shift+click selects all tickets in range', async ({ page }) => {
+    // Add a third ticket so we can test a range of 3
+    await page.fill('#search-input', 'PROJ-789');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(3, { timeout: 5000 });
+
+    // ctrl+click first to set anchor, then shift+click third
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
+    await page
+      .locator('#ticket-list .list-card')
+      .nth(2)
+      .click({ modifiers: ['Shift'] });
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(3);
+  });
+
+  test('plain click after selection clears selection and opens ticket', async ({ page }) => {
+    // First ctrl+click to build up a selection
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(1);
+    // Now plain click the second card
+    await page.locator('#ticket-list .list-card').nth(1).click();
+    // Selection should be cleared
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(0);
+    // The clicked card should now be active
+    await expect(page.locator('#ticket-list .list-card').nth(1)).toHaveClass(/active/);
+  });
+
+  // ── Toolbar visibility ─────────────────────────────────────────────────────
+
+  test('bulk toolbar is hidden when no selection', async ({ page }) => {
     await expect(page.locator('#bulk-toolbar')).not.toHaveClass(/visible/);
   });
 
-  test('switching back to Jira from Labels re-activates bulk UI', async ({ page }) => {
-    await page.click('#tab-labels');
-    await page.click('#tab-jira');
-    await expect(page.locator('#middle')).toHaveClass(/bulk-mode/);
+  test('bulk toolbar appears when a ticket is ctrl+clicked', async ({ page }) => {
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
     await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
   });
 
-  test('clicking a card selects it', async ({ page }) => {
-    await page.locator('#ticket-list .list-card').first().click();
-    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(1);
+  test('bulk toolbar hides when plain click clears selection', async ({ page }) => {
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
+    await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
+    await page.locator('#ticket-list .list-card').nth(1).click();
+    await expect(page.locator('#bulk-toolbar')).not.toHaveClass(/visible/);
   });
+
+  test('switching groups clears selection and hides toolbar', async ({ page }) => {
+    await createGroup(page, 'Other Group');
+    // Go back to Inbox and select a ticket
+    await page.locator('#group-list .group-item').first().click();
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
+    await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
+    // Switch to Other Group
+    await page.locator('#group-list .group-item').last().click();
+    await expect(page.locator('#bulk-toolbar')).not.toHaveClass(/visible/);
+    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(0);
+  });
+
+  test('switching to Labels tab clears selection and hides toolbar', async ({ page }) => {
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
+    await expect(page.locator('#bulk-toolbar')).toHaveClass(/visible/);
+    await page.click('#tab-labels');
+    await expect(page.locator('#bulk-toolbar')).not.toHaveClass(/visible/);
+  });
+
+  // ── Toolbar position ───────────────────────────────────────────────────────
 
   test('bulk toolbar is positioned above the ticket list in DOM', async ({ page }) => {
     const order = await page.evaluate(() => {
@@ -1021,34 +1111,36 @@ test.describe('Bulk Actions', () => {
     expect(order.toolbar).toBeLessThan(order.list);
   });
 
-  test('bulk action buttons are icon-only with title attributes', async ({ page }) => {
-    await expect(page.locator('#bulk-check-all-btn')).toHaveAttribute('title');
-    await expect(page.locator('#bulk-clear-btn')).toHaveAttribute('title');
-    await expect(page.locator('#bulk-delete-btn')).toHaveAttribute('title');
-    // Buttons must contain no visible text — SVG only
-    const text = await page.locator('#bulk-delete-btn').textContent();
-    expect(text.trim()).toBe('');
-  });
+  // ── Toolbar actions ────────────────────────────────────────────────────────
 
   test('Delete button is disabled when no tickets are selected', async ({ page }) => {
     await expect(page.locator('#bulk-delete-btn')).toBeDisabled();
   });
 
-  test('Delete button is enabled when tickets are selected', async ({ page }) => {
-    await page.locator('#ticket-list .list-card').first().click();
+  test('Delete button is enabled when tickets are ctrl+clicked', async ({ page }) => {
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
     await expect(page.locator('#bulk-delete-btn')).toBeEnabled();
   });
 
   test('bulk delete removes selected tickets', async ({ page }) => {
-    await page.locator('#ticket-list .list-card').first().click();
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
     await page.click('#bulk-delete-btn');
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
   });
 
-  test('bulk delete stays in Jira mode with empty selection', async ({ page }) => {
-    await page.locator('#ticket-list .list-card').first().click();
+  test('bulk delete hides toolbar after removing all selected', async ({ page }) => {
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
     await page.click('#bulk-delete-btn');
-    await expect(page.locator('#middle')).toHaveClass(/bulk-mode/);
+    await expect(page.locator('#bulk-toolbar')).not.toHaveClass(/visible/);
   });
 
   test('bulk move transfers selected tickets to another group', async ({ page }) => {
@@ -1056,34 +1148,19 @@ test.describe('Bulk Actions', () => {
     await expect(page.locator('#group-list .group-item')).toHaveCount(2, { timeout: 3000 });
 
     await page.locator('#group-list .group-item').first().click();
-    await page.locator('#ticket-list .list-card').first().click();
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
     await page.selectOption('#bulk-move-select', { label: 'Target Group' });
 
     await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
   });
 
-  test('Check All selects all visible tickets', async ({ page }) => {
-    await page.click('#bulk-check-all-btn');
-    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(2);
-  });
-
-  test('Clear deselects all selected tickets', async ({ page }) => {
-    await page.click('#bulk-check-all-btn');
-    await page.click('#bulk-clear-btn');
-    await expect(page.locator('#ticket-list .list-card.selected')).toHaveCount(0);
-  });
-
-  test('Check All is disabled when all tickets already selected', async ({ page }) => {
-    await page.click('#bulk-check-all-btn');
-    await expect(page.locator('#bulk-check-all-btn')).toBeDisabled();
-  });
-
-  test('Clear is disabled when nothing is selected', async ({ page }) => {
-    await expect(page.locator('#bulk-clear-btn')).toBeDisabled();
-  });
-
-  test('bulk-assign-input is visible in Jira mode toolbar', async ({ page }) => {
-    await expect(page.locator('#bulk-assign-input')).toBeVisible();
+  test('bulk delete icon-only button has title attribute', async ({ page }) => {
+    await expect(page.locator('#bulk-delete-btn')).toHaveAttribute('title');
+    const text = await page.locator('#bulk-delete-btn').textContent();
+    expect(text.trim()).toBe('');
   });
 
   test('typing in bulk-assign-input shows matching users', async ({ page }) => {
@@ -1100,7 +1177,11 @@ test.describe('Bulk Actions', () => {
         });
       }
     );
-    await page.locator('#ticket-list .list-card').first().click();
+    // First select a ticket so the assign input is enabled
+    await page
+      .locator('#ticket-list .list-card')
+      .first()
+      .click({ modifiers: ['Control'] });
     await page.fill('#bulk-assign-input', 'Bob');
     await expect(
       page.locator('#bulk-assign-results .bulk-assign-result:text("Bob Builder")')
@@ -1136,9 +1217,15 @@ test.describe('Bulk Actions', () => {
       }
     );
 
-    // Select both tickets
-    await page.locator('#ticket-list .list-card').nth(0).click();
-    await page.locator('#ticket-list .list-card').nth(1).click();
+    // Select both tickets with ctrl+click
+    await page
+      .locator('#ticket-list .list-card')
+      .nth(0)
+      .click({ modifiers: ['Control'] });
+    await page
+      .locator('#ticket-list .list-card')
+      .nth(1)
+      .click({ modifiers: ['Control'] });
 
     await page.fill('#bulk-assign-input', 'Bob');
     await page

@@ -77,7 +77,7 @@ function renderSidebar() {
       groupSearchQuery = '';
       const gsi = document.getElementById('group-search-input');
       if (gsi) gsi.value = '';
-      if (bulkSelectMode) exitBulkMode();
+      clearBulkSelection();
       state.appMode = 'jira';
       state.activeGroupId = el.dataset.id;
       const g = getGroup(state.activeGroupId);
