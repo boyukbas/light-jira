@@ -1947,34 +1947,39 @@ test.describe('UI standardisation', () => {
     await expect(page.locator('#tab-notes')).toHaveClass(/active/);
   });
 
-  // P2: Standardised "+" buttons
-  test('Mindmap add button is NOT in the sidebar header', async ({ page }) => {
+  // P2: Add buttons in section title row
+  test('Mindmap add button is in the sidebar header', async ({ page }) => {
     await page.click('#tab-mindmap');
-    const headerBtn = page.locator('.mm-sidebar-header #mm-add-btn');
-    await expect(headerBtn).toHaveCount(0);
+    await expect(page.locator('.mm-sidebar-header #mm-add-btn')).toHaveCount(1);
   });
 
-  test('Mindmap add button is below the diagram list', async ({ page }) => {
+  test('Mindmap add button is left of collapse button in header', async ({ page }) => {
     await page.click('#tab-mindmap');
-    await expect(page.locator('#mm-add-btn')).toBeVisible();
-    // Must come after #mm-diagram-list in DOM order
-    const order = await page.evaluate(() => {
-      const list = document.getElementById('mm-diagram-list');
-      const btn = document.getElementById('mm-add-btn');
-      return list.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING;
+    const isLeftOf = await page.evaluate(() => {
+      const add = document.getElementById('mm-add-btn');
+      const collapse = document.getElementById('mm-collapse-btn');
+      return !!(add.compareDocumentPosition(collapse) & Node.DOCUMENT_POSITION_FOLLOWING);
     });
-    expect(order).toBeTruthy();
+    expect(isLeftOf).toBe(true);
   });
 
-  test('all sidebar add buttons share the same class', async ({ page }) => {
-    const addGroupHasCls = await page
-      .locator('#add-group-btn')
-      .evaluate((el) => el.classList.contains('sidebar-add-btn'));
-    const addNoteHasCls = await page
-      .locator('#add-note-btn')
-      .evaluate((el) => el.classList.contains('sidebar-add-btn'));
-    expect(addGroupHasCls).toBe(true);
-    expect(addNoteHasCls).toBe(true);
+  test('Notes add button is in the sidebar header', async ({ page }) => {
+    await page.click('#tab-notes');
+    await expect(page.locator('.nc-sidebar-header #add-note-btn')).toHaveCount(1);
+  });
+
+  test('Notes add button is left of collapse button in header', async ({ page }) => {
+    await page.click('#tab-notes');
+    const isLeftOf = await page.evaluate(() => {
+      const add = document.getElementById('add-note-btn');
+      const collapse = document.getElementById('nc-collapse-btn');
+      return !!(add.compareDocumentPosition(collapse) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(isLeftOf).toBe(true);
+  });
+
+  test('#add-group-btn uses sidebar-add-btn class', async ({ page }) => {
+    await expect(page.locator('#add-group-btn.sidebar-add-btn')).toHaveCount(1);
   });
 });
 
