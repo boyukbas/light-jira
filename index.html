@@ -206,7 +206,7 @@
     <div id="app-body">
       <!-- LEFT: Groups -->
       <div id="sidebar">
-        <div class="middle-header" style="justify-content: space-between; padding: 12px 10px">
+        <div class="middle-header" style="padding: 12px 10px">
           <span
             style="
               font-weight: 600;
@@ -218,26 +218,42 @@
           >
             Lists
           </span>
-          <span style="display: flex; gap: 4px">
-            <button
-              class="top-btn icon-only"
-              id="find-duplicates-btn"
-              title="Find Duplicates"
-              aria-label="Find Duplicates"
+          <button
+            class="top-btn icon-only"
+            id="find-duplicates-btn"
+            title="Find Duplicates"
+            aria-label="Find Duplicates"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <circle cx="9" cy="12" r="6" />
-                <circle cx="15" cy="12" r="6" />
-              </svg>
-            </button>
-          </span>
+              <circle cx="9" cy="12" r="6" />
+              <circle cx="15" cy="12" r="6" />
+            </svg>
+          </button>
+          <button
+            id="add-group-btn"
+            class="top-btn icon-only"
+            title="New List"
+            aria-label="New List"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
           <button
             class="top-btn icon-only collapse-btn"
             id="sidebar-collapse-btn"
@@ -258,19 +274,6 @@
           </button>
         </div>
         <div id="group-list"></div>
-        <button id="add-group-btn" class="sidebar-add-btn" title="New Group">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-          >
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
       </div>
 
       <div class="resizer" id="resizer-sidebar"></div>

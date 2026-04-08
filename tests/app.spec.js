@@ -1978,8 +1978,22 @@ test.describe('UI standardisation', () => {
     expect(isLeftOf).toBe(true);
   });
 
-  test('#add-group-btn uses sidebar-add-btn class', async ({ page }) => {
-    await expect(page.locator('#add-group-btn.sidebar-add-btn')).toHaveCount(1);
+  test('#add-group-btn is in the sidebar header', async ({ page }) => {
+    const inside = await page.evaluate(() =>
+      document
+        .querySelector('#sidebar .middle-header')
+        .contains(document.getElementById('add-group-btn'))
+    );
+    expect(inside).toBe(true);
+  });
+
+  test('#add-group-btn is left of sidebar-collapse-btn in header', async ({ page }) => {
+    const isLeftOf = await page.evaluate(() => {
+      const add = document.getElementById('add-group-btn');
+      const collapse = document.getElementById('sidebar-collapse-btn');
+      return !!(add.compareDocumentPosition(collapse) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(isLeftOf).toBe(true);
   });
 });
 
