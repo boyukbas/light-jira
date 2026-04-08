@@ -28,9 +28,61 @@ function createNote() {
     blocks: [],
     created: Date.now(),
     updated: Date.now(),
+    groupId: state.activeNoteGroupId,
   };
   state.standAloneNotes.unshift(note);
   state.activeNoteId = note.id;
+  saveState();
+  updateViewMode();
+}
+
+function createNoteGroup() {
+  const list = document.getElementById('nc-group-list');
+  if (!list || list.querySelector('.group-item-new')) return;
+  const row = document.createElement('div');
+  row.className = 'group-item group-item-new';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'g-name-input';
+  input.placeholder = 'Group name\u2026';
+  row.appendChild(input);
+  list.appendChild(row);
+  input.focus();
+
+  let done = false;
+  function commit() {
+    if (done) return;
+    done = true;
+    const name = input.value.trim();
+    row.remove();
+    if (name) {
+      if (!state.noteGroups) state.noteGroups = [];
+      const g = { id: 'ng_' + Date.now(), name };
+      state.noteGroups.push(g);
+      state.activeNoteGroupId = g.id;
+      saveState();
+    }
+    renderNotesSidebar();
+  }
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    } else if (e.key === 'Escape') {
+      done = true;
+      row.remove();
+    }
+  });
+  input.addEventListener('blur', commit);
+}
+
+function deleteNoteGroup(id) {
+  // Move notes in this group to "All" (groupId = null)
+  for (const n of state.standAloneNotes) {
+    if (n.groupId === id) n.groupId = null;
+  }
+  state.noteGroups = (state.noteGroups || []).filter((g) => g.id !== id);
+  if (state.activeNoteGroupId === id) state.activeNoteGroupId = null;
   saveState();
   updateViewMode();
 }
@@ -47,12 +99,70 @@ function deleteNote(noteId) {
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
 function renderNotesSidebar() {
+  // ── Groups section ────────────────────────────────────────────────────────
+  const groupList = document.getElementById('nc-group-list');
+  if (groupList) {
+    const groups = state.noteGroups || [];
+    const allCount = state.standAloneNotes.length;
+    let gHtml =
+      '<div class="group-item' +
+      (state.activeNoteGroupId === null ? ' active' : '') +
+      '" data-group-id="">' +
+      '<span class="g-name">All Notes</span>' +
+      '<span class="count">' +
+      allCount +
+      '</span>' +
+      '</div>';
+    for (const g of groups) {
+      const cnt = state.standAloneNotes.filter((n) => n.groupId === g.id).length;
+      gHtml +=
+        '<div class="group-item' +
+        (state.activeNoteGroupId === g.id ? ' active' : '') +
+        '" data-group-id="' +
+        esc(g.id) +
+        '">' +
+        '<span class="g-name">' +
+        esc(g.name) +
+        '</span>' +
+        '<button class="nc-group-del g-action-btn" data-del-id="' +
+        esc(g.id) +
+        '" title="Delete group">\u2715</button>' +
+        '<span class="count">' +
+        cnt +
+        '</span>' +
+        '</div>';
+    }
+    groupList.innerHTML = gHtml;
+
+    groupList.querySelectorAll('.group-item').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.nc-group-del')) return;
+        state.activeNoteGroupId = el.dataset.groupId || null;
+        saveState();
+        renderNotesSidebar();
+        renderNoteCanvas();
+      });
+    });
+    groupList.querySelectorAll('.nc-group-del').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteNoteGroup(btn.dataset.delId);
+      });
+    });
+  }
+  const addGroupBtn = document.getElementById('add-note-group-btn');
+  if (addGroupBtn) addGroupBtn.onclick = createNoteGroup;
+
+  // ── Notes list (filtered by active group) ────────────────────────────────
   const list = document.getElementById('nc-notes-list');
   if (!list) return;
 
-  const notes = state.standAloneNotes;
-  let html = '';
+  const notes =
+    state.activeNoteGroupId === null
+      ? state.standAloneNotes
+      : state.standAloneNotes.filter((n) => n.groupId === state.activeNoteGroupId);
 
+  let html = '';
   for (const note of notes) {
     const active = state.activeNoteId === note.id ? ' active' : '';
     html +=
@@ -75,11 +185,9 @@ function renderNotesSidebar() {
       '" title="Delete note">\u2715</button>' +
       '</div>';
   }
-
   if (!notes.length) {
     html = '<div class="nc-empty-hint">No notes yet.<br>Click \u002B to create one.</div>';
   }
-
   list.innerHTML = html;
 
   list.querySelectorAll('.nc-note-item').forEach((el) => {
@@ -90,7 +198,6 @@ function renderNotesSidebar() {
       updateViewMode();
     });
   });
-
   list.querySelectorAll('.nc-note-del').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();

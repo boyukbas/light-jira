@@ -233,8 +233,8 @@
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <rect x="8" y="8" width="12" height="12" rx="2" />
-                <path d="M4 16V4a2 2 0 0 1 2-2h12" />
+                <circle cx="9" cy="12" r="6" />
+                <circle cx="15" cy="12" r="6" />
               </svg>
             </button>
           </span>
@@ -398,6 +398,45 @@
         <div class="mm-sidebar" id="mm-sidebar-panel">
           <div class="mm-sidebar-header">
             <span class="mm-sidebar-label">Diagrams</span>
+            <button
+              class="top-btn icon-only collapse-btn"
+              id="mm-collapse-btn"
+              title="Collapse Sidebar"
+              aria-label="Collapse Diagrams Sidebar"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="11 17 6 12 11 7" />
+                <polyline points="18 17 13 12 18 7" />
+              </svg>
+            </button>
+          </div>
+          <div id="mm-groups-section">
+            <div id="mm-group-list"></div>
+            <button
+              id="add-mm-group-btn"
+              class="sidebar-add-btn"
+              title="New Group"
+              aria-label="New Group"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
           </div>
           <div id="mm-diagram-list"></div>
           <button
@@ -596,6 +635,45 @@
         <div class="nc-sidebar" id="nc-sidebar">
           <div class="nc-sidebar-header">
             <span class="nc-sidebar-label">Notes</span>
+            <button
+              class="top-btn icon-only collapse-btn"
+              id="nc-collapse-btn"
+              title="Collapse Sidebar"
+              aria-label="Collapse Notes Sidebar"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="11 17 6 12 11 7" />
+                <polyline points="18 17 13 12 18 7" />
+              </svg>
+            </button>
+          </div>
+          <div id="nc-groups-section">
+            <div id="nc-group-list"></div>
+            <button
+              id="add-note-group-btn"
+              class="sidebar-add-btn"
+              title="New Group"
+              aria-label="New Group"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
           </div>
           <div id="nc-notes-list"></div>
           <button id="add-note-btn" class="sidebar-add-btn" title="New Note" aria-label="New Note">

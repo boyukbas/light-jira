@@ -26,11 +26,17 @@ function updateViewMode() {
   }
 
   const ncSidebar = document.getElementById('nc-sidebar');
-  if (ncSidebar) ncSidebar.style.width = state.layout.notesSidebarWidth + 'px';
+  if (ncSidebar) {
+    ncSidebar.style.width = state.layout.notesSidebarWidth + 'px';
+    ncSidebar.classList.toggle('collapsed', state.layout.ncSidebarCollapsed);
+  }
 
   const mmSidebarPanel = document.getElementById('mm-sidebar-panel');
   const mmEditorPanel = document.getElementById('mm-editor-panel');
-  if (mmSidebarPanel) mmSidebarPanel.style.width = state.layout.mmSidebarWidth + 'px';
+  if (mmSidebarPanel) {
+    mmSidebarPanel.style.width = state.layout.mmSidebarWidth + 'px';
+    mmSidebarPanel.classList.toggle('collapsed', state.layout.mmSidebarCollapsed);
+  }
   if (mmEditorPanel) mmEditorPanel.style.width = state.layout.mmEditorWidth + 'px';
 
   if (state.appMode === 'notes') {
@@ -64,6 +70,8 @@ function updateViewMode() {
 window.toggleCollapse = function (id) {
   if (id === 'sidebar') state.layout.sidebarCollapsed = !state.layout.sidebarCollapsed;
   if (id === 'middle') state.layout.middleCollapsed = !state.layout.middleCollapsed;
+  if (id === 'nc-sidebar') state.layout.ncSidebarCollapsed = !state.layout.ncSidebarCollapsed;
+  if (id === 'mm-sidebar') state.layout.mmSidebarCollapsed = !state.layout.mmSidebarCollapsed;
   saveState();
   updateViewMode();
 };
