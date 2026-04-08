@@ -1,32 +1,18 @@
 'use strict';
 
-// ── BULK SELECT ───────────────────────────────────────────────────────────────
+// ── MULTI-SELECTION (modifier-key driven) ─────────────────────────────────────
+// No persistent "bulk mode" state. Selection exists when selectedKeys.size > 0.
+// Ctrl/Cmd+click: toggle individual ticket. Shift+click: range select.
+// Plain click: clear selection, open ticket normally.
 
-// Activates bulk UI (checkbox + toolbar) without touching selectedKeys.
-// Safe to call on every Jira-mode render cycle.
-function activateBulkUi() {
-  bulkSelectMode = true;
-  document.getElementById('middle').classList.add('bulk-mode');
-  document.getElementById('bulk-toolbar').classList.add('visible');
-  updateBulkToolbar();
-}
+let lastClickedKey = null; // anchor for shift+range selection
 
-// Clears selection then activates UI. Call when first entering Jira mode or switching groups.
-function enterBulkMode() {
-  selectedKeys.clear();
-  activateBulkUi();
-}
-
-// Deactivates bulk UI and clears selection. Call when leaving Jira mode.
-function exitBulkMode() {
-  bulkSelectMode = false;
-  selectedKeys.clear();
-  document.getElementById('middle').classList.remove('bulk-mode');
-  document.getElementById('bulk-toolbar').classList.remove('visible');
-}
-
+// Show/hide toolbar and update control states based on current selection.
 function updateBulkToolbar() {
   const count = selectedKeys.size;
+
+  const toolbar = document.getElementById('bulk-toolbar');
+  if (toolbar) toolbar.classList.toggle('visible', count > 0);
 
   const deleteBtn = document.getElementById('bulk-delete-btn');
   if (deleteBtn) deleteBtn.disabled = count === 0;
@@ -47,14 +33,16 @@ function updateBulkToolbar() {
     }
     moveSelect.disabled = count === 0 || targets.length === 0;
   }
-
-  // Check All: disabled when no cards visible or all already selected
-  const totalVisible = document.querySelectorAll('#ticket-list .list-card').length;
-  const checkAllBtn = document.getElementById('bulk-check-all-btn');
-  const clearBtn = document.getElementById('bulk-clear-btn');
-  if (checkAllBtn) checkAllBtn.disabled = totalVisible === 0 || count === totalVisible;
-  if (clearBtn) clearBtn.disabled = count === 0;
 }
+
+// Clears selection and hides toolbar. Call on group/tab switches.
+function clearBulkSelection() {
+  selectedKeys.clear();
+  lastClickedKey = null;
+  updateBulkToolbar();
+}
+
+window.clearBulkSelection = clearBulkSelection;
 
 // ── RENDER MIDDLE ─────────────────────────────────────────────────────────────
 function renderMiddle() {
@@ -104,7 +92,7 @@ function renderMiddle() {
     existingCards.forEach((el) => {
       const k = el.dataset.key;
       el.classList.toggle('active', k === state.activeKey);
-      el.classList.toggle('selected', bulkSelectMode && selectedKeys.has(k));
+      el.classList.toggle('selected', selectedKeys.has(k));
     });
     return;
   }
@@ -114,7 +102,7 @@ function renderMiddle() {
     const key = entryKey(entry);
     const addedDate = typeof entry === 'object' && entry.added ? relDate(entry.added) : null;
     const active = state.activeKey === key ? ' active' : '';
-    const selected = bulkSelectMode && selectedKeys.has(key) ? ' selected' : '';
+    const selected = selectedKeys.has(key) ? ' selected' : '';
     const issue = issueCache[key] || {};
     const f = issue.fields || {};
     let sum = f.summary || 'Loading...';
@@ -162,21 +150,40 @@ function renderMiddle() {
   list.querySelectorAll('.list-card').forEach((el) => {
     const k = el.dataset.key;
 
-    el.addEventListener('click', () => {
-      if (bulkSelectMode) {
+    el.addEventListener('click', (e) => {
+      if (group.id === 'history') {
+        openFromHistory(k);
+        return;
+      }
+      if (e.ctrlKey || e.metaKey) {
+        // Toggle selection — don't change active ticket
         if (selectedKeys.has(k)) selectedKeys.delete(k);
         else selectedKeys.add(k);
+        lastClickedKey = k;
         el.classList.toggle('selected', selectedKeys.has(k));
         updateBulkToolbar();
         return;
       }
-      if (group.id === 'history') {
-        openFromHistory(k);
-      } else {
-        state.activeKey = k;
-        saveState();
-        updateViewMode();
+      if (e.shiftKey && lastClickedKey) {
+        // Range select from anchor to this card
+        const visKeys = visibleKeys.map(entryKey);
+        const anchorIdx = visKeys.indexOf(lastClickedKey);
+        const targetIdx = visKeys.indexOf(k);
+        if (anchorIdx !== -1 && targetIdx !== -1) {
+          const start = Math.min(anchorIdx, targetIdx);
+          const end = Math.max(anchorIdx, targetIdx);
+          for (let i = start; i <= end; i++) selectedKeys.add(visKeys[i]);
+        }
+        updateBulkToolbar();
+        renderMiddle();
+        return;
       }
+      // Plain click: clear selection, open ticket
+      clearBulkSelection();
+      state.activeKey = k;
+      lastClickedKey = k;
+      saveState();
+      updateViewMode();
     });
 
     el.querySelector('.lc-delete').addEventListener('click', (e) => {

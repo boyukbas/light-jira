@@ -34,29 +34,27 @@ function updateViewMode() {
   if (mmEditorPanel) mmEditorPanel.style.width = state.layout.mmEditorWidth + 'px';
 
   if (state.appMode === 'notes') {
-    if (bulkSelectMode) exitBulkMode();
+    clearBulkSelection();
     renderNotesSidebar();
     renderNoteCanvas();
   } else if (state.appMode === 'history') {
-    if (bulkSelectMode) exitBulkMode();
+    clearBulkSelection();
     renderSidebar();
     renderHistoryTable();
   } else if (state.appMode === 'mindmap') {
-    if (bulkSelectMode) exitBulkMode();
+    clearBulkSelection();
     renderMindMapSidebar();
     renderMindMap();
   } else if (state.appMode === 'labels') {
-    if (bulkSelectMode) exitBulkMode();
+    clearBulkSelection();
     renderLabelsSidebar();
     renderLabelsMiddle();
     renderReading();
   } else if (state.appMode === 'timeline') {
-    if (bulkSelectMode) exitBulkMode();
+    clearBulkSelection();
     renderTimeline();
   } else {
-    // jira mode: bulk UI is always on
-    if (!bulkSelectMode) enterBulkMode();
-    else activateBulkUi();
+    // jira mode
     renderSidebar();
     renderMiddle();
     renderReading();

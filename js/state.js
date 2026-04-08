@@ -31,8 +31,7 @@ let draggedKey = null; // for ticket drag & drop
 let draggedGroupId = null; // for group reordering drag
 let groupSearchQuery = ''; // current keyword filter in the middle pane
 let screenshotStore = {}; // id -> data URL (stored separately from state to manage size)
-let bulkSelectMode = false; // whether the middle pane is in multi-select mode
-let selectedKeys = new Set(); // keys currently checked in bulk mode
+let selectedKeys = new Set(); // keys currently multi-selected (ctrl/shift+click)
 
 // ── STORAGE BACKEND DETECTION ─────────────────────────────────────────────────
 // In the Chrome Extension context use chrome.storage (sync + local).

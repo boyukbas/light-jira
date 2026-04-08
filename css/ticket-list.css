@@ -502,45 +502,11 @@
 .bulk-assign-result:hover {
   background: var(--surface-hover);
 }
-#middle.bulk-mode .list-card {
-  padding-left: 40px;
+.list-card.selected {
+  background: rgba(88, 166, 255, 0.08);
+  border-left-color: rgba(88, 166, 255, 0.4);
 }
-#middle.bulk-mode .list-card.active {
-  padding-left: 37px;
-}
-#middle.bulk-mode .list-card::before {
-  content: '';
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  background: transparent;
-  transition:
-    background 0.1s,
-    border-color 0.1s;
-}
-#middle.bulk-mode .list-card.selected::before {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-#middle.bulk-mode .list-card.selected::after {
-  content: '✓';
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  line-height: 16px;
-  font-size: 11px;
-  font-weight: 900;
-  color: #0d1117;
-  text-align: center;
-}
-#middle.bulk-mode .lc-delete {
-  display: none;
+.list-card.selected.active {
+  background: var(--card);
+  border-left-color: var(--accent);
 }

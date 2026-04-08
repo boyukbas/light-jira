@@ -144,30 +144,14 @@ async function init() {
     if (state.activeKey) renderReading();
   });
 
-  // ── Bulk select ───────────────────────────────────────────────────────────
-  document.getElementById('bulk-check-all-btn').addEventListener('click', () => {
-    document.querySelectorAll('#ticket-list .list-card').forEach((el) => {
-      selectedKeys.add(el.dataset.key);
-      el.classList.add('selected');
-    });
-    updateBulkToolbar();
-  });
-
-  document.getElementById('bulk-clear-btn').addEventListener('click', () => {
-    selectedKeys.clear();
-    document.querySelectorAll('#ticket-list .list-card').forEach((el) => {
-      el.classList.remove('selected');
-    });
-    updateBulkToolbar();
-  });
-
+  // ── Bulk actions ──────────────────────────────────────────────────────────
   document.getElementById('bulk-delete-btn').addEventListener('click', () => {
     if (!selectedKeys.size) return;
     const group = getActiveGroup();
     const count = selectedKeys.size;
     group.keys = group.keys.filter((k) => !selectedKeys.has(entryKey(k)));
     if (selectedKeys.has(state.activeKey)) state.activeKey = null;
-    selectedKeys.clear();
+    clearBulkSelection();
     saveState();
     toast(count + ' ticket' + (count === 1 ? '' : 's') + ' removed');
     updateViewMode();
@@ -185,7 +169,7 @@ async function init() {
       sourceGroup.keys = sourceGroup.keys.filter((k) => entryKey(k) !== key);
     }
     if (selectedKeys.has(state.activeKey)) state.activeKey = null;
-    selectedKeys.clear();
+    clearBulkSelection();
     e.target.value = '';
     saveState();
     toast(count + ' ticket' + (count === 1 ? '' : 's') + ' moved to ' + targetGroup.name);
