@@ -278,24 +278,6 @@
       <!-- MIDDLE: Ticket List -->
       <div id="middle">
         <div class="middle-header">
-          <button
-            class="top-btn icon-only collapse-btn"
-            id="middle-collapse-btn"
-            title="Collapse Items"
-            aria-label="Collapse Items"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <polyline points="11 17 6 12 11 7" />
-              <polyline points="18 17 13 12 18 7" />
-            </svg>
-          </button>
           <span id="current-group-name" style="flex: 1">Inbox</span>
           <button
             class="top-btn icon-only"
@@ -313,6 +295,24 @@
             >
               <polyline points="23 4 23 10 17 10" />
               <path d="M20.49 15a9 9 0 1 1-2.38-7.72" />
+            </svg>
+          </button>
+          <button
+            class="top-btn icon-only collapse-btn"
+            id="middle-collapse-btn"
+            title="Collapse Items"
+            aria-label="Collapse Items"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="11 17 6 12 11 7" />
+              <polyline points="18 17 13 12 18 7" />
             </svg>
           </button>
         </div>
@@ -395,6 +395,31 @@
 
       <!-- MIND MAP PANE (for Mindmap mode) -->
       <div id="mindmap-pane">
+        <div id="mm-groups-pane">
+          <div class="groups-pane-header">
+            <span class="groups-pane-label">Groups</span>
+            <button
+              id="add-mm-group-btn"
+              class="top-btn icon-only"
+              title="New Group"
+              aria-label="New Group"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+          <div id="mm-group-list"></div>
+        </div>
+        <div class="resizer" id="resizer-mm-groups"></div>
         <div class="mm-sidebar" id="mm-sidebar-panel">
           <div class="mm-sidebar-header">
             <span class="mm-sidebar-label">Diagrams</span>
@@ -414,27 +439,6 @@
               >
                 <polyline points="11 17 6 12 11 7" />
                 <polyline points="18 17 13 12 18 7" />
-              </svg>
-            </button>
-          </div>
-          <div id="mm-groups-section">
-            <div id="mm-group-list"></div>
-            <button
-              id="add-mm-group-btn"
-              class="sidebar-add-btn"
-              title="New Group"
-              aria-label="New Group"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
           </div>
@@ -632,6 +636,31 @@
 
       <!-- NOTES CANVAS PANE (for Notes mode) -->
       <div id="notes-canvas-pane">
+        <div id="nc-groups-pane">
+          <div class="groups-pane-header">
+            <span class="groups-pane-label">Groups</span>
+            <button
+              id="add-note-group-btn"
+              class="top-btn icon-only"
+              title="New Group"
+              aria-label="New Group"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+          <div id="nc-group-list"></div>
+        </div>
+        <div class="resizer" id="resizer-nc-groups"></div>
         <div class="nc-sidebar" id="nc-sidebar">
           <div class="nc-sidebar-header">
             <span class="nc-sidebar-label">Notes</span>
@@ -651,27 +680,6 @@
               >
                 <polyline points="11 17 6 12 11 7" />
                 <polyline points="18 17 13 12 18 7" />
-              </svg>
-            </button>
-          </div>
-          <div id="nc-groups-section">
-            <div id="nc-group-list"></div>
-            <button
-              id="add-note-group-btn"
-              class="sidebar-add-btn"
-              title="New Group"
-              aria-label="New Group"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </button>
           </div>

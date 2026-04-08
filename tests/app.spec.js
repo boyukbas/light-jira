@@ -2397,6 +2397,137 @@ test.describe('Mindmap Groups', () => {
   });
 });
 
+// ── COLLAPSE BUTTON POSITION ──────────────────────────────────────────────────
+test.describe('Collapse button rightmost — middle pane', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('middle-collapse-btn is the last child of #middle .middle-header', async ({ page }) => {
+    const isLast = await page.evaluate(() => {
+      const header = document.querySelector('#middle .middle-header');
+      const btn = document.getElementById('middle-collapse-btn');
+      return header.lastElementChild === btn;
+    });
+    expect(isLast).toBe(true);
+  });
+});
+
+// ── LABELS MODE: ADD GROUP BUTTON HIDDEN ──────────────────────────────────────
+test.describe('Labels mode — add group button hidden', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.click('#tab-labels');
+  });
+
+  test('#add-group-btn is hidden in Labels mode', async ({ page }) => {
+    await expect(page.locator('#add-group-btn')).toBeHidden();
+  });
+});
+
+// ── GROUPS PANE AS SEPARATE LEFTMOST SECTION ──────────────────────────────────
+test.describe('Groups pane — Notes', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.click('#tab-notes');
+  });
+
+  test('#nc-groups-pane exists and is visible', async ({ page }) => {
+    await expect(page.locator('#nc-groups-pane')).toBeVisible();
+  });
+
+  test('#nc-groups-pane is before #nc-sidebar in the DOM', async ({ page }) => {
+    const isBefore = await page.evaluate(() => {
+      const pane = document.getElementById('nc-groups-pane');
+      const sidebar = document.getElementById('nc-sidebar');
+      return !!(pane.compareDocumentPosition(sidebar) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(isBefore).toBe(true);
+  });
+
+  test('#add-note-group-btn is inside #nc-groups-pane', async ({ page }) => {
+    const inside = await page.evaluate(() =>
+      document
+        .getElementById('nc-groups-pane')
+        .contains(document.getElementById('add-note-group-btn'))
+    );
+    expect(inside).toBe(true);
+  });
+});
+
+test.describe('Groups pane — Mindmap', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.click('#tab-mindmap');
+  });
+
+  test('#mm-groups-pane exists and is visible', async ({ page }) => {
+    await expect(page.locator('#mm-groups-pane')).toBeVisible();
+  });
+
+  test('#mm-groups-pane is before #mm-sidebar-panel in the DOM', async ({ page }) => {
+    const isBefore = await page.evaluate(() => {
+      const pane = document.getElementById('mm-groups-pane');
+      const sidebar = document.getElementById('mm-sidebar-panel');
+      return !!(pane.compareDocumentPosition(sidebar) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(isBefore).toBe(true);
+  });
+
+  test('#add-mm-group-btn is inside #mm-groups-pane', async ({ page }) => {
+    const inside = await page.evaluate(() =>
+      document
+        .getElementById('mm-groups-pane')
+        .contains(document.getElementById('add-mm-group-btn'))
+    );
+    expect(inside).toBe(true);
+  });
+});
+
+// ── DELETE BUTTONS USE SVG TRASH ICON ─────────────────────────────────────────
+test.describe('Delete button icons', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('Note delete button has SVG icon', async ({ page }) => {
+    await page.click('#tab-notes');
+    await page.click('#add-note-btn');
+    await expect(page.locator('#nc-notes-list .nc-note-del svg')).toHaveCount(1);
+  });
+
+  test('Note group delete button has SVG icon', async ({ page }) => {
+    await page.click('#tab-notes');
+    await page.click('#add-note-group-btn');
+    await page.fill('#nc-group-list .g-name-input', 'TestG');
+    await page.press('#nc-group-list .g-name-input', 'Enter');
+    await expect(page.locator('#nc-group-list .nc-group-del svg')).toHaveCount(1);
+  });
+
+  test('Diagram delete button has SVG icon', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-diagram-list .mm-diagram-del svg')).toHaveCount(1);
+  });
+
+  test('Mindmap group delete button has SVG icon', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await page.click('#add-mm-group-btn');
+    await page.fill('#mm-group-list .g-name-input', 'TestG');
+    await page.press('#mm-group-list .g-name-input', 'Enter');
+    await expect(page.locator('#mm-group-list .mm-group-del svg')).toHaveCount(1);
+  });
+});
+
 // ── PWA ───────────────────────────────────────────────────────────────────────
 test.describe('PWA', () => {
   test('registers service worker on startup', async ({ page }) => {

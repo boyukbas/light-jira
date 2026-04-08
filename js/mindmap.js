@@ -306,24 +306,7 @@ function createDiagram() {
 }
 
 function createMmGroup() {
-  const list = document.getElementById('mm-group-list');
-  if (!list || list.querySelector('.group-item-new')) return;
-  const row = document.createElement('div');
-  row.className = 'group-item group-item-new';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'g-name-input';
-  input.placeholder = 'Group name\u2026';
-  row.appendChild(input);
-  list.appendChild(row);
-  input.focus();
-
-  let done = false;
-  function commit() {
-    if (done) return;
-    done = true;
-    const name = input.value.trim();
-    row.remove();
+  startInlineCreate(document.getElementById('mm-group-list'), 'Group name\u2026', (name) => {
     if (name) {
       if (!state.mmGroups) state.mmGroups = [];
       const g = { id: 'mmg_' + Date.now(), name };
@@ -332,17 +315,7 @@ function createMmGroup() {
       saveState();
     }
     renderMindMapSidebar();
-  }
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      commit();
-    } else if (e.key === 'Escape') {
-      done = true;
-      row.remove();
-    }
   });
-  input.addEventListener('blur', commit);
 }
 
 function deleteMmGroup(id) {
@@ -410,7 +383,9 @@ function renderMindMapSidebar() {
         '</span>' +
         '<button class="mm-group-del g-action-btn" data-del-id="' +
         esc(g.id) +
-        '" title="Delete group">\u2715</button>' +
+        '" title="Delete group">' +
+        TRASH_SVG +
+        '</button>' +
         '<span class="count">' +
         cnt +
         '</span>' +
@@ -459,7 +434,9 @@ function renderMindMapSidebar() {
       '</span>' +
       '<button class="mm-diagram-del" data-del-id="' +
       esc(d.id) +
-      '" title="Delete diagram">\u2715</button>' +
+      '" title="Delete diagram">' +
+      TRASH_SVG +
+      '</button>' +
       '</div>';
   }
   if (!diagrams.length) {

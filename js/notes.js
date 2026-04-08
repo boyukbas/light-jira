@@ -37,24 +37,7 @@ function createNote() {
 }
 
 function createNoteGroup() {
-  const list = document.getElementById('nc-group-list');
-  if (!list || list.querySelector('.group-item-new')) return;
-  const row = document.createElement('div');
-  row.className = 'group-item group-item-new';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'g-name-input';
-  input.placeholder = 'Group name\u2026';
-  row.appendChild(input);
-  list.appendChild(row);
-  input.focus();
-
-  let done = false;
-  function commit() {
-    if (done) return;
-    done = true;
-    const name = input.value.trim();
-    row.remove();
+  startInlineCreate(document.getElementById('nc-group-list'), 'Group name\u2026', (name) => {
     if (name) {
       if (!state.noteGroups) state.noteGroups = [];
       const g = { id: 'ng_' + Date.now(), name };
@@ -63,17 +46,7 @@ function createNoteGroup() {
       saveState();
     }
     renderNotesSidebar();
-  }
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      commit();
-    } else if (e.key === 'Escape') {
-      done = true;
-      row.remove();
-    }
   });
-  input.addEventListener('blur', commit);
 }
 
 function deleteNoteGroup(id) {
@@ -126,7 +99,9 @@ function renderNotesSidebar() {
         '</span>' +
         '<button class="nc-group-del g-action-btn" data-del-id="' +
         esc(g.id) +
-        '" title="Delete group">\u2715</button>' +
+        '" title="Delete group">' +
+        TRASH_SVG +
+        '</button>' +
         '<span class="count">' +
         cnt +
         '</span>' +
@@ -182,7 +157,9 @@ function renderNotesSidebar() {
       '</div>' +
       '<button class="nc-note-del" data-del-id="' +
       esc(note.id) +
-      '" title="Delete note">\u2715</button>' +
+      '" title="Delete note">' +
+      TRASH_SVG +
+      '</button>' +
       '</div>';
   }
   if (!notes.length) {

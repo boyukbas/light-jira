@@ -129,13 +129,57 @@ body[data-app-mode='notes'] #notes-canvas-pane {
   color: var(--text-tertiary);
 }
 
+/* Groups pane (separate leftmost pane for Notes and Mindmap) */
+#nc-groups-pane,
+#mm-groups-pane {
+  width: 180px;
+  min-width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.groups-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.groups-pane-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+
+#nc-group-list,
+#mm-group-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+/* Group delete buttons in Notes and Mindmap — visual from .g-action-btn in sidebar.css */
+.nc-group-del,
+.mm-group-del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Collapsed state */
 #nc-sidebar.collapsed {
   width: 40px !important;
   min-width: 40px;
 }
 #nc-sidebar.collapsed .nc-sidebar-label,
-#nc-sidebar.collapsed #nc-groups-section,
 #nc-sidebar.collapsed #nc-notes-list,
 #nc-sidebar.collapsed #add-note-btn {
   display: none;
@@ -146,25 +190,6 @@ body[data-app-mode='notes'] #notes-canvas-pane {
 }
 #nc-sidebar.collapsed .collapse-btn {
   transform: rotate(180deg);
-}
-
-/* Group delete buttons — styling inherited from .g-action-btn in sidebar.css */
-.nc-group-del,
-.mm-group-del {
-  font-size: 11px;
-}
-
-/* Groups sub-section */
-#nc-groups-section {
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-#nc-group-list {
-  overflow-y: auto;
-  max-height: 160px;
-  padding: 4px;
 }
 
 #nc-notes-list {
@@ -232,8 +257,9 @@ body[data-app-mode='notes'] #notes-canvas-pane {
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
-  font-size: 11px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nc-note-item:hover .nc-note-del {
@@ -761,7 +787,6 @@ body[data-app-mode='timeline'] #timeline-pane {
   min-width: 40px;
 }
 #mm-sidebar-panel.collapsed .mm-sidebar-label,
-#mm-sidebar-panel.collapsed #mm-groups-section,
 #mm-sidebar-panel.collapsed #mm-diagram-list,
 #mm-sidebar-panel.collapsed #mm-add-btn {
   display: none;
@@ -772,19 +797,6 @@ body[data-app-mode='timeline'] #timeline-pane {
 }
 #mm-sidebar-panel.collapsed .collapse-btn {
   transform: rotate(180deg);
-}
-
-/* Groups sub-section */
-#mm-groups-section {
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-#mm-group-list {
-  overflow-y: auto;
-  max-height: 160px;
-  padding: 4px;
 }
 
 #mm-diagram-list {
@@ -835,9 +847,10 @@ body[data-app-mode='timeline'] #timeline-pane {
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
-  font-size: 11px;
-  line-height: 1;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mm-diagram-item:hover .mm-diagram-del {

@@ -36,7 +36,7 @@ function renderSidebar() {
       '<button class="g-action-btn" data-action="delete" data-id="' +
       esc(g.id) +
       '" title="Delete">' +
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+      TRASH_SVG +
       '</button>';
     const actions = isActive ? '<span class="g-actions">' + renameBtn + deleteBtn + '</span>' : '';
 
@@ -112,28 +112,7 @@ function renderSidebar() {
 }
 
 function startInlineGroupCreate() {
-  const list = document.getElementById('group-list');
-  if (!list) return;
-  // Don't stack multiple inputs
-  if (list.querySelector('.group-item-new')) return;
-
-  const row = document.createElement('div');
-  row.className = 'group-item-new';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'g-name-input';
-  input.placeholder = 'List name…';
-  row.appendChild(input);
-  list.appendChild(row);
-  input.focus();
-
-  let done = false;
-
-  function commit() {
-    if (done) return;
-    done = true;
-    const name = input.value.trim();
-    row.remove();
+  startInlineCreate(document.getElementById('group-list'), 'List name\u2026', (name) => {
     if (name) {
       const id = 'g_' + Date.now();
       insertGroupBeforeHistory({ id, name, keys: [] });
@@ -141,23 +120,7 @@ function startInlineGroupCreate() {
       saveState();
     }
     updateViewMode();
-  }
-
-  function cancel() {
-    if (done) return;
-    done = true;
-    row.remove();
-  }
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      commit();
-    } else if (e.key === 'Escape') {
-      cancel();
-    }
   });
-  input.addEventListener('blur', commit);
 }
 
 function renameGroup(id) {
