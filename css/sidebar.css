@@ -18,7 +18,8 @@
 #sidebar.collapsed .g-name,
 #sidebar.collapsed .count,
 #sidebar.collapsed .middle-header span,
-#sidebar.collapsed #add-group-btn span {
+#sidebar.collapsed #add-group-btn,
+#sidebar.collapsed #find-duplicates-btn {
   display: none;
 }
 #sidebar.collapsed .middle-header {
