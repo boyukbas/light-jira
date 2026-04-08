@@ -77,6 +77,8 @@ function applyMigrations() {
   if (!state.layout.notesSidebarWidth) state.layout.notesSidebarWidth = 220;
   if (!state.layout.mmSidebarWidth) state.layout.mmSidebarWidth = 200;
   if (!state.layout.mmEditorWidth) state.layout.mmEditorWidth = 280;
+  if (state.layout.ncSidebarCollapsed === undefined) state.layout.ncSidebarCollapsed = false;
+  if (state.layout.mmSidebarCollapsed === undefined) state.layout.mmSidebarCollapsed = false;
   if (!state.appMode) state.appMode = 'jira';
   if (state.labelsActiveGroup === undefined) state.labelsActiveGroup = null;
 
@@ -88,6 +90,14 @@ function applyMigrations() {
   if (!state.standAloneNotes) state.standAloneNotes = [];
   if (state.activeNoteId === undefined) state.activeNoteId = null;
   if (!state.timelines) state.timelines = {};
+  if (!state.noteGroups) state.noteGroups = [];
+  if (state.activeNoteGroupId === undefined) state.activeNoteGroupId = null;
+  if (!state.mmGroups) state.mmGroups = [];
+  if (state.activeMmGroupId === undefined) state.activeMmGroupId = null;
+  // Ensure all notes and mindmaps have a groupId field
+  for (const note of state.standAloneNotes) {
+    if (note.groupId === undefined) note.groupId = null;
+  }
 
   // Migrate old note body string → canvas blocks format
   for (const note of state.standAloneNotes) {
@@ -109,6 +119,9 @@ function applyMigrations() {
     delete state.mindMapCode;
   }
   if (state.activeMindMapId === undefined) state.activeMindMapId = null;
+  for (const mm of state.mindMaps) {
+    if (mm.groupId === undefined) mm.groupId = null;
+  }
 }
 
 // ── LOAD STATE ────────────────────────────────────────────────────────────────

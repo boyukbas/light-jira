@@ -552,14 +552,24 @@ test.describe('Labels Tab', () => {
     await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'labels');
   });
 
-  test('Labels tab shows no-label group when ticket has no labels', async ({ page }) => {
+  test('Labels tab does not show no-label group for unlabeled tickets', async ({ page }) => {
     // Load a ticket (has no labels by default)
     await page.fill('#search-input', 'PROJ-123');
     await page.locator('#search-input').press('Enter');
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
 
     await page.click('#tab-labels');
-    await expect(page.locator('#group-list')).toContainText('no-label');
+    // Unlabeled tickets should not produce a "no-label" group
+    await expect(page.locator('#group-list')).not.toContainText('no-label');
+  });
+
+  test('Find Duplicates button is hidden in Labels mode', async ({ page }) => {
+    await page.click('#tab-labels');
+    await expect(page.locator('#find-duplicates-btn')).not.toBeVisible();
+  });
+
+  test('Find Duplicates button is visible in Jira mode', async ({ page }) => {
+    await expect(page.locator('#find-duplicates-btn')).toBeVisible();
   });
 
   test('Labels tab shows labeled ticket under its label group', async ({ page }) => {
@@ -2213,6 +2223,177 @@ test.describe('Editable field re-activation', () => {
     await expect(inputLocator).not.toBeVisible({ timeout: 2000 });
     // The replaced .meta-value should still have the .edit-hint span
     await expect(page.locator('[data-editable="due-date"] .meta-value .edit-hint')).toBeAttached();
+  });
+});
+
+// ── SIDEBAR COLLAPSE (Notes + Mindmap) ───────────────────────────────────────
+test.describe('Sidebar Collapse — Notes and Mindmap', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('Notes sidebar has a collapse button on the right of the header', async ({ page }) => {
+    await page.click('#tab-notes');
+    await expect(page.locator('#nc-collapse-btn')).toBeVisible();
+  });
+
+  test('clicking Notes collapse button collapses the sidebar', async ({ page }) => {
+    await page.click('#tab-notes');
+    await page.click('#nc-collapse-btn');
+    await expect(page.locator('#nc-sidebar')).toHaveClass(/collapsed/);
+  });
+
+  test('clicking Notes collapse again expands the sidebar', async ({ page }) => {
+    await page.click('#tab-notes');
+    await page.click('#nc-collapse-btn');
+    await page.click('#nc-collapse-btn');
+    await expect(page.locator('#nc-sidebar')).not.toHaveClass(/collapsed/);
+  });
+
+  test('Mindmap sidebar has a collapse button on the right of the header', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await expect(page.locator('#mm-collapse-btn')).toBeVisible();
+  });
+
+  test('clicking Mindmap collapse button collapses the sidebar', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await page.click('#mm-collapse-btn');
+    await expect(page.locator('#mm-sidebar-panel')).toHaveClass(/collapsed/);
+  });
+
+  test('clicking Mindmap collapse again expands the sidebar', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    await page.click('#mm-collapse-btn');
+    await page.click('#mm-collapse-btn');
+    await expect(page.locator('#mm-sidebar-panel')).not.toHaveClass(/collapsed/);
+  });
+});
+
+// ── NOTES GROUPS ──────────────────────────────────────────────────────────────
+test.describe('Notes Groups', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.click('#tab-notes');
+  });
+
+  test('Notes sidebar shows a groups section', async ({ page }) => {
+    await expect(page.locator('#nc-group-list')).toBeVisible();
+  });
+
+  test('Groups section shows All Notes by default', async ({ page }) => {
+    await expect(page.locator('#nc-group-list')).toContainText('All');
+  });
+
+  test('add-note-group-btn shows an inline input', async ({ page }) => {
+    await page.click('#add-note-group-btn');
+    await expect(page.locator('#nc-group-list .g-name-input')).toBeVisible();
+  });
+
+  test('pressing Enter commits group creation', async ({ page }) => {
+    await page.click('#add-note-group-btn');
+    await page.fill('#nc-group-list .g-name-input', 'Work');
+    await page.press('#nc-group-list .g-name-input', 'Enter');
+    await expect(page.locator('#nc-group-list .group-item')).toHaveCount(2); // All + Work
+    await expect(page.locator('#nc-group-list')).toContainText('Work');
+  });
+
+  test('pressing Escape cancels group creation', async ({ page }) => {
+    await page.click('#add-note-group-btn');
+    await page.press('#nc-group-list .g-name-input', 'Escape');
+    // Only "All" remains
+    await expect(page.locator('#nc-group-list .group-item')).toHaveCount(1);
+  });
+
+  test('new note is assigned to active group', async ({ page }) => {
+    // Create a group
+    await page.click('#add-note-group-btn');
+    await page.fill('#nc-group-list .g-name-input', 'Work');
+    await page.press('#nc-group-list .g-name-input', 'Enter');
+    // Work group is now active; create a note
+    await page.click('#add-note-btn');
+    // Switch to All — note should appear
+    await page.locator('#nc-group-list .group-item').first().click();
+    await expect(page.locator('#nc-notes-list .nc-note-item')).toHaveCount(1);
+    // Switch back to Work — note should still appear
+    await page.locator('#nc-group-list .group-item').last().click();
+    await expect(page.locator('#nc-notes-list .nc-note-item')).toHaveCount(1);
+  });
+
+  test('switching to All Notes shows notes from all groups', async ({ page }) => {
+    // Create two groups and one note each
+    await page.click('#add-note-group-btn');
+    await page.fill('#nc-group-list .g-name-input', 'Group A');
+    await page.press('#nc-group-list .g-name-input', 'Enter');
+    await page.click('#add-note-btn');
+
+    await page.click('#add-note-group-btn');
+    await page.fill('#nc-group-list .g-name-input', 'Group B');
+    await page.press('#nc-group-list .g-name-input', 'Enter');
+    await page.click('#add-note-btn');
+
+    // All Notes should show both
+    await page.locator('#nc-group-list .group-item').first().click();
+    await expect(page.locator('#nc-notes-list .nc-note-item')).toHaveCount(2);
+  });
+
+  test('deleting a group moves its notes to All', async ({ page }) => {
+    await page.click('#add-note-group-btn');
+    await page.fill('#nc-group-list .g-name-input', 'Temp');
+    await page.press('#nc-group-list .g-name-input', 'Enter');
+    await page.click('#add-note-btn');
+    // Delete the group
+    await page.locator('#nc-group-list .nc-group-del').click();
+    // Should be back to All Notes with 1 note
+    await expect(page.locator('#nc-group-list .group-item')).toHaveCount(1);
+    await expect(page.locator('#nc-notes-list .nc-note-item')).toHaveCount(1);
+  });
+});
+
+// ── MINDMAP GROUPS ────────────────────────────────────────────────────────────
+test.describe('Mindmap Groups', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.click('#tab-mindmap');
+  });
+
+  test('Mindmap sidebar shows a groups section', async ({ page }) => {
+    await expect(page.locator('#mm-group-list')).toBeVisible();
+  });
+
+  test('Groups section shows All Diagrams by default', async ({ page }) => {
+    await expect(page.locator('#mm-group-list')).toContainText('All');
+  });
+
+  test('add-mm-group-btn shows an inline input', async ({ page }) => {
+    await page.click('#add-mm-group-btn');
+    await expect(page.locator('#mm-group-list .g-name-input')).toBeVisible();
+  });
+
+  test('pressing Enter commits diagram group creation', async ({ page }) => {
+    await page.click('#add-mm-group-btn');
+    await page.fill('#mm-group-list .g-name-input', 'Project');
+    await page.press('#mm-group-list .g-name-input', 'Enter');
+    await expect(page.locator('#mm-group-list .group-item')).toHaveCount(2);
+    await expect(page.locator('#mm-group-list')).toContainText('Project');
+  });
+
+  test('new diagram is assigned to active group', async ({ page }) => {
+    await page.click('#add-mm-group-btn');
+    await page.fill('#mm-group-list .g-name-input', 'Sprint');
+    await page.press('#mm-group-list .g-name-input', 'Enter');
+    // Sprint is active; create a diagram
+    await page.click('#mm-add-btn');
+    // Switch to All — new diagram should appear
+    await page.locator('#mm-group-list .group-item').first().click();
+    // default diagram + new = at least 2
+    const count = await page.locator('#mm-diagram-list .mm-diagram-item').count();
+    expect(count).toBeGreaterThanOrEqual(2);
   });
 });
 

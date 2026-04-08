@@ -2,8 +2,9 @@
 
 // ── LABELS TAB ────────────────────────────────────────────────────────────────
 
-// Build the list of label groups from state.labels + all tracked ticket keys.
-// Returns [{label, keys, color}] sorted alphabetically, with 'no-label' last.
+// Build the list of label groups from state.labels.
+// Returns [{label, keys, color}] sorted alphabetically.
+// Tickets with no labels are intentionally excluded.
 function getLabelGroups() {
   // Collect all tracked ticket keys (non-history groups)
   const allTrackedKeys = new Set();
@@ -12,35 +13,25 @@ function getLabelGroups() {
     for (const e of g.keys) allTrackedKeys.add(entryKey(e));
   }
 
-  // Build label → keys map
-  const labelMap = {}; // label → Set of keys
-  const noLabelKeys = [];
+  // Build label → keys map (skip unlabeled tickets)
+  const labelMap = {};
 
   for (const key of allTrackedKeys) {
     const lbls = state.labels[key];
-    if (!lbls || !lbls.length) {
-      noLabelKeys.push(key);
-    } else {
-      for (const lbl of lbls) {
-        if (!labelMap[lbl]) labelMap[lbl] = new Set();
-        labelMap[lbl].add(key);
-      }
+    if (!lbls || !lbls.length) continue;
+    for (const lbl of lbls) {
+      if (!labelMap[lbl]) labelMap[lbl] = new Set();
+      labelMap[lbl].add(key);
     }
   }
 
-  const groups = Object.keys(labelMap)
+  return Object.keys(labelMap)
     .sort()
     .map((lbl) => ({
       label: lbl,
       keys: Array.from(labelMap[lbl]),
       color: state.labelColors[lbl] || '#6e7681',
     }));
-
-  if (noLabelKeys.length) {
-    groups.push({ label: 'no-label', keys: noLabelKeys, color: '#6e7681' });
-  }
-
-  return groups;
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
