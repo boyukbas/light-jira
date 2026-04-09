@@ -2547,6 +2547,137 @@ test.describe('Delete button icons', () => {
   });
 });
 
+// ── AUTO-REFRESH ──────────────────────────────────────────────────────────────
+test.describe('Auto-refresh', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('auto-refresh toggle button is visible in topbar', async ({ page }) => {
+    await expect(page.locator('#auto-refresh-btn')).toBeVisible();
+  });
+
+  test('auto-refresh is off by default', async ({ page }) => {
+    const active = await page.locator('#auto-refresh-btn').getAttribute('data-active');
+    expect(active).toBe('false');
+  });
+
+  test('clicking auto-refresh button enables it', async ({ page }) => {
+    await page.click('#auto-refresh-btn');
+    const active = await page.locator('#auto-refresh-btn').getAttribute('data-active');
+    expect(active).toBe('true');
+  });
+
+  test('clicking auto-refresh twice disables it again', async ({ page }) => {
+    await page.click('#auto-refresh-btn');
+    await page.click('#auto-refresh-btn');
+    const active = await page.locator('#auto-refresh-btn').getAttribute('data-active');
+    expect(active).toBe('false');
+  });
+});
+
+// ── OPEN IN WINDOW SETTING ────────────────────────────────────────────────────
+test.describe('Open in Window setting', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('settings modal has Open in Window toggle', async ({ page }) => {
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-open-in-window')).toBeVisible();
+  });
+
+  test('Open in Window toggle is ON by default', async ({ page }) => {
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-open-in-window')).toBeChecked();
+  });
+
+  test('Open in Window toggle state is saved on settings save', async ({ page }) => {
+    await page.click('#settings-btn');
+    await page.locator('#cfg-open-in-window').uncheck();
+    await page.click('#settings-save');
+    await page.click('#settings-btn');
+    await expect(page.locator('#cfg-open-in-window')).not.toBeChecked();
+  });
+});
+
+// ── LABELS TAB — ACTIVE KEY ISOLATION ────────────────────────────────────────
+test.describe('Labels tab — active key isolation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('switching to Labels tab with a Jira ticket selected shows empty reading pane', async ({
+    page,
+  }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+
+    await page.click('#tab-labels');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'labels');
+    await expect(page.locator('#reading-content')).not.toBeVisible();
+    await expect(page.locator('#reading-empty')).toBeVisible();
+  });
+
+  test('switching back to Jira tab restores previously selected ticket', async ({ page }) => {
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+
+    await page.click('#tab-labels');
+    await page.click('#tab-jira');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'jira');
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 3000 });
+  });
+});
+
+// ── TOPBAR REDESIGN ───────────────────────────────────────────────────────────
+test.describe('Topbar redesign', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+  });
+
+  test('logo does not contain "Crisp for Jira" text', async ({ page }) => {
+    const logoText = await page.locator('#logo').textContent();
+    expect(logoText.trim()).not.toContain('Crisp for Jira');
+  });
+
+  test('search form is inside topbar-row-2', async ({ page }) => {
+    const inside = await page.evaluate(() =>
+      document.getElementById('topbar-row-2')?.contains(document.getElementById('search-form'))
+    );
+    expect(inside).toBe(true);
+  });
+
+  test('main tab-bar is inside topbar-row-2', async ({ page }) => {
+    const inside = await page.evaluate(() =>
+      document.getElementById('topbar-row-2')?.contains(document.getElementById('tab-bar'))
+    );
+    expect(inside).toBe(true);
+  });
+
+  test('aux-tab-bar is inside topbar-row-1', async ({ page }) => {
+    const inside = await page.evaluate(() =>
+      document.getElementById('topbar-row-1')?.contains(document.getElementById('aux-tab-bar'))
+    );
+    expect(inside).toBe(true);
+  });
+});
+
 // ── PWA ───────────────────────────────────────────────────────────────────────
 test.describe('PWA', () => {
   test('registers service worker on startup', async ({ page }) => {

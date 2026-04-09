@@ -33,6 +33,10 @@ let state = {
   cbGroups: [], // [{id, name}]
   activeCbGroupId: null,
   lastCbLanguage: 'javascript',
+  autoRefresh: false, // auto-refresh all tickets every hour
+  openInWindow: true, // open app in popup window (false = open in tab)
+  labelsActiveKey: null, // active ticket key while in Labels tab
+  jiraActiveKey: null, // saved Jira key while Labels tab is open
 };
 
 let draggedKey = null; // for ticket drag & drop
@@ -144,6 +148,10 @@ function applyMigrations() {
   for (const cb of state.codeBlocks) {
     if (cb.groupId === undefined) cb.groupId = null;
   }
+  if (state.autoRefresh === undefined) state.autoRefresh = false;
+  if (state.openInWindow === undefined) state.openInWindow = true;
+  if (state.labelsActiveKey === undefined) state.labelsActiveKey = null;
+  if (state.jiraActiveKey === undefined) state.jiraActiveKey = null;
 }
 
 // ── LOAD STATE ────────────────────────────────────────────────────────────────
@@ -223,6 +231,10 @@ function saveState() {
       cbGroups: state.cbGroups,
       layout: state.layout,
       timelines: state.timelines,
+      autoRefresh: state.autoRefresh,
+      openInWindow: state.openInWindow,
+      labelsActiveKey: state.labelsActiveKey,
+      jiraActiveKey: state.jiraActiveKey,
     };
     chrome.storage.sync
       .set({

@@ -4,20 +4,25 @@
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 52px;
+  flex-direction: column;
   flex-shrink: 0;
 }
-#logo {
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--accent);
-  letter-spacing: -0.3px;
+.topbar-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: auto;
+}
+#topbar-row-1 {
+  height: 46px;
+}
+#topbar-row-2 {
+  height: 38px;
+  border-top: 1px solid var(--border-subtle);
+  padding-bottom: 4px;
+}
+#logo {
+  display: flex;
+  align-items: center;
 }
 
 /* 3-PANE LAYOUT */

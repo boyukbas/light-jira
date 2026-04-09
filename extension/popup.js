@@ -12,26 +12,64 @@ async function getAppTab() {
   return tab || null;
 }
 
+// Read the openInWindow preference from chrome.storage.sync (saved by the app).
+async function getOpenInWindow() {
+  try {
+    const result = await chrome.storage.sync.get('crisp_prefs');
+    return result.crisp_prefs?.openInWindow !== false;
+  } catch {
+    return true; // default: popup window
+  }
+}
+
 // Send a beam payload to the app.
-// If the app tab is open, inject a CustomEvent directly into the page context.
-// If not, open the extension's index.html with the payload as a ?beam= param.
+// If the app tab is open, focus it and send the payload via runtime messaging.
+// If not, open the app using either a popup window or a tab per the openInWindow setting.
 async function beamToApp(payload) {
-  const appTab = await getAppTab();
+  const [appTab, openInWindow] = await Promise.all([getAppTab(), getOpenInWindow()]);
   if (appTab) {
-    // runtime messaging requires no host permission — works for own extension pages
     chrome.runtime.sendMessage({ type: 'beam', payload });
     await chrome.tabs.update(appTab.id, { active: true });
     await chrome.windows.update(appTab.windowId, { focused: true });
   } else {
     const encoded = btoa(JSON.stringify(payload));
-    await chrome.windows.create({
-      url: `${getAppUrl()}?beam=${encoded}`,
-      type: 'popup',
-      width: 1440,
-      height: 900,
-    });
+    const url = `${getAppUrl()}?beam=${encoded}`;
+    if (openInWindow) {
+      await chrome.windows.create({ url, type: 'popup', width: 1440, height: 900 });
+    } else {
+      await chrome.tabs.create({ url });
+    }
   }
   window.close();
+}
+
+// Collect tickets from all open Jira tabs and beam them as a group.
+async function beamAllJiraTabs() {
+  const tabs = await chrome.tabs.query({ url: 'https://*.atlassian.net/*' });
+  const ticketMap = new Map();
+  for (const tab of tabs) {
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { type: 'extract-keys' });
+      const tickets =
+        response?.tickets || (response?.keys || []).map((k) => ({ key: k, title: k }));
+      for (const { key, title } of tickets) {
+        if (!ticketMap.has(key) || (title && title !== key)) {
+          ticketMap.set(key, title || key);
+        }
+      }
+    } catch {
+      // Tab may not have the content script (e.g. non-ticket pages) — skip silently
+    }
+  }
+  if (!ticketMap.size) {
+    window.close();
+    return;
+  }
+  beamToApp({
+    type: 'open-group',
+    name: 'All Jira Tabs',
+    keys: Array.from(ticketMap.keys()),
+  });
 }
 
 function escHtml(s) {
@@ -92,10 +130,17 @@ async function init() {
       await chrome.tabs.update(tab.id, { active: true });
       await chrome.windows.update(tab.windowId, { focused: true });
     } else {
-      chrome.windows.create({ url: getAppUrl(), type: 'popup', width: 1440, height: 900 });
+      const openInWindow = await getOpenInWindow();
+      if (openInWindow) {
+        chrome.windows.create({ url: getAppUrl(), type: 'popup', width: 1440, height: 900 });
+      } else {
+        chrome.tabs.create({ url: getAppUrl() });
+      }
     }
     window.close();
   });
+
+  document.getElementById('beam-all-btn')?.addEventListener('click', () => beamAllJiraTabs());
 
   // ── Current tab ───────────────────────────────────────────────────────────
   const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });

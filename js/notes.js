@@ -5,6 +5,17 @@
 // Block-level construction lives in notes-canvas.js.
 
 function switchTab(tab) {
+  // Isolate activeKey between Jira and Labels tabs so each has its own selection context
+  if (state.appMode === 'labels') {
+    // Leaving Labels — save Labels selection, restore Jira selection
+    state.labelsActiveKey = state.activeKey;
+    state.activeKey = state.jiraActiveKey;
+  }
+  if (tab === 'labels') {
+    // Entering Labels — save Jira selection, restore Labels selection
+    state.jiraActiveKey = state.activeKey;
+    state.activeKey = state.labelsActiveKey;
+  }
   state.appMode = tab;
   saveState();
   updateViewMode();

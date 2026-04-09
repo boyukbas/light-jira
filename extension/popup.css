@@ -293,6 +293,9 @@ section + section {
 footer {
   padding: 6px 14px 10px;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 /* ── Utility ── */

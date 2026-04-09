@@ -2,7 +2,6 @@
 #tab-bar {
   display: flex;
   gap: 2px;
-  margin-right: 16px;
   background: var(--bg);
   border-radius: 8px;
   padding: 3px;
