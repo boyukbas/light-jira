@@ -114,7 +114,7 @@ function renderSidebar() {
 function startInlineGroupCreate() {
   startInlineCreate(document.getElementById('group-list'), 'List name\u2026', (name) => {
     if (name) {
-      const id = 'g_' + Date.now();
+      const id = generateId('g');
       insertGroupBeforeHistory({ id, name, keys: [] });
       state.activeGroupId = id;
       saveState();

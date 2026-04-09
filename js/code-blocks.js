@@ -72,7 +72,7 @@ function getActiveCodeBlock() {
 
 function createCodeBlock() {
   const block = {
-    id: 'cb_' + Date.now(),
+    id: generateId('cb'),
     title: '',
     code: '',
     language: state.lastCbLanguage || 'javascript',
@@ -100,7 +100,7 @@ function createCbGroup() {
   startInlineCreate(document.getElementById('cb-group-list'), 'Group name\u2026', (name) => {
     if (name) {
       if (!state.cbGroups) state.cbGroups = [];
-      const g = { id: 'cbg_' + Date.now(), name };
+      const g = { id: generateId('cbg'), name };
       state.cbGroups.push(g);
       state.activeCbGroupId = g.id;
       saveState();
@@ -122,68 +122,28 @@ function deleteCbGroup(id) {
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
 
 function renderCbSidebar() {
-  const groupList = document.getElementById('cb-group-list');
-  if (groupList) {
-    const groups = state.cbGroups || [];
-    const allCount = state.codeBlocks.length;
-    let gHtml =
-      '<div class="group-item' +
-      (state.activeCbGroupId === null ? ' active' : '') +
-      '" data-group-id="">' +
-      '<span class="g-name">All Snippets</span>' +
-      '<span class="count">' +
-      allCount +
-      '</span>' +
-      '</div>';
-    for (const g of groups) {
-      const cnt = state.codeBlocks.filter((b) => b.groupId === g.id).length;
-      gHtml +=
-        '<div class="group-item' +
-        (state.activeCbGroupId === g.id ? ' active' : '') +
-        '" data-group-id="' +
-        esc(g.id) +
-        '">' +
-        '<span class="g-name">' +
-        esc(g.name) +
-        '</span>' +
-        '<button class="cb-group-del g-action-btn" data-del-id="' +
-        esc(g.id) +
-        '" title="Delete group">' +
-        TRASH_SVG +
-        '</button>' +
-        '<span class="count">' +
-        cnt +
-        '</span>' +
-        '</div>';
-    }
-    groupList.innerHTML = gHtml;
-
-    groupList.querySelectorAll('.group-item').forEach((el) => {
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('.cb-group-del')) return;
-        state.activeCbGroupId = el.dataset.groupId || null;
-        saveState();
-        renderCbSidebar();
-        renderCbMain();
-      });
-    });
-    groupList.querySelectorAll('.cb-group-del').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteCbGroup(btn.dataset.delId);
-      });
-    });
-  }
-  const addGroupBtn = document.getElementById('add-cb-group-btn');
-  if (addGroupBtn) addGroupBtn.onclick = createCbGroup;
+  renderGroupSection({
+    listId: 'cb-group-list',
+    groups: state.cbGroups || [],
+    items: state.codeBlocks,
+    activeGroupId: state.activeCbGroupId,
+    allLabel: 'All Snippets',
+    delClass: 'cb-group-del',
+    onSelect: (id) => {
+      state.activeCbGroupId = id;
+      saveState();
+      renderCbSidebar();
+      renderCbMain();
+    },
+    onDelete: deleteCbGroup,
+    addBtnId: 'add-cb-group-btn',
+    onAdd: createCbGroup,
+  });
 
   const list = document.getElementById('cb-snippet-list');
   if (!list) return;
 
-  const blocks =
-    state.activeCbGroupId === null
-      ? state.codeBlocks
-      : state.codeBlocks.filter((b) => b.groupId === state.activeCbGroupId);
+  const blocks = filterByGroup(state.codeBlocks, state.activeCbGroupId);
 
   let html = '';
   for (const block of blocks) {
