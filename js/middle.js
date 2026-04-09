@@ -107,10 +107,29 @@ function renderMiddle() {
   } else if (typeof Fuse !== 'undefined') {
     const items = group.keys.map((entry) => {
       const key = entryKey(entry);
-      return { entry, key, summary: issueCache[key]?.fields?.summary || '' };
+      const f = issueCache[key]?.fields || {};
+      const descHtml = issueCache[key]?.renderedFields?.description;
+      return {
+        entry,
+        key,
+        summary: f.summary || '',
+        assignee: f.assignee?.displayName || '',
+        status: f.status?.name || '',
+        priority: f.priority?.name || '',
+        labels: (state.labels[key] || []).join(' '),
+        description: descHtml ? stripHtml(descHtml) : '',
+      };
     });
     const fuse = new Fuse(items, {
-      keys: ['key', 'summary'],
+      keys: [
+        { name: 'key', weight: 3 },
+        { name: 'summary', weight: 2 },
+        { name: 'assignee', weight: 1.5 },
+        { name: 'status', weight: 1.5 },
+        { name: 'priority', weight: 1 },
+        { name: 'labels', weight: 1 },
+        { name: 'description', weight: 0.5 },
+      ],
       threshold: 0.35,
       ignoreLocation: true,
       minMatchCharLength: 2,
@@ -120,9 +139,20 @@ function renderMiddle() {
     const ql = q.toLowerCase();
     visibleKeys = group.keys.filter((entry) => {
       const key = entryKey(entry);
-      if (key.toLowerCase().includes(ql)) return true;
-      const summary = issueCache[key]?.fields?.summary || '';
-      return summary.toLowerCase().includes(ql);
+      const f = issueCache[key]?.fields || {};
+      const descHtml = issueCache[key]?.renderedFields?.description;
+      const haystack = [
+        key,
+        f.summary || '',
+        f.assignee?.displayName || '',
+        f.status?.name || '',
+        f.priority?.name || '',
+        (state.labels[key] || []).join(' '),
+        descHtml ? stripHtml(descHtml) : '',
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(ql);
     });
   }
 
