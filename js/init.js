@@ -1,5 +1,43 @@
 'use strict';
 
+// ── AUTO-REFRESH ──────────────────────────────────────────────────────────────
+let _autoRefreshTimer = null;
+
+async function _autoRefreshAllTickets() {
+  if (!isConfigured()) return;
+  const seen = new Set();
+  for (const g of state.groups) {
+    if (g.id === 'history' || g.isFilter) continue;
+    for (const e of g.keys) {
+      const k = entryKey(e);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      try {
+        issueCache[k] = await fetchIssue(k);
+        // 150 ms between requests keeps us well within Jira Cloud rate limits
+        await new Promise((r) => setTimeout(r, 150));
+      } catch {
+        /* keep stale cache entry on failure */
+      }
+    }
+  }
+  saveState();
+  renderMiddle();
+  if (state.activeKey) renderReading();
+}
+
+function _setAutoRefresh(enabled) {
+  state.autoRefresh = enabled;
+  const btn = document.getElementById('auto-refresh-btn');
+  if (btn) btn.setAttribute('data-active', String(enabled));
+  clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = null;
+  if (enabled) {
+    _autoRefreshTimer = setInterval(_autoRefreshAllTickets, 60 * 60 * 1000); // every hour
+  }
+  saveState();
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
   loadConfig();
@@ -256,6 +294,14 @@ async function init() {
 
   const notesText = document.getElementById('notes-text');
   if (notesText) notesText.addEventListener('input', () => saveNotes(notesText.value));
+
+  // ── Auto-refresh toggle ───────────────────────────────────────────────────
+  const arBtn = document.getElementById('auto-refresh-btn');
+  if (arBtn) {
+    arBtn.addEventListener('click', () => _setAutoRefresh(!state.autoRefresh));
+    // Restore persisted state (also restarts interval if it was enabled)
+    if (state.autoRefresh) _setAutoRefresh(true);
+  }
 
   // ── Settings modal ────────────────────────────────────────────────────────
   initSettings();

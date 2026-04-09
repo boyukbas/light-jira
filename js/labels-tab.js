@@ -164,6 +164,7 @@ function renderLabelsMiddle() {
   list.querySelectorAll('.list-card').forEach((el) => {
     el.addEventListener('click', () => {
       state.activeKey = el.dataset.key;
+      state.labelsActiveKey = el.dataset.key; // persist labels tab selection separately
       saveState();
       list.querySelectorAll('.list-card').forEach((c) => {
         c.classList.toggle('active', c.dataset.key === state.activeKey);

@@ -6,6 +6,7 @@ function openCfg() {
   document.getElementById('cfg-url').value = cfg.baseUrl;
   document.getElementById('cfg-email').value = cfg.email;
   document.getElementById('cfg-token').value = cfg.token;
+  document.getElementById('cfg-open-in-window').checked = state.openInWindow !== false;
   clearSettingsErrors();
   document.getElementById('settings-overlay').classList.remove('hidden');
   document.getElementById('cfg-email').focus();
@@ -62,7 +63,9 @@ function initSettings() {
     cfg.baseUrl = (rawUrl || DEFAULTS.baseUrl).replace(/\/$/, '');
     cfg.email = document.getElementById('cfg-email').value.trim();
     cfg.token = document.getElementById('cfg-token').value.trim();
+    state.openInWindow = document.getElementById('cfg-open-in-window').checked;
     saveConfig();
+    saveState();
     closeCfg();
     toast('Settings saved');
     if (getActiveGroup().keys.length) loadAllGroupTickets();

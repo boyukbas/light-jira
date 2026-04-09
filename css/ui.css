@@ -384,6 +384,25 @@
   color: var(--accent);
 }
 
+/* ── AUTO-REFRESH BUTTON — active state ── */
+#auto-refresh-btn[data-active='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+/* ── SETTING TOGGLE (checkbox + hint text) ── */
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.setting-toggle-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 /* ── SIDEBAR ADD BUTTON (shared by Jira, Notes, Mindmap sidebars) ── */
 .sidebar-add-btn {
   background: transparent;
