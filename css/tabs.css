@@ -8,11 +8,10 @@
   border: 1px solid var(--border-subtle);
 }
 
-/* Auxiliary tab group — Notes + Mindmap, sits near the settings icon */
+/* Auxiliary tab group — Snippets · Notes · Mindmap, sits before settings */
 #aux-tab-bar {
   display: flex;
   gap: 2px;
-  margin-right: 8px;
   background: var(--bg);
   border-radius: 8px;
   padding: 3px;
