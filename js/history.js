@@ -133,6 +133,11 @@ function renderHistoryTable() {
   let html =
     '<div class="middle-header">' +
     '<span>History</span>' +
+    '<button class="top-btn icon-only" id="history-clear-btn" title="Clear all history" aria-label="Clear all history">' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+    '<polyline points="3 6 5 6 21 6"/>' +
+    '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>' +
+    '</svg></button>' +
     '<span style="font-size:11px;color:var(--text-tertiary);font-weight:400;">' +
     esc(headerRight) +
     '</span>' +
@@ -227,6 +232,17 @@ function renderHistoryTable() {
 
   html += '</tbody></table></div>';
   pane.innerHTML = html;
+
+  // ── Clear all history ─────────────────────────────────────────────────────
+  const clearBtn = pane.querySelector('#history-clear-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (!confirm('Clear all history?')) return;
+      getGroup('history').keys = [];
+      saveState();
+      renderHistoryTable();
+    });
+  }
 
   // ── Restore saved column widths ───────────────────────────────────────────
   Object.entries(htColWidths).forEach(([key, w]) => {

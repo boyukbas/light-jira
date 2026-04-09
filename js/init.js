@@ -249,6 +249,9 @@ async function init() {
   document
     .getElementById('mm-collapse-btn')
     ?.addEventListener('click', () => toggleCollapse('mm-sidebar'));
+  document
+    .getElementById('cb-collapse-btn')
+    ?.addEventListener('click', () => toggleCollapse('cb-sidebar'));
   document.getElementById('notes-pane-close').addEventListener('click', toggleNotes);
 
   const notesText = document.getElementById('notes-text');

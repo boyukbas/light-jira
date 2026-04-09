@@ -540,8 +540,14 @@ async function renderMindMap() {
       previewEl.innerHTML = svg;
       applyMmTransform();
     } catch (err) {
-      previewEl.innerHTML =
-        '<div class="mm-error">' + esc(err.message || 'Invalid diagram syntax') + '</div>';
+      const errDiv = document.createElement('div');
+      errDiv.className = 'mm-error';
+      errDiv.textContent = err.message || 'Invalid diagram syntax';
+      previewEl.innerHTML = '';
+      previewEl.appendChild(errDiv);
+      setTimeout(() => {
+        if (errDiv.isConnected) previewEl.innerHTML = '';
+      }, 4000);
     }
   }
 }
