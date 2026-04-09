@@ -150,6 +150,22 @@
       <div style="flex: 1"></div>
 
       <div id="aux-tab-bar">
+        <button class="tab-btn" data-tab="snippets" id="tab-snippets">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="16 18 22 12 16 6" />
+            <polyline points="8 6 2 12 8 18" />
+          </svg>
+          Snippets
+        </button>
         <button class="tab-btn" data-tab="notes" id="tab-notes">
           <svg
             width="14"
@@ -637,6 +653,79 @@
         </div>
       </div>
 
+      <!-- SNIPPETS PANE (for Code Blocks mode) -->
+      <div id="code-blocks-pane">
+        <div id="cb-groups-pane">
+          <div class="groups-pane-header">
+            <span class="groups-pane-label">Groups</span>
+            <button
+              id="add-cb-group-btn"
+              class="top-btn icon-only"
+              title="New Group"
+              aria-label="New Group"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+          <div id="cb-group-list"></div>
+        </div>
+        <div class="resizer" id="resizer-cb-groups"></div>
+        <div class="cb-sidebar" id="cb-sidebar">
+          <div class="cb-sidebar-header">
+            <span class="cb-sidebar-label">Snippets</span>
+            <button
+              id="add-cb-btn"
+              class="top-btn icon-only"
+              title="New Snippet"
+              aria-label="New Snippet"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <button
+              class="top-btn icon-only collapse-btn"
+              id="cb-collapse-btn"
+              title="Collapse Sidebar"
+              aria-label="Collapse Snippets Sidebar"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="11 17 6 12 11 7" />
+                <polyline points="18 17 13 12 18 7" />
+              </svg>
+            </button>
+          </div>
+          <div id="cb-snippet-list"></div>
+        </div>
+        <div class="resizer" id="resizer-cb-sidebar"></div>
+        <div class="cb-main" id="cb-main"></div>
+      </div>
+
       <!-- NOTES CANVAS PANE (for Notes mode) -->
       <div id="notes-canvas-pane">
         <div id="nc-groups-pane">
@@ -795,6 +884,7 @@
     <script src="js/labels-tab.js"></script>
     <script src="js/notes-canvas.js"></script>
     <script src="js/notes.js"></script>
+    <script src="js/code-blocks.js"></script>
     <script src="js/drag-drop.js"></script>
     <script src="js/filters.js"></script>
     <script src="js/tickets.js"></script>

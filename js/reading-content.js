@@ -1,6 +1,12 @@
 'use strict';
 
 // ── READING PANE — HTML BUILDERS ──────────────────────────────────────────────
+const CAL_SVG =
+  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+  '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
+  '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>' +
+  '<line x1="3" y1="10" x2="21" y2="10"/>' +
+  '</svg>';
 // Pure HTML-string builders called by renderReading(). Each function takes
 // issue data and returns an HTML fragment; no DOM access here.
 
@@ -99,6 +105,7 @@ function buildMetaGridHtml(f, key) {
     {
       l: 'Due',
       editable: 'due-date',
+      dateField: true,
       jira: true,
       v: f.duedate ? relDate(f.duedate) : '\u2014',
     }
@@ -126,8 +133,14 @@ function buildMetaGridHtml(f, key) {
           year: '2-digit',
         })
       : '\u2014';
-  items.push({ l: 'Start', editable: 'tl-start', local: true, v: fmtTlDate(tl.start) });
-  items.push({ l: 'ETA', editable: 'tl-eta', local: true, v: fmtTlDate(tl.eta) });
+  items.push({
+    l: 'Start',
+    editable: 'tl-start',
+    dateField: true,
+    local: true,
+    v: fmtTlDate(tl.start),
+  });
+  items.push({ l: 'ETA', editable: 'tl-eta', dateField: true, local: true, v: fmtTlDate(tl.eta) });
   const jiraBadge = '<span class="field-scope field-scope-jira" title="Saves to Jira">Jira</span>';
   const localBadge =
     '<span class="field-scope field-scope-local" title="Stored locally only">Local</span>';
@@ -146,7 +159,13 @@ function buildMetaGridHtml(f, key) {
       scopeBadge +
       '</div><div class="meta-value">' +
       m.v +
-      (m.editable ? '<span class="edit-hint" aria-hidden="true"></span>' : '') +
+      (m.editable
+        ? m.dateField
+          ? '<button class="cal-btn" aria-label="Open date picker" title="Open date picker">' +
+            CAL_SVG +
+            '</button>'
+          : '<span class="edit-hint" aria-hidden="true"></span>'
+        : '') +
       '</div></div>';
   }
   return html + '</div>';

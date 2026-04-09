@@ -22,8 +22,16 @@ function renderTimeline() {
     const tl = state.timelines[key];
     if (!tl || (!tl.start && !tl.eta)) continue;
     const issue = issueCache[key] || {};
-    const summary = issue.fields?.summary || '';
-    rows.push({ key, summary, start: tl.start || null, eta: tl.eta || null });
+    const f = issue.fields || {};
+    rows.push({
+      key,
+      summary: f.summary || '',
+      start: tl.start || null,
+      eta: tl.eta || null,
+      assignee: f.assignee?.displayName || '\u2014',
+      status: f.status?.name || '\u2014',
+      statusCat: f.status?.statusCategory?.name || '',
+    });
   }
 
   if (!rows.length) {
@@ -59,7 +67,7 @@ function renderTimeline() {
   let html =
     '<div class="tl-header"><span class="tl-title">Timeline</span></div>' +
     '<table class="tl-table"><thead><tr>' +
-    '<th>Ticket</th><th>Summary</th><th>Start</th><th>ETA</th><th class="tl-chart-th"></th>' +
+    '<th>Ticket</th><th>Summary</th><th>Assignee</th><th>Status</th><th>Start</th><th>ETA</th><th class="tl-chart-th"></th>' +
     '</tr></thead><tbody>';
 
   for (const r of rows) {
@@ -92,17 +100,25 @@ function renderTimeline() {
 
     html +=
       '<tr class="tl-row">' +
-      '<td class="tl-key-cell"><a class="tl-key-link" href="' +
-      esc(cfg.baseUrl) +
-      '/browse/' +
+      '<td class="tl-key-cell"><span class="tl-key-link" data-key="' +
       esc(r.key) +
-      '" target="_blank" rel="noopener noreferrer">' +
+      '">' +
       esc(r.key) +
-      '</a></td>' +
+      '</span></td>' +
       '<td class="tl-summary-cell" title="' +
       esc(r.summary) +
       '">' +
-      esc(r.summary || '—') +
+      esc(r.summary || '\u2014') +
+      '</td>' +
+      '<td class="tl-date-cell">' +
+      esc(r.assignee) +
+      '</td>' +
+      '<td class="tl-date-cell">' +
+      '<span class="status-badge ' +
+      statusClass(r.statusCat || r.status) +
+      '">' +
+      esc(r.status) +
+      '</span>' +
       '</td>' +
       '<td class="tl-date-cell">' +
       formatDate(r.start) +
@@ -118,4 +134,8 @@ function renderTimeline() {
 
   html += '</tbody></table>';
   pane.innerHTML = html;
+
+  pane.querySelectorAll('.tl-key-link').forEach((el) => {
+    el.addEventListener('click', () => openFromHistory(el.dataset.key));
+  });
 }

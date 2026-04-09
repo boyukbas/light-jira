@@ -199,33 +199,63 @@ async function renderHierarchy(rootKey, directParent) {
 function bindEditableMetaFields(container, issueKey) {
   container.querySelectorAll('[data-editable]').forEach((item) => {
     const type = item.dataset.editable;
+    const isDate = type === 'due-date' || type === 'tl-start' || type === 'tl-eta';
 
-    item.addEventListener('click', () => {
-      if (item.querySelector('input')) return; // already editing
-      // Always look up the current .meta-value — never use a captured reference,
-      // because replaceWith() detaches the original node and any closure over it
-      // will silently operate on a detached (invisible) element.
-      const currentValueEl = item.querySelector('.meta-value');
-      if (!currentValueEl) return;
-      if (type === 'story-points') startStoryPointsEdit(item, currentValueEl, issueKey);
-      if (type === 'assignee') startAssigneeEdit(item, currentValueEl, issueKey);
-      if (type === 'due-date') startDueDateEdit(item, currentValueEl, issueKey);
-      if (type === 'tl-start' || type === 'tl-eta')
-        startTimelineEdit(type, item, currentValueEl, issueKey);
-    });
+    if (isDate) {
+      // Calendar button → open native date picker
+      const calBtn = item.querySelector('.cal-btn');
+      if (calBtn) {
+        calBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (item.querySelector('input')) return;
+          const valueEl = item.querySelector('.meta-value');
+          if (!valueEl) return;
+          if (type === 'due-date') startDueDateEdit(item, valueEl, issueKey, true);
+          else startTimelineEdit(type, item, valueEl, issueKey, true);
+        });
+      }
+      // Text area click → focus input without opening picker
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.cal-btn')) return;
+        if (item.querySelector('input')) return;
+        const valueEl = item.querySelector('.meta-value');
+        if (!valueEl) return;
+        if (type === 'due-date') startDueDateEdit(item, valueEl, issueKey, false);
+        else startTimelineEdit(type, item, valueEl, issueKey, false);
+      });
+    } else {
+      item.addEventListener('click', () => {
+        if (item.querySelector('input')) return;
+        const currentValueEl = item.querySelector('.meta-value');
+        if (!currentValueEl) return;
+        if (type === 'story-points') startStoryPointsEdit(item, currentValueEl, issueKey);
+        if (type === 'assignee') startAssigneeEdit(item, currentValueEl, issueKey);
+      });
+    }
   });
 }
 
-// Build a fresh .meta-value div that includes the .edit-hint span so
-// hover state is preserved after the input is committed and replaced.
-function makeMetaValue(text) {
+// Build a fresh .meta-value div. For date fields, includes a calendar icon button.
+function makeMetaValue(text, isDate = false) {
   const div = document.createElement('div');
   div.className = 'meta-value';
-  div.textContent = text;
-  const hint = document.createElement('span');
-  hint.className = 'edit-hint';
-  hint.setAttribute('aria-hidden', 'true');
-  div.appendChild(hint);
+  if (isDate) {
+    const textSpan = document.createElement('span');
+    textSpan.textContent = text;
+    div.appendChild(textSpan);
+    const btn = document.createElement('button');
+    btn.className = 'cal-btn';
+    btn.setAttribute('aria-label', 'Open date picker');
+    btn.setAttribute('title', 'Open date picker');
+    btn.innerHTML = CAL_SVG;
+    div.appendChild(btn);
+  } else {
+    div.textContent = text;
+    const hint = document.createElement('span');
+    hint.className = 'edit-hint';
+    hint.setAttribute('aria-hidden', 'true');
+    div.appendChild(hint);
+  }
   return div;
 }
 
@@ -349,7 +379,7 @@ function startAssigneeEdit(item, valueEl, issueKey) {
   });
 }
 
-function startDueDateEdit(item, valueEl, issueKey) {
+function startDueDateEdit(item, valueEl, issueKey, openPicker) {
   const current = issueCache[issueKey]?.fields?.duedate || '';
   const input = document.createElement('input');
   input.type = 'date';
@@ -357,6 +387,10 @@ function startDueDateEdit(item, valueEl, issueKey) {
   input.className = 'meta-edit-input';
   valueEl.replaceWith(input);
   input.focus();
+  if (openPicker)
+    try {
+      input.showPicker();
+    } catch {}
 
   const formatDisplay = (d) =>
     d
@@ -378,7 +412,7 @@ function startDueDateEdit(item, valueEl, issueKey) {
         toast('Failed to save: ' + e.message, 'error');
       }
     }
-    input.replaceWith(makeMetaValue(formatDisplay(val)));
+    input.replaceWith(makeMetaValue(formatDisplay(val), true));
   };
 
   input.addEventListener('keydown', (e) => {
@@ -386,12 +420,12 @@ function startDueDateEdit(item, valueEl, issueKey) {
       e.preventDefault();
       input.blur();
     }
-    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current)));
+    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current), true));
   });
   input.addEventListener('blur', commit);
 }
 
-function startTimelineEdit(type, item, valueEl, issueKey) {
+function startTimelineEdit(type, item, valueEl, issueKey, openPicker) {
   const field = type === 'tl-start' ? 'start' : 'eta';
   const current = state.timelines[issueKey]?.[field] || '';
   const input = document.createElement('input');
@@ -400,6 +434,10 @@ function startTimelineEdit(type, item, valueEl, issueKey) {
   input.className = 'meta-edit-input';
   valueEl.replaceWith(input);
   input.focus();
+  if (openPicker)
+    try {
+      input.showPicker();
+    } catch {}
 
   const formatDisplay = (d) =>
     d
@@ -420,7 +458,7 @@ function startTimelineEdit(type, item, valueEl, issueKey) {
       if (!Object.keys(state.timelines[issueKey]).length) delete state.timelines[issueKey];
     }
     saveState();
-    input.replaceWith(makeMetaValue(formatDisplay(val)));
+    input.replaceWith(makeMetaValue(formatDisplay(val), true));
   };
 
   input.addEventListener('keydown', (e) => {
@@ -428,7 +466,7 @@ function startTimelineEdit(type, item, valueEl, issueKey) {
       e.preventDefault();
       input.blur();
     }
-    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current)));
+    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current), true));
   });
   input.addEventListener('blur', commit);
 }

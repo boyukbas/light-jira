@@ -235,6 +235,26 @@
 .edit-hint::before {
   content: '✏';
 }
+.cal-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  border-radius: 4px;
+  flex-shrink: 0;
+  line-height: 0;
+}
+.meta-editable:hover .cal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cal-btn:hover {
+  color: var(--accent);
+  background: var(--surface-hover);
+}
 .field-scope {
   display: inline-block;
   font-size: 9px;

@@ -18,13 +18,21 @@ let state = {
     notesSidebarWidth: 220,
     mmSidebarWidth: 200,
     mmEditorWidth: 280,
+    cbGroupsPaneWidth: 180,
+    cbSidebarWidth: 220,
+    cbSidebarCollapsed: false,
   },
-  appMode: 'jira', // 'jira' | 'labels' | 'notes' | 'history' | 'mindmap'
+  appMode: 'jira', // 'jira' | 'labels' | 'notes' | 'history' | 'mindmap' | 'snippets'
   labelsActiveGroup: null, // active label name in labels tab (string | null)
   standAloneNotes: [], // [{id, title, blocks[], created, updated}]
   activeNoteId: null,
   mindMaps: [], // [{id, name, code}]
   activeMindMapId: null,
+  codeBlocks: [], // [{id, title, code, language, groupId, created, updated}]
+  activeCodeBlockId: null,
+  cbGroups: [], // [{id, name}]
+  activeCbGroupId: null,
+  lastCbLanguage: 'javascript',
 };
 
 let draggedKey = null; // for ticket drag & drop
@@ -47,6 +55,7 @@ const SK = {
   notes: 'crisp_notes',
   canvas: 'crisp_canvas',
   maps: 'crisp_maps',
+  snippets: 'crisp_snippets',
   prefs: 'crisp_prefs',
 };
 
@@ -124,6 +133,17 @@ function applyMigrations() {
   for (const mm of state.mindMaps) {
     if (mm.groupId === undefined) mm.groupId = null;
   }
+  if (!state.codeBlocks) state.codeBlocks = [];
+  if (state.activeCodeBlockId === undefined) state.activeCodeBlockId = null;
+  if (!state.cbGroups) state.cbGroups = [];
+  if (state.activeCbGroupId === undefined) state.activeCbGroupId = null;
+  if (!state.lastCbLanguage) state.lastCbLanguage = 'javascript';
+  if (!state.layout.cbGroupsPaneWidth) state.layout.cbGroupsPaneWidth = 180;
+  if (!state.layout.cbSidebarWidth) state.layout.cbSidebarWidth = 220;
+  if (state.layout.cbSidebarCollapsed === undefined) state.layout.cbSidebarCollapsed = false;
+  for (const cb of state.codeBlocks) {
+    if (cb.groupId === undefined) cb.groupId = null;
+  }
 }
 
 // ── LOAD STATE ────────────────────────────────────────────────────────────────
@@ -143,6 +163,7 @@ async function loadState() {
           notes: synced[SK.notes] || {},
           standAloneNotes: synced[SK.canvas] || [],
           mindMaps: synced[SK.maps] || [],
+          codeBlocks: synced[SK.snippets] || [],
           ...prefs,
         };
       } else {
@@ -196,6 +217,10 @@ function saveState() {
       labelsActiveGroup: state.labelsActiveGroup,
       activeNoteId: state.activeNoteId,
       activeMindMapId: state.activeMindMapId,
+      activeCodeBlockId: state.activeCodeBlockId,
+      activeCbGroupId: state.activeCbGroupId,
+      lastCbLanguage: state.lastCbLanguage,
+      cbGroups: state.cbGroups,
       layout: state.layout,
       timelines: state.timelines,
     };
@@ -207,6 +232,7 @@ function saveState() {
         [SK.notes]: state.notes,
         [SK.canvas]: state.standAloneNotes,
         [SK.maps]: state.mindMaps,
+        [SK.snippets]: state.codeBlocks,
         [SK.prefs]: prefs,
       })
       .catch((err) => {

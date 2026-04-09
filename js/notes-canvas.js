@@ -128,8 +128,15 @@ async function renderMermaidInBlock(previewEl, code) {
     const { svg } = await mermaid.render(id, code.trim());
     previewEl.innerHTML = svg;
   } catch {
-    previewEl.innerHTML =
-      '<div class="mm-error" style="font-size:11px;padding:6px;">Invalid diagram syntax</div>';
+    const errDiv = document.createElement('div');
+    errDiv.className = 'mm-error';
+    errDiv.style.cssText = 'font-size:11px;padding:6px;';
+    errDiv.textContent = 'Invalid diagram syntax';
+    previewEl.innerHTML = '';
+    previewEl.appendChild(errDiv);
+    setTimeout(() => {
+      if (errDiv.isConnected) previewEl.innerHTML = '';
+    }, 4000);
   }
 }
 
