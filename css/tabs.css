@@ -830,74 +830,117 @@ body[data-app-mode='snippets'] #code-blocks-pane {
   border-color: var(--accent);
 }
 
-/* Code editor overlay */
-.cb-code-wrap {
+/* Code area: view (highlighted) + edit (textarea) share the same space */
+.cb-code-area {
   flex: 1;
-  position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
 }
 
-.cb-code-highlight {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+/* View mode: syntax-highlighted read-only display */
+.cb-view {
+  flex: 1;
   margin: 0;
   padding: 16px;
-  box-sizing: border-box;
+  overflow: auto;
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.65;
   white-space: pre;
-  overflow: auto;
-  pointer-events: none;
-  border: none;
-  background: transparent;
-  color: transparent;
+  background: var(--bg);
+  color: var(--text-primary);
   border-radius: 0;
+  cursor: text;
 }
 
+.cb-view code {
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  white-space: inherit;
+}
+
+.cb-view:hover {
+  background: color-mix(in sRGB, var(--surface) 30%, var(--bg));
+}
+
+/* Edit mode: plain textarea */
 .cb-code-textarea {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  flex: 1;
   padding: 16px;
-  box-sizing: border-box;
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.65;
   white-space: pre;
   overflow: auto;
-  background: transparent;
+  background: var(--bg);
   border: none;
   outline: none;
   resize: none;
   color: var(--text-primary);
   caret-color: var(--text-primary);
-  z-index: 1;
+  tab-size: 2;
 }
 
-/* Syntax highlight token colours */
-.hl-keyword {
-  color: #c792ea;
+/* highlight.js token theme (atom-one-dark style) — class names are hljs conventions, not ours */
+/* stylelint-disable selector-class-pattern */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: #c678dd;
 }
-.hl-string {
-  color: #c3e88d;
+
+.hljs-string,
+.hljs-attr,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: #98c379;
 }
-.hl-comment {
-  color: #546e7a;
+
+.hljs-comment,
+.hljs-quote {
+  color: #5c6370;
   font-style: italic;
 }
-.hl-number {
-  color: #f78c6c;
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-link {
+  color: #d19a66;
 }
-.hl-json-key {
-  color: #80cbc4;
+
+.hljs-type,
+.hljs-class,
+.hljs-title {
+  color: #e5c07b;
 }
+
+.hljs-section,
+.hljs-attribute {
+  color: #61afef;
+}
+
+.hljs-params {
+  color: #abb2bf;
+}
+
+.hljs-subst,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+  color: #56b6c2;
+}
+
+.hljs-deletion {
+  color: #e06c75;
+}
+/* stylelint-enable selector-class-pattern */
 
 /* ── TIMELINE PANE ── */
 #timeline-pane {
