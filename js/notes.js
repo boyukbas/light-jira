@@ -153,7 +153,7 @@ function renderNotesSidebar() {
       esc(notePreview(note) || 'Empty canvas') +
       '</div>' +
       '<div class="nc-note-date">' +
-      relDate(new Date(note.updated)) +
+      relDate(note.updated) +
       '</div>' +
       '<button class="nc-note-del" data-del-id="' +
       esc(note.id) +
@@ -253,11 +253,14 @@ function renderNoteCanvas() {
 
   const dateEl = document.getElementById('nc-date');
   if (dateEl) {
-    dateEl.textContent = new Date(note.updated).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    dateEl.textContent =
+      typeof dayjs !== 'undefined'
+        ? dayjs(note.updated).format('MMM D, YYYY')
+        : new Date(note.updated).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          });
   }
 
   const addMermaid = document.getElementById('nc-add-mermaid-btn');

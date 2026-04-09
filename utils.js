@@ -49,7 +49,13 @@ function statusClass(cat) {
   return '';
 }
 
+// Initialise Day.js relative-time plugin (script loaded before utils.js)
+if (typeof dayjs !== 'undefined' && typeof dayjs_plugin_relativeTime !== 'undefined') {
+  dayjs.extend(dayjs_plugin_relativeTime);
+}
+
 function relDate(iso) {
+  if (typeof dayjs !== 'undefined') return dayjs(iso).fromNow();
   const d = new Date(iso),
     s = (Date.now() - d) / 1000;
   if (s < 3600) return Math.floor(s / 60) + 'm ago';
