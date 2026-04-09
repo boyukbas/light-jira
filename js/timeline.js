@@ -55,17 +55,6 @@ function renderTimeline() {
   const rangeEnd = maxTs + DAY;
   const rangeMs = rangeEnd - rangeStart || 1;
 
-  const formatDate = (d) =>
-    d
-      ? typeof dayjs !== 'undefined'
-        ? dayjs(d).format('MMM D, YY')
-        : new Date(d).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: '2-digit',
-          })
-      : '—';
-
   let html =
     '<div class="tl-header"><span class="tl-title">Timeline</span></div>' +
     '<table class="tl-table"><thead><tr>' +

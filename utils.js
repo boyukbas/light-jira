@@ -116,6 +116,100 @@ const TRASH_SVG =
   '<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>' +
   '</svg>';
 
+// Format a date value for display. Uses Day.js if available, falls back to
+// toLocaleDateString. fmt defaults to 'MMM D, YY' (e.g. "Apr 9, 25").
+function formatDate(d, fmt) {
+  if (!d) return '\u2014';
+  if (typeof dayjs !== 'undefined') return dayjs(d).format(fmt || 'MMM D, YY');
+  return new Date(d).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: '2-digit',
+  });
+}
+
+// Generate a unique ID with a given prefix, e.g. generateId('note') → 'note_1712345678901'
+function generateId(prefix) {
+  return prefix + '_' + Date.now();
+}
+
+// Return items filtered to activeGroupId, or all items when activeGroupId is null.
+function filterByGroup(items, activeGroupId) {
+  return activeGroupId === null ? items : items.filter((x) => x.groupId === activeGroupId);
+}
+
+// Render a group filter section into `listId` and wire up click + delete handlers.
+// config: { listId, groups, items, activeGroupId, allLabel, delClass,
+//           onSelect(id), onDelete(id), addBtnId, onAdd }
+function renderGroupSection(config) {
+  const {
+    listId,
+    groups,
+    items,
+    activeGroupId,
+    allLabel,
+    delClass,
+    onSelect,
+    onDelete,
+    addBtnId,
+    onAdd,
+  } = config;
+  const groupList = document.getElementById(listId);
+  if (!groupList) return;
+
+  let gHtml =
+    '<div class="group-item' +
+    (activeGroupId === null ? ' active' : '') +
+    '" data-group-id="">' +
+    '<span class="g-name">' +
+    allLabel +
+    '</span>' +
+    '<span class="count">' +
+    items.length +
+    '</span>' +
+    '</div>';
+  for (const g of groups) {
+    const cnt = items.filter((x) => x.groupId === g.id).length;
+    gHtml +=
+      '<div class="group-item' +
+      (activeGroupId === g.id ? ' active' : '') +
+      '" data-group-id="' +
+      esc(g.id) +
+      '">' +
+      '<span class="g-name">' +
+      esc(g.name) +
+      '</span>' +
+      '<button class="' +
+      delClass +
+      ' g-action-btn" data-del-id="' +
+      esc(g.id) +
+      '" title="Delete group">' +
+      TRASH_SVG +
+      '</button>' +
+      '<span class="count">' +
+      cnt +
+      '</span>' +
+      '</div>';
+  }
+  groupList.innerHTML = gHtml;
+
+  groupList.querySelectorAll('.group-item').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.' + delClass)) return;
+      onSelect(el.dataset.groupId || null);
+    });
+  });
+  groupList.querySelectorAll('.' + delClass).forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onDelete(btn.dataset.delId);
+    });
+  });
+
+  const addBtn = document.getElementById(addBtnId);
+  if (addBtn) addBtn.onclick = onAdd;
+}
+
 function startInlineCreate(listEl, placeholder, onCommit) {
   if (!listEl || listEl.querySelector('.group-item-new')) return;
   const row = document.createElement('div');

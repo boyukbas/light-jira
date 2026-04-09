@@ -23,7 +23,7 @@ function notePreview(note) {
 
 function createNote() {
   const note = {
-    id: 'note_' + Date.now(),
+    id: generateId('note'),
     title: '',
     blocks: [],
     created: Date.now(),
@@ -40,7 +40,7 @@ function createNoteGroup() {
   startInlineCreate(document.getElementById('nc-group-list'), 'Group name\u2026', (name) => {
     if (name) {
       if (!state.noteGroups) state.noteGroups = [];
-      const g = { id: 'ng_' + Date.now(), name };
+      const g = { id: generateId('ng'), name };
       state.noteGroups.push(g);
       state.activeNoteGroupId = g.id;
       saveState();
@@ -72,70 +72,29 @@ function deleteNote(noteId) {
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
 function renderNotesSidebar() {
-  // ── Groups section ────────────────────────────────────────────────────────
-  const groupList = document.getElementById('nc-group-list');
-  if (groupList) {
-    const groups = state.noteGroups || [];
-    const allCount = state.standAloneNotes.length;
-    let gHtml =
-      '<div class="group-item' +
-      (state.activeNoteGroupId === null ? ' active' : '') +
-      '" data-group-id="">' +
-      '<span class="g-name">All Notes</span>' +
-      '<span class="count">' +
-      allCount +
-      '</span>' +
-      '</div>';
-    for (const g of groups) {
-      const cnt = state.standAloneNotes.filter((n) => n.groupId === g.id).length;
-      gHtml +=
-        '<div class="group-item' +
-        (state.activeNoteGroupId === g.id ? ' active' : '') +
-        '" data-group-id="' +
-        esc(g.id) +
-        '">' +
-        '<span class="g-name">' +
-        esc(g.name) +
-        '</span>' +
-        '<button class="nc-group-del g-action-btn" data-del-id="' +
-        esc(g.id) +
-        '" title="Delete group">' +
-        TRASH_SVG +
-        '</button>' +
-        '<span class="count">' +
-        cnt +
-        '</span>' +
-        '</div>';
-    }
-    groupList.innerHTML = gHtml;
-
-    groupList.querySelectorAll('.group-item').forEach((el) => {
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('.nc-group-del')) return;
-        state.activeNoteGroupId = el.dataset.groupId || null;
-        saveState();
-        renderNotesSidebar();
-        renderNoteCanvas();
-      });
-    });
-    groupList.querySelectorAll('.nc-group-del').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteNoteGroup(btn.dataset.delId);
-      });
-    });
-  }
-  const addGroupBtn = document.getElementById('add-note-group-btn');
-  if (addGroupBtn) addGroupBtn.onclick = createNoteGroup;
+  renderGroupSection({
+    listId: 'nc-group-list',
+    groups: state.noteGroups || [],
+    items: state.standAloneNotes,
+    activeGroupId: state.activeNoteGroupId,
+    allLabel: 'All Notes',
+    delClass: 'nc-group-del',
+    onSelect: (id) => {
+      state.activeNoteGroupId = id;
+      saveState();
+      renderNotesSidebar();
+      renderNoteCanvas();
+    },
+    onDelete: deleteNoteGroup,
+    addBtnId: 'add-note-group-btn',
+    onAdd: createNoteGroup,
+  });
 
   // ── Notes list (filtered by active group) ────────────────────────────────
   const list = document.getElementById('nc-notes-list');
   if (!list) return;
 
-  const notes =
-    state.activeNoteGroupId === null
-      ? state.standAloneNotes
-      : state.standAloneNotes.filter((n) => n.groupId === state.activeNoteGroupId);
+  const notes = filterByGroup(state.standAloneNotes, state.activeNoteGroupId);
 
   let html = '';
   for (const note of notes) {
@@ -253,14 +212,7 @@ function renderNoteCanvas() {
 
   const dateEl = document.getElementById('nc-date');
   if (dateEl) {
-    dateEl.textContent =
-      typeof dayjs !== 'undefined'
-        ? dayjs(note.updated).format('MMM D, YYYY')
-        : new Date(note.updated).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          });
+    dateEl.textContent = formatDate(note.updated, 'MMM D, YYYY');
   }
 
   const addMermaid = document.getElementById('nc-add-mermaid-btn');

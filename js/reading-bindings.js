@@ -379,8 +379,10 @@ function startAssigneeEdit(item, valueEl, issueKey) {
   });
 }
 
-function startDueDateEdit(item, valueEl, issueKey, openPicker) {
-  const current = issueCache[issueKey]?.fields?.duedate || '';
+// Shared engine for all date meta-field editors (due date, tl-start, tl-eta).
+// getCurrent() → 'YYYY-MM-DD' | ''; onCommit(val, current) → void | Promise<void>
+function startDateFieldEdit(item, valueEl, openPicker, getCurrent, onCommit) {
+  const current = getCurrent();
   const input = document.createElement('input');
   input.type = 'date';
   input.value = current;
@@ -392,29 +394,10 @@ function startDueDateEdit(item, valueEl, issueKey, openPicker) {
       input.showPicker();
     } catch {}
 
-  const formatDisplay = (d) =>
-    d
-      ? typeof dayjs !== 'undefined'
-        ? dayjs(d).format('MMM D, YY')
-        : new Date(d).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: '2-digit',
-          })
-      : '\u2014';
-
   const commit = async () => {
-    const val = input.value; // 'YYYY-MM-DD' or ''
-    if (val !== current) {
-      try {
-        await updateIssueFields(issueKey, { duedate: val || null });
-        if (issueCache[issueKey]?.fields) issueCache[issueKey].fields.duedate = val || null;
-        toast('Due date updated', 'success');
-      } catch (e) {
-        toast('Failed to save: ' + e.message, 'error');
-      }
-    }
-    input.replaceWith(makeMetaValue(formatDisplay(val), true));
+    const val = input.value;
+    await onCommit(val, current);
+    input.replaceWith(makeMetaValue(formatDate(val), true));
   };
 
   input.addEventListener('keydown', (e) => {
@@ -422,55 +405,47 @@ function startDueDateEdit(item, valueEl, issueKey, openPicker) {
       e.preventDefault();
       input.blur();
     }
-    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current), true));
+    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDate(current), true));
   });
   input.addEventListener('blur', commit);
 }
 
+function startDueDateEdit(item, valueEl, issueKey, openPicker) {
+  startDateFieldEdit(
+    item,
+    valueEl,
+    openPicker,
+    () => issueCache[issueKey]?.fields?.duedate || '',
+    async (val, current) => {
+      if (val !== current) {
+        try {
+          await updateIssueFields(issueKey, { duedate: val || null });
+          if (issueCache[issueKey]?.fields) issueCache[issueKey].fields.duedate = val || null;
+          toast('Due date updated', 'success');
+        } catch (e) {
+          toast('Failed to save: ' + e.message, 'error');
+        }
+      }
+    }
+  );
+}
+
 function startTimelineEdit(type, item, valueEl, issueKey, openPicker) {
   const field = type === 'tl-start' ? 'start' : 'eta';
-  const current = state.timelines[issueKey]?.[field] || '';
-  const input = document.createElement('input');
-  input.type = 'date';
-  input.value = current;
-  input.className = 'meta-edit-input';
-  valueEl.replaceWith(input);
-  input.focus();
-  if (openPicker)
-    try {
-      input.showPicker();
-    } catch {}
-
-  const formatDisplay = (d) =>
-    d
-      ? typeof dayjs !== 'undefined'
-        ? dayjs(d).format('MMM D, YY')
-        : new Date(d).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: '2-digit',
-          })
-      : '\u2014';
-
-  const commit = () => {
-    const val = input.value; // 'YYYY-MM-DD' or ''
-    if (!state.timelines[issueKey]) state.timelines[issueKey] = {};
-    if (val) {
-      state.timelines[issueKey][field] = val;
-    } else {
-      delete state.timelines[issueKey][field];
-      if (!Object.keys(state.timelines[issueKey]).length) delete state.timelines[issueKey];
+  startDateFieldEdit(
+    item,
+    valueEl,
+    openPicker,
+    () => state.timelines[issueKey]?.[field] || '',
+    (val) => {
+      if (!state.timelines[issueKey]) state.timelines[issueKey] = {};
+      if (val) {
+        state.timelines[issueKey][field] = val;
+      } else {
+        delete state.timelines[issueKey][field];
+        if (!Object.keys(state.timelines[issueKey]).length) delete state.timelines[issueKey];
+      }
+      saveState();
     }
-    saveState();
-    input.replaceWith(makeMetaValue(formatDisplay(val), true));
-  };
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      input.blur();
-    }
-    if (e.key === 'Escape') input.replaceWith(makeMetaValue(formatDisplay(current), true));
-  });
-  input.addEventListener('blur', commit);
+  );
 }

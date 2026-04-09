@@ -294,7 +294,7 @@ function getActiveDiagram() {
 
 function createDiagram() {
   const d = {
-    id: 'mm_' + Date.now(),
+    id: generateId('mm'),
     name: 'Diagram ' + (state.mindMaps.length + 1),
     code: MM_DEFAULT_CODE,
     groupId: state.activeMmGroupId,
@@ -309,7 +309,7 @@ function createMmGroup() {
   startInlineCreate(document.getElementById('mm-group-list'), 'Group name\u2026', (name) => {
     if (name) {
       if (!state.mmGroups) state.mmGroups = [];
-      const g = { id: 'mmg_' + Date.now(), name };
+      const g = { id: generateId('mmg'), name };
       state.mmGroups.push(g);
       state.activeMmGroupId = g.id;
       saveState();
@@ -356,69 +356,28 @@ function deleteDiagram(id) {
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
 function renderMindMapSidebar() {
-  // ── Groups section ────────────────────────────────────────────────────────
-  const groupList = document.getElementById('mm-group-list');
-  if (groupList) {
-    const groups = state.mmGroups || [];
-    const allCount = state.mindMaps.length;
-    let gHtml =
-      '<div class="group-item' +
-      (state.activeMmGroupId === null ? ' active' : '') +
-      '" data-group-id="">' +
-      '<span class="g-name">All Diagrams</span>' +
-      '<span class="count">' +
-      allCount +
-      '</span>' +
-      '</div>';
-    for (const g of groups) {
-      const cnt = state.mindMaps.filter((m) => m.groupId === g.id).length;
-      gHtml +=
-        '<div class="group-item' +
-        (state.activeMmGroupId === g.id ? ' active' : '') +
-        '" data-group-id="' +
-        esc(g.id) +
-        '">' +
-        '<span class="g-name">' +
-        esc(g.name) +
-        '</span>' +
-        '<button class="mm-group-del g-action-btn" data-del-id="' +
-        esc(g.id) +
-        '" title="Delete group">' +
-        TRASH_SVG +
-        '</button>' +
-        '<span class="count">' +
-        cnt +
-        '</span>' +
-        '</div>';
-    }
-    groupList.innerHTML = gHtml;
-
-    groupList.querySelectorAll('.group-item').forEach((el) => {
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('.mm-group-del')) return;
-        state.activeMmGroupId = el.dataset.groupId || null;
-        saveState();
-        renderMindMapSidebar();
-      });
-    });
-    groupList.querySelectorAll('.mm-group-del').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteMmGroup(btn.dataset.delId);
-      });
-    });
-  }
-  const addGroupBtn = document.getElementById('add-mm-group-btn');
-  if (addGroupBtn) addGroupBtn.onclick = createMmGroup;
+  renderGroupSection({
+    listId: 'mm-group-list',
+    groups: state.mmGroups || [],
+    items: state.mindMaps,
+    activeGroupId: state.activeMmGroupId,
+    allLabel: 'All Diagrams',
+    delClass: 'mm-group-del',
+    onSelect: (id) => {
+      state.activeMmGroupId = id;
+      saveState();
+      renderMindMapSidebar();
+    },
+    onDelete: deleteMmGroup,
+    addBtnId: 'add-mm-group-btn',
+    onAdd: createMmGroup,
+  });
 
   // ── Diagrams list (filtered by active group) ──────────────────────────────
   const list = document.getElementById('mm-diagram-list');
   if (!list) return;
 
-  const diagrams =
-    state.activeMmGroupId === null
-      ? state.mindMaps
-      : state.mindMaps.filter((m) => m.groupId === state.activeMmGroupId);
+  const diagrams = filterByGroup(state.mindMaps, state.activeMmGroupId);
 
   let html = '';
   for (const d of diagrams) {

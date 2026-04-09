@@ -44,6 +44,53 @@ function clearBulkSelection() {
 
 window.clearBulkSelection = clearBulkSelection;
 
+// ── CARD HTML BUILDER ─────────────────────────────────────────────────────────
+function buildCardHtml(entry, activeKey, sel) {
+  const key = entryKey(entry);
+  const addedDate = typeof entry === 'object' && entry.added ? relDate(entry.added) : null;
+  const active = activeKey === key ? ' active' : '';
+  const selected = sel.has(key) ? ' selected' : '';
+  const f = (issueCache[key] || {}).fields || {};
+  const sum = f.summary || 'Loading...';
+  const stat = f.status ? f.status.name : '';
+
+  return (
+    '<div class="list-card' +
+    active +
+    selected +
+    '" data-key="' +
+    esc(key) +
+    '" data-cached="' +
+    (f.summary ? 'true' : 'false') +
+    '" draggable="true">' +
+    (stat
+      ? '<div class="lc-key-row"><span class="status-badge ' +
+        statusClass(f.status?.statusCategory?.name || stat) +
+        '">' +
+        esc(stat) +
+        '</span></div>'
+      : '') +
+    '<div class="lc-title-row">' +
+    (f.assignee ? avBadge(f.assignee.displayName, 'av-rg') : '') +
+    '<span class="lc-summary"><span style="color:var(--accent);">' +
+    esc(key) +
+    '</span> ' +
+    esc(sum) +
+    '</span></div>' +
+    (addedDate ? '<div class="lc-added">viewed ' + addedDate + '</div>' : '') +
+    '<a class="lc-jira-link" href="' +
+    esc(cfg.baseUrl) +
+    '/browse/' +
+    esc(key) +
+    '" target="_blank" rel="noopener noreferrer" title="Open in Jira" onclick="event.stopPropagation()">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
+    '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
+    '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>' +
+    '<button class="lc-delete" title="Remove from list">\u2715</button>' +
+    '</div>'
+  );
+}
+
 // ── RENDER MIDDLE ─────────────────────────────────────────────────────────────
 function renderMiddle() {
   const group = getActiveGroup();
@@ -115,52 +162,7 @@ function renderMiddle() {
 
   let html = '';
   for (const entry of visibleKeys) {
-    const key = entryKey(entry);
-    const addedDate = typeof entry === 'object' && entry.added ? relDate(entry.added) : null;
-    const active = state.activeKey === key ? ' active' : '';
-    const selected = selectedKeys.has(key) ? ' selected' : '';
-    const issue = issueCache[key] || {};
-    const f = issue.fields || {};
-    let sum = f.summary || 'Loading...';
-    let stat = f.status ? f.status.name : '';
-
-    html +=
-      '<div class="list-card' +
-      active +
-      selected +
-      '" data-key="' +
-      esc(key) +
-      '" data-cached="' +
-      (f.summary ? 'true' : 'false') +
-      '" draggable="true">' +
-      (stat
-        ? '<div class="lc-key-row">' +
-          '<span class="status-badge ' +
-          statusClass(f.status?.statusCategory?.name || stat) +
-          '">' +
-          esc(stat) +
-          '</span>' +
-          '</div>'
-        : '') +
-      '<div class="lc-title-row">' +
-      (f.assignee ? avBadge(f.assignee.displayName, 'av-rg') : '') +
-      '<span class="lc-summary">' +
-      '<span style="color:var(--accent);">' +
-      esc(key) +
-      '</span> ' +
-      esc(sum) +
-      '</span>' +
-      '</div>' +
-      (addedDate ? '<div class="lc-added">viewed ' + addedDate + '</div>' : '') +
-      '<a class="lc-jira-link" href="' +
-      esc(cfg.baseUrl) +
-      '/browse/' +
-      esc(key) +
-      '" target="_blank" rel="noopener noreferrer" title="Open in Jira" onclick="event.stopPropagation()">' +
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-      '</a>' +
-      '<button class="lc-delete" title="Remove from list">✕</button>' +
-      '</div>';
+    html += buildCardHtml(entry, state.activeKey, selectedKeys);
   }
   list.innerHTML = html;
   list.querySelectorAll('.list-card').forEach((el) => {
