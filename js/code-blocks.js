@@ -21,685 +21,47 @@ const CB_LANGUAGES = [
   { value: 'markdown', label: 'Markdown' },
 ];
 
-// ── SYNTAX HIGHLIGHTING ───────────────────────────────────────────────────────
-
-const CB_KEYWORDS = {
-  javascript: new Set([
-    'break',
-    'case',
-    'catch',
-    'class',
-    'const',
-    'continue',
-    'debugger',
-    'default',
-    'delete',
-    'do',
-    'else',
-    'export',
-    'extends',
-    'finally',
-    'for',
-    'from',
-    'function',
-    'if',
-    'import',
-    'in',
-    'instanceof',
-    'let',
-    'new',
-    'of',
-    'return',
-    'static',
-    'super',
-    'switch',
-    'this',
-    'throw',
-    'try',
-    'typeof',
-    'var',
-    'void',
-    'while',
-    'with',
-    'yield',
-    'async',
-    'await',
-    'true',
-    'false',
-    'null',
-    'undefined',
-  ]),
-  typescript: new Set([
-    'break',
-    'case',
-    'catch',
-    'class',
-    'const',
-    'continue',
-    'delete',
-    'do',
-    'else',
-    'enum',
-    'export',
-    'extends',
-    'finally',
-    'for',
-    'from',
-    'function',
-    'if',
-    'implements',
-    'import',
-    'in',
-    'instanceof',
-    'interface',
-    'let',
-    'new',
-    'of',
-    'return',
-    'static',
-    'super',
-    'switch',
-    'this',
-    'throw',
-    'try',
-    'type',
-    'typeof',
-    'var',
-    'void',
-    'while',
-    'yield',
-    'async',
-    'await',
-    'true',
-    'false',
-    'null',
-    'undefined',
-    'any',
-    'unknown',
-    'never',
-    'string',
-    'number',
-    'boolean',
-    'object',
-    'symbol',
-    'readonly',
-    'abstract',
-    'declare',
-    'namespace',
-    'module',
-    'as',
-    'satisfies',
-  ]),
-  python: new Set([
-    'False',
-    'None',
-    'True',
-    'and',
-    'as',
-    'assert',
-    'async',
-    'await',
-    'break',
-    'class',
-    'continue',
-    'def',
-    'del',
-    'elif',
-    'else',
-    'except',
-    'finally',
-    'for',
-    'from',
-    'global',
-    'if',
-    'import',
-    'in',
-    'is',
-    'lambda',
-    'nonlocal',
-    'not',
-    'or',
-    'pass',
-    'raise',
-    'return',
-    'try',
-    'while',
-    'with',
-    'yield',
-  ]),
-  java: new Set([
-    'abstract',
-    'assert',
-    'boolean',
-    'break',
-    'byte',
-    'case',
-    'catch',
-    'char',
-    'class',
-    'const',
-    'continue',
-    'default',
-    'do',
-    'double',
-    'else',
-    'enum',
-    'extends',
-    'final',
-    'finally',
-    'float',
-    'for',
-    'if',
-    'implements',
-    'import',
-    'instanceof',
-    'int',
-    'interface',
-    'long',
-    'native',
-    'new',
-    'package',
-    'private',
-    'protected',
-    'public',
-    'return',
-    'short',
-    'static',
-    'super',
-    'switch',
-    'synchronized',
-    'this',
-    'throw',
-    'throws',
-    'transient',
-    'try',
-    'var',
-    'void',
-    'volatile',
-    'while',
-    'true',
-    'false',
-    'null',
-  ]),
-  go: new Set([
-    'break',
-    'case',
-    'chan',
-    'const',
-    'continue',
-    'default',
-    'defer',
-    'else',
-    'fallthrough',
-    'for',
-    'func',
-    'go',
-    'goto',
-    'if',
-    'import',
-    'interface',
-    'map',
-    'package',
-    'range',
-    'return',
-    'select',
-    'struct',
-    'switch',
-    'type',
-    'var',
-    'true',
-    'false',
-    'nil',
-    'iota',
-  ]),
-  rust: new Set([
-    'as',
-    'break',
-    'const',
-    'continue',
-    'crate',
-    'else',
-    'enum',
-    'extern',
-    'false',
-    'fn',
-    'for',
-    'if',
-    'impl',
-    'in',
-    'let',
-    'loop',
-    'match',
-    'mod',
-    'move',
-    'mut',
-    'pub',
-    'ref',
-    'return',
-    'self',
-    'Self',
-    'static',
-    'struct',
-    'super',
-    'trait',
-    'true',
-    'type',
-    'unsafe',
-    'use',
-    'where',
-    'while',
-    'async',
-    'await',
-    'dyn',
-  ]),
-  cpp: new Set([
-    'alignas',
-    'alignof',
-    'and',
-    'and_eq',
-    'asm',
-    'auto',
-    'bitand',
-    'bitor',
-    'bool',
-    'break',
-    'case',
-    'catch',
-    'char',
-    'class',
-    'compl',
-    'const',
-    'constexpr',
-    'const_cast',
-    'continue',
-    'decltype',
-    'default',
-    'delete',
-    'do',
-    'double',
-    'dynamic_cast',
-    'else',
-    'enum',
-    'explicit',
-    'export',
-    'extern',
-    'false',
-    'float',
-    'for',
-    'friend',
-    'goto',
-    'if',
-    'inline',
-    'int',
-    'long',
-    'mutable',
-    'namespace',
-    'new',
-    'noexcept',
-    'not',
-    'not_eq',
-    'nullptr',
-    'operator',
-    'or',
-    'or_eq',
-    'private',
-    'protected',
-    'public',
-    'register',
-    'reinterpret_cast',
-    'return',
-    'short',
-    'signed',
-    'sizeof',
-    'static',
-    'static_assert',
-    'static_cast',
-    'struct',
-    'switch',
-    'template',
-    'this',
-    'thread_local',
-    'throw',
-    'true',
-    'try',
-    'typedef',
-    'typeid',
-    'typename',
-    'union',
-    'unsigned',
-    'using',
-    'virtual',
-    'void',
-    'volatile',
-    'wchar_t',
-    'while',
-    'xor',
-    'xor_eq',
-  ]),
-  csharp: new Set([
-    'abstract',
-    'as',
-    'base',
-    'bool',
-    'break',
-    'byte',
-    'case',
-    'catch',
-    'char',
-    'checked',
-    'class',
-    'const',
-    'continue',
-    'decimal',
-    'default',
-    'delegate',
-    'do',
-    'double',
-    'else',
-    'enum',
-    'event',
-    'explicit',
-    'extern',
-    'false',
-    'finally',
-    'fixed',
-    'float',
-    'for',
-    'foreach',
-    'goto',
-    'if',
-    'implicit',
-    'in',
-    'int',
-    'interface',
-    'internal',
-    'is',
-    'lock',
-    'long',
-    'namespace',
-    'new',
-    'null',
-    'object',
-    'operator',
-    'out',
-    'override',
-    'params',
-    'private',
-    'protected',
-    'public',
-    'readonly',
-    'ref',
-    'return',
-    'sbyte',
-    'sealed',
-    'short',
-    'sizeof',
-    'stackalloc',
-    'static',
-    'string',
-    'struct',
-    'switch',
-    'this',
-    'throw',
-    'true',
-    'try',
-    'typeof',
-    'uint',
-    'ulong',
-    'unchecked',
-    'unsafe',
-    'ushort',
-    'using',
-    'virtual',
-    'void',
-    'volatile',
-    'while',
-    'async',
-    'await',
-    'var',
-    'dynamic',
-  ]),
-  sql: new Set([
-    'SELECT',
-    'FROM',
-    'WHERE',
-    'JOIN',
-    'LEFT',
-    'RIGHT',
-    'INNER',
-    'OUTER',
-    'CROSS',
-    'ON',
-    'AS',
-    'AND',
-    'OR',
-    'NOT',
-    'IN',
-    'EXISTS',
-    'LIKE',
-    'IS',
-    'NULL',
-    'INSERT',
-    'INTO',
-    'VALUES',
-    'UPDATE',
-    'SET',
-    'DELETE',
-    'CREATE',
-    'TABLE',
-    'DATABASE',
-    'INDEX',
-    'VIEW',
-    'DROP',
-    'ALTER',
-    'ADD',
-    'COLUMN',
-    'PRIMARY',
-    'KEY',
-    'FOREIGN',
-    'REFERENCES',
-    'UNIQUE',
-    'DEFAULT',
-    'CONSTRAINT',
-    'GROUP',
-    'BY',
-    'ORDER',
-    'HAVING',
-    'LIMIT',
-    'OFFSET',
-    'DISTINCT',
-    'UNION',
-    'ALL',
-    'CASE',
-    'WHEN',
-    'THEN',
-    'ELSE',
-    'END',
-    'BEGIN',
-    'COMMIT',
-    'ROLLBACK',
-    'TRANSACTION',
-    'TRUNCATE',
-    'DESCRIBE',
-    'EXPLAIN',
-    'SHOW',
-    'USE',
-    'WITH',
-    'RECURSIVE',
-    'COUNT',
-    'SUM',
-    'AVG',
-    'MAX',
-    'MIN',
-    'COALESCE',
-    'NULLIF',
-    'CAST',
-    'CONVERT',
-  ]),
-  bash: new Set([
-    'if',
-    'then',
-    'else',
-    'elif',
-    'fi',
-    'for',
-    'while',
-    'do',
-    'done',
-    'case',
-    'esac',
-    'function',
-    'in',
-    'return',
-    'exit',
-    'echo',
-    'export',
-    'source',
-    'local',
-    'readonly',
-    'declare',
-    'true',
-    'false',
-    'test',
-    'select',
-    'until',
-    'break',
-    'continue',
-  ]),
+// hljs language alias map (highlight.js uses different names for some languages)
+const CB_HLJS_ALIAS = {
+  cpp: 'cpp',
+  csharp: 'csharp',
+  bash: 'bash',
+  text: null,
 };
+
+function cbRender(code, lang) {
+  if (!code) return '';
+  if (lang === 'text' || !lang) return cbEsc(code);
+  if (typeof hljs !== 'undefined') {
+    try {
+      const alias = CB_HLJS_ALIAS[lang] ?? lang;
+      const result = hljs.highlight(code, { language: alias, ignoreIllegals: true });
+      return result.value;
+    } catch {
+      return cbEsc(code);
+    }
+  }
+  return cbEsc(code);
+}
 
 function cbEsc(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function cbHighlight(code, lang) {
-  if (!lang || lang === 'text' || lang === 'plaintext' || lang === 'markdown' || lang === 'yaml') {
-    return cbEsc(code);
+function cbFormat(code, lang) {
+  if (lang === 'json') {
+    try {
+      return JSON.stringify(JSON.parse(code), null, 2);
+    } catch {
+      toast('Invalid JSON — cannot format', 'error');
+      return null;
+    }
   }
-  if (lang === 'html') return cbHighlightHtml(code);
-  if (lang === 'json') return cbHighlightJson(code);
-
-  const kwSet = CB_KEYWORDS[lang];
-  const isSQL = lang === 'sql';
-  const lineCommentChar = [
-    'javascript',
-    'typescript',
-    'java',
-    'go',
-    'rust',
-    'cpp',
-    'csharp',
-  ].includes(lang)
-    ? '//'
-    : ['python', 'bash'].includes(lang)
-      ? '#'
-      : lang === 'sql'
-        ? '--'
-        : null;
-  const hasBlockComment = [
-    'javascript',
-    'typescript',
-    'java',
-    'go',
-    'rust',
-    'cpp',
-    'csharp',
-    'css',
-  ].includes(lang);
-
-  let result = '';
-  let i = 0;
-  const s = code;
-  const len = s.length;
-
-  while (i < len) {
-    // Block comment /* ... */
-    if (hasBlockComment && s[i] === '/' && s[i + 1] === '*') {
-      const end = s.indexOf('*/', i + 2);
-      const stop = end === -1 ? len : end + 2;
-      result += '<span class="hl-comment">' + cbEsc(s.slice(i, stop)) + '</span>';
-      i = stop;
-      continue;
-    }
-    // Line comment
-    if (lineCommentChar && s.startsWith(lineCommentChar, i)) {
-      const nl = s.indexOf('\n', i);
-      const stop = nl === -1 ? len : nl;
-      result += '<span class="hl-comment">' + cbEsc(s.slice(i, stop)) + '</span>';
-      i = stop;
-      continue;
-    }
-    // String literals
-    if ((s[i] === '"' || s[i] === "'" || s[i] === '`') && lang !== 'sql') {
-      const q = s[i];
-      let j = i + 1;
-      while (j < len) {
-        if (s[j] === '\\') {
-          j += 2;
-          continue;
-        }
-        if (s[j] === q) {
-          j++;
-          break;
-        }
-        if (q !== '`' && s[j] === '\n') break;
-        j++;
-      }
-      result += '<span class="hl-string">' + cbEsc(s.slice(i, j)) + '</span>';
-      i = j;
-      continue;
-    }
-    // SQL strings
-    if (isSQL && (s[i] === "'" || s[i] === '"')) {
-      const q = s[i];
-      let j = i + 1;
-      while (j < len && s[j] !== q) j++;
-      if (j < len) j++;
-      result += '<span class="hl-string">' + cbEsc(s.slice(i, j)) + '</span>';
-      i = j;
-      continue;
-    }
-    // Numbers
-    if (/[0-9]/.test(s[i]) && (i === 0 || /[\s,;()\[\]{}+\-*/%=<>!&|^~\n]/.test(s[i - 1]))) {
-      let j = i;
-      while (j < len && /[0-9._xXa-fA-FbBoOeE]/.test(s[j])) j++;
-      result += '<span class="hl-number">' + cbEsc(s.slice(i, j)) + '</span>';
-      i = j;
-      continue;
-    }
-    // Words (keywords or identifiers)
-    if (/[a-zA-Z_$]/.test(s[i])) {
-      let j = i;
-      while (j < len && /[a-zA-Z0-9_$]/.test(s[j])) j++;
-      const word = s.slice(i, j);
-      const lookup = isSQL ? word.toUpperCase() : word;
-      if (kwSet && kwSet.has(lookup)) {
-        result += '<span class="hl-keyword">' + cbEsc(word) + '</span>';
-      } else {
-        result += cbEsc(word);
-      }
-      i = j;
-      continue;
-    }
-    result += cbEsc(s[i]);
-    i++;
-  }
-  return result;
-}
-
-function cbHighlightJson(code) {
-  return cbEsc(code)
-    .replace(/(&quot;[^&]*?&quot;)\s*:/g, '<span class="hl-json-key">$1</span>:')
-    .replace(/:\s*(&quot;[^&]*?&quot;)/g, ': <span class="hl-string">$1</span>')
-    .replace(/:\s*(true|false|null)/g, ': <span class="hl-keyword">$1</span>')
-    .replace(/:\s*(-?[0-9]+\.?[0-9]*)/g, ': <span class="hl-number">$1</span>');
-}
-
-function cbHighlightHtml(code) {
-  return cbEsc(code)
-    .replace(/(&lt;\/?)([\w-]+)/g, '$1<span class="hl-keyword">$2</span>')
-    .replace(/([\w-]+)=(&quot;[^&]*?&quot;)/g, '<span class="hl-json-key">$1</span>=$2')
-    .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="hl-comment">$1</span>');
+  return code
+    .split('\n')
+    .map((line) => line.replace(/\s+$/, ''))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
@@ -760,7 +122,6 @@ function deleteCbGroup(id) {
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
 
 function renderCbSidebar() {
-  // Groups pane
   const groupList = document.getElementById('cb-group-list');
   if (groupList) {
     const groups = state.cbGroups || [];
@@ -816,7 +177,6 @@ function renderCbSidebar() {
   const addGroupBtn = document.getElementById('add-cb-group-btn');
   if (addGroupBtn) addGroupBtn.onclick = createCbGroup;
 
-  // Snippet list
   const list = document.getElementById('cb-snippet-list');
   if (!list) return;
 
@@ -859,7 +219,6 @@ function renderCbSidebar() {
       state.activeCodeBlockId = el.dataset.id;
       saveState();
       renderCbMain();
-      // Update active class without full re-render
       list.querySelectorAll('.cb-item').forEach((x) => x.classList.remove('active'));
       el.classList.add('active');
     });
@@ -923,22 +282,25 @@ function renderCbMain() {
     '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
     '</svg></button>' +
     '</div>' +
-    '<div class="cb-code-wrap">' +
-    '<pre class="cb-code-highlight" aria-hidden="true"><code id="cb-code-hl"></code></pre>' +
-    '<textarea id="cb-code-textarea" class="cb-code-textarea" spellcheck="false"' +
+    '<div id="cb-code-area" class="cb-code-area">' +
+    '<pre id="cb-view" class="cb-view"><code id="cb-view-code"></code></pre>' +
+    '<textarea id="cb-code-textarea" class="cb-code-textarea" style="display:none" spellcheck="false"' +
     ' autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>' +
     '</div>';
 
   const titleInput = document.getElementById('cb-title-input');
   const langSelect = document.getElementById('cb-lang-select');
+  const viewEl = document.getElementById('cb-view');
+  const viewCode = document.getElementById('cb-view-code');
   const textarea = document.getElementById('cb-code-textarea');
-  const hlCode = document.getElementById('cb-code-hl');
   const copyBtn = document.getElementById('cb-copy-btn');
   const formatBtn = document.getElementById('cb-format-btn');
 
-  // Set textarea value (avoids HTML-encoding issues with innerHTML)
-  textarea.value = block.code;
-  updateHighlight(textarea, hlCode, block.language);
+  // Populate view with highlighted code
+  cbSetView(viewCode, block.code, block.language);
+
+  // Click on view → enter edit mode
+  viewEl.addEventListener('click', () => cbEnterEdit(viewEl, textarea, block));
 
   titleInput.addEventListener('input', () => {
     block.title = titleInput.value;
@@ -953,32 +315,12 @@ function renderCbMain() {
     state.lastCbLanguage = block.language;
     block.updated = Date.now();
     saveState();
-    updateHighlight(textarea, hlCode, block.language);
+    // Re-highlight in view mode
+    cbSetView(viewCode, block.code, block.language);
     // Update language label in sidebar
     const el = document.querySelector('.cb-item[data-id="' + block.id + '"] .cb-item-lang');
     const langLabel = CB_LANGUAGES.find((l) => l.value === block.language)?.label || block.language;
     if (el) el.textContent = langLabel;
-  });
-
-  textarea.addEventListener('input', () => {
-    block.code = textarea.value;
-    block.updated = Date.now();
-    saveState();
-    updateHighlight(textarea, hlCode, block.language);
-    syncScroll(textarea, hlCode.parentElement);
-  });
-
-  textarea.addEventListener('scroll', () => syncScroll(textarea, hlCode.parentElement));
-
-  textarea.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      textarea.value = textarea.value.slice(0, start) + '  ' + textarea.value.slice(end);
-      textarea.selectionStart = textarea.selectionEnd = start + 2;
-      textarea.dispatchEvent(new Event('input'));
-    }
   });
 
   copyBtn.addEventListener('click', () => {
@@ -988,37 +330,57 @@ function renderCbMain() {
   formatBtn.addEventListener('click', () => {
     const formatted = cbFormat(block.code, block.language);
     if (formatted !== null) {
-      textarea.value = formatted;
       block.code = formatted;
       block.updated = Date.now();
       saveState();
-      updateHighlight(textarea, hlCode, block.language);
+      textarea.value = formatted;
+      cbSetView(viewCode, formatted, block.language);
     }
   });
 }
 
-function updateHighlight(textarea, hlCode, lang) {
-  hlCode.innerHTML = cbHighlight(textarea.value, lang) + '\n';
+function cbSetView(codeEl, code, lang) {
+  codeEl.innerHTML = cbRender(code || '', lang);
 }
 
-function syncScroll(textarea, pre) {
-  pre.scrollTop = textarea.scrollTop;
-  pre.scrollLeft = textarea.scrollLeft;
-}
+function cbEnterEdit(viewEl, textarea, block) {
+  viewEl.style.display = 'none';
+  textarea.style.display = '';
+  textarea.value = block.code;
+  textarea.focus();
 
-function cbFormat(code, lang) {
-  if (lang === 'json') {
-    try {
-      return JSON.stringify(JSON.parse(code), null, 2);
-    } catch {
-      toast('Invalid JSON — cannot format', 'error');
-      return null;
+  const exitEdit = () => {
+    block.code = textarea.value;
+    block.updated = Date.now();
+    saveState();
+    const viewCode = document.getElementById('cb-view-code');
+    if (viewCode) cbSetView(viewCode, block.code, block.language);
+    textarea.style.display = 'none';
+    viewEl.style.display = '';
+  };
+
+  textarea.addEventListener(
+    'blur',
+    () => {
+      // Small delay so clicking header buttons doesn't trigger a premature exit
+      setTimeout(() => {
+        if (document.activeElement !== textarea) exitEdit();
+      }, 120);
+    },
+    { once: true }
+  );
+
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      textarea.blur();
     }
-  }
-  // Generic: strip trailing whitespace per line and collapse 3+ blank lines to 2
-  return code
-    .split('\n')
-    .map((line) => line.replace(/\s+$/, ''))
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n');
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      textarea.value = textarea.value.slice(0, s) + '  ' + textarea.value.slice(end);
+      textarea.selectionStart = textarea.selectionEnd = s + 2;
+    }
+  });
 }
