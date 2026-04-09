@@ -57,11 +57,13 @@ function renderTimeline() {
 
   const formatDate = (d) =>
     d
-      ? new Date(d).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-          year: '2-digit',
-        })
+      ? typeof dayjs !== 'undefined'
+        ? dayjs(d).format('MMM D, YY')
+        : new Date(d).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: '2-digit',
+          })
       : '—';
 
   let html =

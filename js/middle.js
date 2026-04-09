@@ -53,15 +53,31 @@ function renderMiddle() {
   const list = document.getElementById('ticket-list');
   if (!list) return;
 
-  const q = groupSearchQuery.toLowerCase().trim();
-  const visibleKeys = q
-    ? group.keys.filter((entry) => {
-        const key = entryKey(entry);
-        if (key.toLowerCase().includes(q)) return true;
-        const summary = issueCache[key]?.fields?.summary || '';
-        return summary.toLowerCase().includes(q);
-      })
-    : group.keys;
+  const q = groupSearchQuery.trim();
+  let visibleKeys;
+  if (!q) {
+    visibleKeys = group.keys;
+  } else if (typeof Fuse !== 'undefined') {
+    const items = group.keys.map((entry) => {
+      const key = entryKey(entry);
+      return { entry, key, summary: issueCache[key]?.fields?.summary || '' };
+    });
+    const fuse = new Fuse(items, {
+      keys: ['key', 'summary'],
+      threshold: 0.35,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+    });
+    visibleKeys = fuse.search(q).map((r) => r.item.entry);
+  } else {
+    const ql = q.toLowerCase();
+    visibleKeys = group.keys.filter((entry) => {
+      const key = entryKey(entry);
+      if (key.toLowerCase().includes(ql)) return true;
+      const summary = issueCache[key]?.fields?.summary || '';
+      return summary.toLowerCase().includes(ql);
+    });
+  }
 
   if (!visibleKeys.length) {
     list.innerHTML = q
