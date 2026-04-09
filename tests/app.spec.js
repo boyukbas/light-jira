@@ -2656,25 +2656,29 @@ test.describe('Topbar redesign', () => {
     expect(logoText.trim()).not.toContain('Crisp for Jira');
   });
 
-  test('search form is inside topbar-row-2', async ({ page }) => {
+  test('search form is inside topbar', async ({ page }) => {
     const inside = await page.evaluate(() =>
-      document.getElementById('topbar-row-2')?.contains(document.getElementById('search-form'))
+      document.getElementById('topbar').contains(document.getElementById('search-form'))
     );
     expect(inside).toBe(true);
   });
 
-  test('main tab-bar is inside topbar-row-2', async ({ page }) => {
-    const inside = await page.evaluate(() =>
-      document.getElementById('topbar-row-2')?.contains(document.getElementById('tab-bar'))
-    );
-    expect(inside).toBe(true);
+  test('main tab-bar comes before search form in topbar', async ({ page }) => {
+    const tabBarBeforeSearch = await page.evaluate(() => {
+      const tabBar = document.getElementById('tab-bar');
+      const search = document.getElementById('search-form');
+      return !!(tabBar.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(tabBarBeforeSearch).toBe(true);
   });
 
-  test('aux-tab-bar is inside topbar-row-1', async ({ page }) => {
-    const inside = await page.evaluate(() =>
-      document.getElementById('topbar-row-1')?.contains(document.getElementById('aux-tab-bar'))
-    );
-    expect(inside).toBe(true);
+  test('aux-tab-bar comes after search form in topbar', async ({ page }) => {
+    const auxAfterSearch = await page.evaluate(() => {
+      const search = document.getElementById('search-form');
+      const aux = document.getElementById('aux-tab-bar');
+      return !!(search.compareDocumentPosition(aux) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(auxAfterSearch).toBe(true);
   });
 });
 
