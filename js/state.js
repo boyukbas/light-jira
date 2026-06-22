@@ -1,6 +1,44 @@
 'use strict';
 
 // ── APP STATE ─────────────────────────────────────────────────────────────────
+// State shape is described via JSDoc so that `tsc --checkJs` (see tsconfig.json)
+// catches typos without a TypeScript migration.
+//
+// @typedef {{ id: string, name: string, keys: (string|{key:string, added:number})[], isFilter?: boolean, query?: string }} Group
+// @typedef {{ sidebarWidth: number, middleWidth: number, notesWidth: number,
+//   sidebarCollapsed: boolean, middleCollapsed: boolean, notesSidebarWidth: number,
+//   mmSidebarWidth: number, mmEditorWidth: number, cbGroupsPaneWidth: number,
+//   cbSidebarWidth: number, cbSidebarCollapsed: boolean,
+//   ncSidebarCollapsed?: boolean, mmSidebarCollapsed?: boolean,
+//   ncGroupsPaneWidth?: number, mmGroupsPaneWidth?: number }} Layout
+// @typedef {{ start?: string, eta?: string }} Timeline
+// @typedef {{
+//   groups: Group[],
+//   activeGroupId: string,
+//   activeKey: string|null,
+//   notes: Record<string,string>,
+//   labels: Record<string,string[]>,
+//   labelColors: Record<string,string>,
+//   timelines: Record<string, Timeline>,
+//   layout: Layout,
+//   appMode: 'jira'|'labels'|'notes'|'history'|'mindmap'|'snippets',
+//   labelsActiveGroup: string|null,
+//   standAloneNotes: any[],
+//   activeNoteId: string|null,
+//   mindMaps: any[],
+//   activeMindMapId: string|null,
+//   codeBlocks: any[],
+//   activeCodeBlockId: string|null,
+//   cbGroups: any[],
+//   activeCbGroupId: string|null,
+//   lastCbLanguage: string,
+//   autoRefresh: boolean,
+//   openInWindow: boolean,
+//   labelsActiveKey: string|null,
+//   jiraActiveKey: string|null
+// }} AppState
+
+/** @type {AppState} */
 let state = {
   groups: [{ id: 'inbox', name: 'Inbox', keys: [] }],
   activeGroupId: 'inbox',
@@ -154,8 +192,50 @@ function applyMigrations() {
   if (state.jiraActiveKey === undefined) state.jiraActiveKey = null;
 }
 
+// ── LOAD/SAVE GUARDS ──────────────────────────────────────────────────────────
+// Saves are dropped until loadState() completes; otherwise a caller running before
+// storage has been read (e.g. a script executing during module init) would clobber
+// real data with in-memory defaults. flushSaveState() and the beforeunload handler
+// use this flag too.
+let stateLoaded = false;
+
+// Cache of the most recently persisted value of every sync slice, keyed by SK key
+// and stored as a JSON string. We diff against this on every save so we only ever
+// write slices that actually changed — cuts write volume and quota pressure.
+let _lastPersistedSlices = {};
+
+// Eviction caps to keep chrome.storage.local from growing without bound. The
+// issue cache and screenshot store are both populated opportunistically and
+// without any eviction before now.
+const ISSUE_CACHE_MAX = 500;
+const SCREENSHOT_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
+function _evictIssueCache() {
+  const keys = Object.keys(issueCache);
+  const excess = keys.length - ISSUE_CACHE_MAX;
+  if (excess <= 0) return;
+  // Drop oldest-inserted keys. Object-property iteration order reflects
+  // insertion order, which is a good-enough approximation of LRU for a cache
+  // that is mostly append-on-view.
+  for (let i = 0; i < excess; i++) delete issueCache[keys[i]];
+}
+
+function _evictScreenshots() {
+  const entries = Object.entries(screenshotStore);
+  let total = 0;
+  for (const [, v] of entries) total += (v || '').length;
+  if (total <= SCREENSHOT_MAX_BYTES) return;
+  // FIFO by insertion order until we're under budget.
+  for (const [k, v] of entries) {
+    if (total <= SCREENSHOT_MAX_BYTES) break;
+    total -= (v || '').length;
+    delete screenshotStore[k];
+  }
+}
+
 // ── LOAD STATE ────────────────────────────────────────────────────────────────
 async function loadState() {
+  let fatal = false;
   try {
     if (IS_EXT) {
       const synced = await chrome.storage.sync.get(Object.values(SK));
@@ -174,6 +254,18 @@ async function loadState() {
           codeBlocks: synced[SK.snippets] || [],
           ...prefs,
         };
+        // Seed the diff cache with what's already on disk so the first save
+        // does not rewrite every slice.
+        _lastPersistedSlices = {
+          [SK.groups]: JSON.stringify(synced[SK.groups]),
+          [SK.labels]: JSON.stringify(synced[SK.labels] || {}),
+          [SK.colors]: JSON.stringify(synced[SK.colors] || {}),
+          [SK.notes]: JSON.stringify(synced[SK.notes] || {}),
+          [SK.canvas]: JSON.stringify(synced[SK.canvas] || []),
+          [SK.maps]: JSON.stringify(synced[SK.maps] || []),
+          [SK.snippets]: JSON.stringify(synced[SK.snippets] || []),
+          [SK.prefs]: JSON.stringify(prefs),
+        };
       } else {
         // First run after switching to chrome.storage — migrate from localStorage
         const raw = localStorage.getItem('jira_state');
@@ -181,8 +273,9 @@ async function loadState() {
           const parsed = JSON.parse(raw);
           if (parsed.groups?.length) {
             state = parsed;
-            // Persist migrated data into chrome.storage immediately
-            saveState();
+            // NB: we deliberately do NOT saveState() here. stateLoaded is still
+            // false at this point; the first real save after loadState finishes
+            // will persist the migrated data into chrome.storage.sync.
           }
         }
       }
@@ -209,62 +302,258 @@ async function loadState() {
 
     applyMigrations();
   } catch (err) {
-    console.warn('State load error — resetting to defaults.', err);
+    fatal = true;
+    console.warn('State load error — keeping raw data intact and using defaults in memory.', err);
+    // Non-destructive recovery: preserve the raw payload under a backup key so the
+    // user (or a support tech) can recover it. Do NOT auto-save defaults over it.
+    try {
+      if (!IS_EXT) {
+        const raw = localStorage.getItem('jira_state');
+        if (raw && !localStorage.getItem('jira_state_backup')) {
+          localStorage.setItem('jira_state_backup', raw);
+        }
+      }
+    } catch {
+      /* backup is best-effort */
+    }
     applyMigrations();
-    saveState();
+  }
+  stateLoaded = true;
+  if (fatal && typeof toast === 'function') {
+    toast('Could not load saved data — using defaults (backup preserved).', 'error');
   }
 }
 
 // ── SAVE STATE ────────────────────────────────────────────────────────────────
-function saveState() {
-  if (IS_EXT) {
-    const prefs = {
-      activeGroupId: state.activeGroupId,
-      activeKey: state.activeKey,
-      appMode: state.appMode,
-      labelsActiveGroup: state.labelsActiveGroup,
-      activeNoteId: state.activeNoteId,
-      activeMindMapId: state.activeMindMapId,
-      activeCodeBlockId: state.activeCodeBlockId,
-      activeCbGroupId: state.activeCbGroupId,
-      lastCbLanguage: state.lastCbLanguage,
-      cbGroups: state.cbGroups,
-      layout: state.layout,
-      timelines: state.timelines,
-      autoRefresh: state.autoRefresh,
-      openInWindow: state.openInWindow,
-      labelsActiveKey: state.labelsActiveKey,
-      jiraActiveKey: state.jiraActiveKey,
-    };
-    chrome.storage.sync
-      .set({
-        [SK.groups]: state.groups,
-        [SK.labels]: state.labels,
-        [SK.colors]: state.labelColors,
-        [SK.notes]: state.notes,
-        [SK.canvas]: state.standAloneNotes,
-        [SK.maps]: state.mindMaps,
-        [SK.snippets]: state.codeBlocks,
-        [SK.prefs]: prefs,
-      })
-      .catch((err) => {
-        if (err?.message?.includes('QUOTA_EXCEEDED')) {
-          // Fallback: store full state in local when sync quota is full
-          chrome.storage.local.set({ crisp_state_fallback: JSON.stringify(state) });
-          if (typeof toast === 'function') toast('Sync quota full — data saved locally', 'warn');
-        } else {
-          console.error('chrome.storage.sync write error:', err);
+// Debounce window for chrome.storage.sync writes. Short enough to feel instant
+// but long enough to coalesce bursts (e.g. dragging, typing).
+const SAVE_DEBOUNCE_MS = 50;
+
+let _saveTimer = null;
+let _savePending = false;
+let _writeInFlight = null;
+
+function _buildPrefsSlice() {
+  return {
+    activeGroupId: state.activeGroupId,
+    activeKey: state.activeKey,
+    appMode: state.appMode,
+    labelsActiveGroup: state.labelsActiveGroup,
+    activeNoteId: state.activeNoteId,
+    activeMindMapId: state.activeMindMapId,
+    activeCodeBlockId: state.activeCodeBlockId,
+    activeCbGroupId: state.activeCbGroupId,
+    lastCbLanguage: state.lastCbLanguage,
+    cbGroups: state.cbGroups,
+    layout: state.layout,
+    timelines: state.timelines,
+    autoRefresh: state.autoRefresh,
+    openInWindow: state.openInWindow,
+    labelsActiveKey: state.labelsActiveKey,
+    jiraActiveKey: state.jiraActiveKey,
+  };
+}
+
+function _buildSlicePayload() {
+  return {
+    [SK.groups]: state.groups,
+    [SK.labels]: state.labels,
+    [SK.colors]: state.labelColors,
+    [SK.notes]: state.notes,
+    [SK.canvas]: state.standAloneNotes,
+    [SK.maps]: state.mindMaps,
+    [SK.snippets]: state.codeBlocks,
+    [SK.prefs]: _buildPrefsSlice(),
+  };
+}
+
+async function _writeChangedSlices() {
+  _evictIssueCache();
+  _evictScreenshots();
+  const slices = _buildSlicePayload();
+  const changed = {};
+  const snapshot = {};
+  for (const k of Object.keys(slices)) {
+    const ser = JSON.stringify(slices[k]);
+    if (_lastPersistedSlices[k] !== ser) {
+      changed[k] = slices[k];
+      snapshot[k] = ser;
+    }
+  }
+  if (Object.keys(changed).length) {
+    try {
+      await chrome.storage.sync.set(changed);
+      Object.assign(_lastPersistedSlices, snapshot);
+    } catch (err) {
+      if (err?.message?.includes('QUOTA_EXCEEDED')) {
+        try {
+          await chrome.storage.local.set({ crisp_state_fallback: JSON.stringify(state) });
+        } catch {
+          /* ignore */
         }
-      });
-    chrome.storage.local.set({
+        if (typeof toast === 'function') toast('Sync quota full — data saved locally', 'warn');
+      } else {
+        console.error('chrome.storage.sync write error:', err);
+        // Leave _lastPersistedSlices unchanged so we retry on the next save.
+      }
+    }
+  }
+  try {
+    await chrome.storage.local.set({
       jira_issue_cache: issueCache,
       jira_screenshots: screenshotStore,
     });
-  } else {
+  } catch (err) {
+    console.error('chrome.storage.local write error:', err);
+  }
+}
+
+function _writeLocalStorage() {
+  try {
     localStorage.setItem('jira_state', JSON.stringify(state));
     localStorage.setItem('jira_issue_cache', JSON.stringify(issueCache));
     localStorage.setItem('jira_screenshots', JSON.stringify(screenshotStore));
+  } catch (err) {
+    console.error('localStorage write error:', err);
   }
+}
+
+function saveState() {
+  // Guard: never persist in-memory defaults over real data before loadState resolved.
+  // Any caller that runs before loadState is silently dropped — the next save after
+  // load will persist whatever the user does.
+  if (!stateLoaded) return;
+
+  if (!IS_EXT) {
+    // localStorage is synchronous and cheap; writing immediately keeps existing
+    // test behaviour (tests read localStorage right after actions).
+    _evictIssueCache();
+    _evictScreenshots();
+    _writeLocalStorage();
+    return;
+  }
+
+  _savePending = true;
+  if (_saveTimer || _writeInFlight) return;
+  _saveTimer = setTimeout(async () => {
+    _saveTimer = null;
+    while (_savePending) {
+      _savePending = false;
+      _writeInFlight = _writeChangedSlices();
+      try {
+        await _writeInFlight;
+      } finally {
+        _writeInFlight = null;
+      }
+    }
+  }, SAVE_DEBOUNCE_MS);
+}
+
+// Flush any pending save immediately. Returns a promise that resolves when the
+// final write has completed (useful in unload handlers and tests).
+async function flushSaveState() {
+  if (!stateLoaded) return;
+  if (_saveTimer) {
+    clearTimeout(_saveTimer);
+    _saveTimer = null;
+  }
+  if (!IS_EXT) {
+    _evictIssueCache();
+    _evictScreenshots();
+    _writeLocalStorage();
+    return;
+  }
+  if (_writeInFlight) {
+    try {
+      await _writeInFlight;
+    } catch {
+      /* ignore — errors already logged */
+    }
+  }
+  if (_savePending) {
+    _savePending = false;
+    await _writeChangedSlices();
+  }
+}
+
+// Best-effort flush on page hide/unload so the debounce window doesn't drop writes.
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => {
+    if (!stateLoaded) return;
+    if (!IS_EXT) {
+      _writeLocalStorage();
+      return;
+    }
+    if (_saveTimer || _savePending) {
+      clearTimeout(_saveTimer);
+      _saveTimer = null;
+      _savePending = false;
+      // Fire-and-forget — pagehide is synchronous and chrome.storage is async.
+      _writeChangedSlices();
+    }
+  });
+  // Expose for manual test flushing / future Settings "Export" action.
+  window.flushSaveState = flushSaveState;
+}
+
+// ── STATE FACADE ──────────────────────────────────────────────────────────────
+// The existing codebase mutates the top-level `state` object directly and calls
+// saveState() afterwards. That pattern is hard to audit — stray mutations with
+// no follow-up save have caused data loss bugs. New code should go through the
+// facade below:
+//
+//   update(s => { s.activeKey = 'PROJ-1'; });
+//   const snapshot = getState();      // frozen, cannot be mutated in place
+//
+// update() runs your callback against the live object, persists exactly once
+// via saveState(), and (if requested) re-renders. Legacy direct mutations still
+// work — this is additive, not enforced.
+
+/**
+ * Return a shallow-frozen view of the current state. The top-level object is
+ * frozen so calling code can't accidentally mutate it, but nested arrays/objects
+ * remain live references — which is intentional, since freezing deeply would
+ * break the hot paths that read `state.groups[0].keys` thousands of times per
+ * render. Treat the result as read-only.
+ *
+ * @returns {Readonly<AppState>}
+ */
+function getState() {
+  return Object.freeze({ ...state });
+}
+
+/**
+ * Mutate state inside a callback and persist exactly once. Rolls back and
+ * re-throws if the callback throws, so a half-applied mutation never reaches
+ * storage.
+ *
+ * @template T
+ * @param {(s: AppState) => T} fn
+ * @param {{ save?: boolean }} [opts]  Set `save:false` for transient changes
+ *   (e.g. mid-drag reorders) that shouldn't trigger a save on every frame.
+ * @returns {T}
+ */
+function update(fn, opts) {
+  const save = opts?.save !== false;
+  // Shallow snapshot for rollback. Deep clone would be safer but also ~10× more
+  // expensive for state.groups on power users with thousands of keys.
+  const before = { ...state };
+  try {
+    const result = fn(state);
+    if (save) saveState();
+    return result;
+  } catch (err) {
+    state = before;
+    throw err;
+  }
+}
+
+// Expose on window for non-module callers (content scripts, tests, dev console).
+if (typeof window !== 'undefined') {
+  // @ts-ignore — augmenting window with app-level API.
+  window.getState = getState;
+  // @ts-ignore
+  window.update = update;
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────

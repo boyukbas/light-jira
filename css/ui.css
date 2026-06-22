@@ -125,7 +125,8 @@
 
 /* Modals & Overlays */
 #settings-overlay,
-#filter-overlay {
+#filter-overlay,
+#shortcuts-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
@@ -136,17 +137,45 @@
   justify-content: center;
 }
 #settings-overlay.hidden,
-#filter-overlay.hidden {
+#filter-overlay.hidden,
+#shortcuts-overlay.hidden {
   display: none;
 }
 #settings-modal,
-#filter-modal {
+#filter-modal,
+#shortcuts-modal {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
   width: 100%;
   max-width: 440px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+/* Shortcuts cheat-sheet: two-column term/description list. */
+.shortcut-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 18px;
+  margin: 0;
+}
+.shortcut-list dt {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.shortcut-list dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+.shortcut-list kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* Toasts */
@@ -163,6 +192,36 @@
   opacity: 0;
   transition: all 0.3s;
   pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+}
+/* Severity borders — subtle left accent keeps the toast monochrome otherwise. */
+#toast[data-severity='error'] {
+  border-color: var(--red, #f85149);
+  box-shadow: inset 3px 0 0 0 var(--red, #f85149);
+  pointer-events: auto;
+}
+#toast[data-severity='warn'] {
+  border-color: var(--amber, #e3b341);
+  box-shadow: inset 3px 0 0 0 var(--amber, #e3b341);
+}
+#toast[data-severity='success'] {
+  box-shadow: inset 3px 0 0 0 var(--green, #3fb950);
+}
+#toast .toast-copy {
+  pointer-events: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+#toast .toast-copy:hover {
+  background: var(--border);
 }
 
 /* Badges */

@@ -102,6 +102,12 @@
 .list-card.drag-over {
   border-top: 2px solid var(--accent);
 }
+/* Visible keyboard focus — required for the role="option" / tabindex pattern,
+   since browsers no longer paint a default outline on role="option" cards. */
+.list-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 
 .lc-key-row {
   display: flex;

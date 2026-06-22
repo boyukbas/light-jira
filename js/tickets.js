@@ -68,19 +68,25 @@ window.openFromHistory = function (key) {
 };
 
 // Sequentially loads all tickets in the active group that are not yet cached.
-// Renders incrementally so cards appear as data arrives.
+// Renders incrementally so cards appear as data arrives. A single saveState()
+// call at the end batches what was previously a write-per-ticket storm — for a
+// 50-ticket group that's 50 localStorage writes vs 1 (and in extension mode the
+// debounced sync path is called N times but only persists once anyway).
 async function loadAllGroupTickets() {
   const group = getActiveGroup();
+  let fetched = false;
   for (const key of group.keys) {
-    if (!issueCache[key]) {
+    const k = entryKey(key);
+    if (!issueCache[k]) {
       try {
-        issueCache[key] = await fetchIssue(key);
-        saveState();
+        issueCache[k] = await fetchIssue(k);
+        fetched = true;
         renderMiddle();
-        if (state.activeKey === key) renderReading();
+        if (state.activeKey === k) renderReading();
       } catch (err) {
-        console.warn('Failed to load', key, err.message);
+        console.warn('Failed to load', k, err.message);
       }
     }
   }
+  if (fetched) saveState();
 }

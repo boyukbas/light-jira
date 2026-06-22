@@ -58,6 +58,10 @@ function buildCardHtml(entry, activeKey, sel) {
     '<div class="list-card' +
     active +
     selected +
+    '" role="option" tabindex="' +
+    (activeKey === key ? '0' : '-1') +
+    '" aria-selected="' +
+    (activeKey === key ? 'true' : 'false') +
     '" data-key="' +
     esc(key) +
     '" data-cached="' +
@@ -157,13 +161,34 @@ function renderMiddle() {
   }
 
   if (!visibleKeys.length) {
-    list.innerHTML = q
-      ? '<div class="empty-msg">No tickets match "<strong>' + esc(q) + '</strong>".</div>'
-      : group.isFilter
-        ? '<div class="empty-msg">Filter returned no results.<br><span style="font-size:11px;color:var(--text-tertiary);">' +
-          esc(group.query || '') +
-          '</span></div>'
-        : '<div class="empty-msg">No tickets in this list.<br>Search a key to add one.</div>';
+    if (q) {
+      list.innerHTML =
+        '<div class="empty-msg">No tickets match "<strong>' + esc(q) + '</strong>".</div>';
+    } else if (group.isFilter) {
+      list.innerHTML =
+        '<div class="empty-msg">Filter returned no results.<br><span style="font-size:11px;color:var(--text-tertiary);">' +
+        esc(group.query || '') +
+        '</span></div>';
+    } else if (!isConfigured()) {
+      // First-run: unconfigured user lands on the default empty list. Nudge them
+      // toward the two primary actions (connect + beam) instead of an inert msg.
+      list.innerHTML =
+        '<div class="empty-msg first-run">' +
+        '<div style="font-size:14px;color:var(--text-primary);margin-bottom:6px;">Welcome to Crisp</div>' +
+        '<div style="margin-bottom:10px;">Connect your Jira account, then beam tabs in from any Jira page.</div>' +
+        '<button class="top-btn primary" data-action="first-run-settings">Connect Jira</button>' +
+        '<div style="margin-top:14px;font-size:11px;color:var(--text-tertiary);">Press <kbd>?</kbd> any time for shortcuts.</div>' +
+        '</div>';
+      // Wire the CTA without an inline handler (CSP-friendly).
+      const btn = list.querySelector('[data-action="first-run-settings"]');
+      if (btn) btn.addEventListener('click', openCfg);
+    } else {
+      list.innerHTML =
+        '<div class="empty-msg">' +
+        '<div style="margin-bottom:10px;">No tickets in this list.</div>' +
+        '<div style="font-size:11px;color:var(--text-tertiary);">Search a key above, or beam a tab from the extension popup.</div>' +
+        '</div>';
+    }
     return;
   }
 

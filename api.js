@@ -10,8 +10,13 @@ const DEFAULTS = {
 let cfg = { ...DEFAULTS };
 
 let issueCache = {}; // in-memory cache for fast pane switching
-let blobCache = {}; // prevents reloading identical images
+let blobCache = {}; // url -> object URL; capped below so URL.createObjectURL() doesn't leak
 let customFieldMap = {}; // maps customfield_10010 to "Business Case", etc
+
+// Blob cache is FIFO-capped. createObjectURL holds a blob in memory until the
+// URL is revoked, so an uncapped cache over a long session with many attachment
+// images leaks megabytes.
+const BLOB_CACHE_MAX = 200;
 
 function loadConfig() {
   try {
@@ -41,31 +46,36 @@ function apiBase() {
   return cfg.baseUrl;
 }
 
-async function fetchIssue(key) {
-  const fields = '*all';
-  const url =
-    apiBase() +
-    '/rest/api/3/issue/' +
-    encodeURIComponent(key) +
-    '?fields=' +
-    fields +
-    '&expand=renderedFields';
-  const r = await fetch(url, { headers: commonHeaders() });
+// ── SHARED FETCH HELPER ───────────────────────────────────────────────────────
+// All Jira REST calls share the same error-message shape: "<status> <statusText>:
+// <errorMessages[0] or message>". Extracting this removes five duplicated try/
+// catch blocks and gives us a single place to evolve the error contract.
+async function _apiFetchJson(path, options) {
+  const r = await fetch(apiBase() + path, { headers: commonHeaders(), ...options });
+  // PUT /issue returns 204 on success with empty body — treat as OK, return null.
+  if (r.status === 204) return null;
   if (!r.ok) {
     let msg = r.status + ' ' + r.statusText;
     try {
       const j = await r.json();
       msg += ': ' + (j.errorMessages?.[0] || j.message || '');
-    } catch {}
+    } catch {
+      /* body not JSON — stick with the status line */
+    }
     throw new Error(msg);
   }
   return r.json();
 }
 
+async function fetchIssue(key) {
+  return _apiFetchJson(
+    '/rest/api/3/issue/' + encodeURIComponent(key) + '?fields=*all&expand=renderedFields'
+  );
+}
+
 async function fetchCustomFields() {
   try {
-    const url = apiBase() + '/rest/api/3/field';
-    const fields = await (await fetch(url, { headers: commonHeaders() })).json();
+    const fields = await _apiFetchJson('/rest/api/3/field');
     for (const f of fields) customFieldMap[f.id] = f.name;
   } catch (e) {
     console.error('Error fetching custom fields map:', e);
@@ -78,6 +88,19 @@ async function fetchBlob(url) {
     const r = await fetch(url, { headers: commonHeaders() });
     if (!r.ok) return null;
     const objectUrl = URL.createObjectURL(await r.blob());
+    // FIFO evict oldest entries once we hit the cap. Revoking releases the
+    // underlying Blob — without this, every cached image's bytes stay in
+    // memory for the whole session.
+    const keys = Object.keys(blobCache);
+    if (keys.length >= BLOB_CACHE_MAX) {
+      const oldest = keys[0];
+      try {
+        URL.revokeObjectURL(blobCache[oldest]);
+      } catch {
+        /* revocation is best-effort */
+      }
+      delete blobCache[oldest];
+    }
     blobCache[url] = objectUrl;
     return objectUrl;
   } catch {
@@ -86,86 +109,49 @@ async function fetchBlob(url) {
 }
 
 async function updateIssueFields(key, fields) {
-  const url = apiBase() + '/rest/api/3/issue/' + encodeURIComponent(key);
-  const r = await fetch(url, {
+  await _apiFetchJson('/rest/api/3/issue/' + encodeURIComponent(key), {
     method: 'PUT',
     headers: { ...commonHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ fields }),
   });
-  if (!r.ok && r.status !== 204) {
-    let msg = r.status + ' ' + r.statusText;
-    try {
-      const j = await r.json();
-      msg += ': ' + (j.errorMessages?.[0] || j.message || '');
-    } catch {}
-    throw new Error(msg);
-  }
 }
 
 async function searchUsers(query) {
-  const url =
-    apiBase() + '/rest/api/3/user/search?query=' + encodeURIComponent(query) + '&maxResults=5';
-  const r = await fetch(url, { headers: commonHeaders() });
-  if (!r.ok) return [];
-  return r.json();
+  try {
+    return await _apiFetchJson(
+      '/rest/api/3/user/search?query=' + encodeURIComponent(query) + '&maxResults=5'
+    );
+  } catch {
+    // User-search failures are silent in the UI (empty dropdown) — matches the
+    // previous behaviour.
+    return [];
+  }
 }
 
 // ── JQL SEARCH ─────────────────────────────────────────────────────────────────
 async function fetchByJql(jql, maxResults = 50) {
-  const url =
-    apiBase() +
+  return _apiFetchJson(
     '/rest/api/3/search/jql?jql=' +
-    encodeURIComponent(jql) +
-    '&maxResults=' +
-    maxResults +
-    '&fields=summary,status,assignee,issuetype,parent,created,updated,reporter';
-  const r = await fetch(url, { headers: commonHeaders() });
-  if (!r.ok) {
-    let msg = r.status + ' ' + r.statusText;
-    try {
-      const j = await r.json();
-      msg += ': ' + (j.errorMessages?.[0] || j.message || '');
-    } catch {}
-    throw new Error(msg);
-  }
-  return r.json();
+      encodeURIComponent(jql) +
+      '&maxResults=' +
+      maxResults +
+      '&fields=summary,status,assignee,issuetype,parent,created,updated,reporter'
+  );
 }
 
 async function fetchFilterById(filterId) {
-  const url = apiBase() + '/rest/api/3/filter/' + encodeURIComponent(filterId);
-  const r = await fetch(url, { headers: commonHeaders() });
-  if (!r.ok) {
-    let msg = r.status + ' ' + r.statusText;
-    try {
-      const j = await r.json();
-      msg += ': ' + (j.errorMessages?.[0] || j.message || '');
-    } catch {}
-    throw new Error(msg);
-  }
-  return r.json();
+  return _apiFetchJson('/rest/api/3/filter/' + encodeURIComponent(filterId));
 }
 
 async function fetchPlanIssues(planId) {
-  const url =
-    apiBase() + '/rest/agile/1.0/plan/' + encodeURIComponent(planId) + '/issue?maxResults=200';
-  const r = await fetch(url, { headers: commonHeaders() });
-  if (!r.ok) {
-    let msg = r.status + ' ' + r.statusText;
-    try {
-      const j = await r.json();
-      msg += ': ' + (j.errorMessages?.[0] || j.message || '');
-    } catch {}
-    throw new Error(msg);
-  }
-  return r.json();
+  return _apiFetchJson(
+    '/rest/agile/1.0/plan/' + encodeURIComponent(planId) + '/issue?maxResults=200'
+  );
 }
 
 async function fetchPlanDetails(planId) {
   try {
-    const url = apiBase() + '/rest/agile/1.0/plan/' + encodeURIComponent(planId);
-    const r = await fetch(url, { headers: commonHeaders() });
-    if (!r.ok) return null;
-    return r.json();
+    return await _apiFetchJson('/rest/agile/1.0/plan/' + encodeURIComponent(planId));
   } catch {
     return null;
   }

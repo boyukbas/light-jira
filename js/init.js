@@ -41,8 +41,13 @@ function _setAutoRefresh(enabled) {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
   loadConfig();
-  if (!isConfigured()) openCfg();
+  // Historically we auto-opened the settings modal on every unconfigured launch.
+  // That makes the app feel like a dead end on first run; the empty-state card
+  // in the inbox (see js/middle.js) now guides the user to Settings instead.
   await loadState();
+  // Process ?beam=... URL param now that state is loaded — running it any earlier
+  // would operate on the default empty state and wipe stored data on saveState().
+  processBeamUrlParam();
   initResizing();
   initMindMap();
   updateViewMode();
@@ -101,9 +106,24 @@ async function init() {
   });
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // Helper: is a text-editing surface the current focus target? Shortcut keys
+  // like "/" and "?" must not swallow actual typing.
+  function _isEditingTarget() {
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName;
+    return (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      el.isContentEditable === true ||
+      el.contentEditable === 'true'
+    );
+  }
+
   window.addEventListener('keydown', (e) => {
-    // F2 → focus search bar from anywhere
-    if (e.key === 'F2') {
+    // "/" or F2 → focus search bar from anywhere (not while typing)
+    if ((e.key === '/' || e.key === 'F2') && !_isEditingTarget()) {
       e.preventDefault();
       const si = document.getElementById('search-input');
       if (si) {
@@ -113,15 +133,16 @@ async function init() {
       return;
     }
 
+    // "?" → toggle the shortcuts cheat sheet (shift+/ reports as "?")
+    if (e.key === '?' && !_isEditingTarget()) {
+      e.preventDefault();
+      toggleShortcutsOverlay();
+      return;
+    }
+
     // Arrow keys → navigate ticket list (skip when an input/textarea is focused)
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      const tag = document.activeElement?.tagName;
-      if (
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        document.activeElement?.contentEditable === 'true'
-      )
-        return;
+      if (_isEditingTarget()) return;
       if (state.appMode !== 'jira') return;
       e.preventDefault();
       const group = getActiveGroup();
@@ -134,13 +155,46 @@ async function init() {
         state.activeKey = keys[newIdx];
         saveState();
         updateViewMode();
-        setTimeout(
-          () => document.querySelector('.list-card.active')?.scrollIntoView({ block: 'nearest' }),
-          0
-        );
+        setTimeout(() => {
+          const card = document.querySelector('.list-card.active');
+          if (card) {
+            card.scrollIntoView({ block: 'nearest' });
+            // Move real DOM focus onto the new active card so the
+            // focus-visible outline tracks keyboard navigation.
+            if (typeof card.focus === 'function') card.focus({ preventScroll: true });
+          }
+        }, 0);
       }
     }
   });
+
+  // ── Shortcuts cheat sheet overlay ─────────────────────────────────────────
+  let _shortcutsTrap = null;
+  function openShortcutsOverlay() {
+    const overlay = document.getElementById('shortcuts-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    document.getElementById('shortcuts-dismiss')?.focus();
+    if (_shortcutsTrap) _shortcutsTrap();
+    _shortcutsTrap = trapFocus(overlay, closeShortcutsOverlay);
+  }
+  function closeShortcutsOverlay() {
+    const overlay = document.getElementById('shortcuts-overlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden');
+    if (_shortcutsTrap) {
+      _shortcutsTrap();
+      _shortcutsTrap = null;
+    }
+  }
+  function toggleShortcutsOverlay() {
+    const overlay = document.getElementById('shortcuts-overlay');
+    if (!overlay) return;
+    if (overlay.classList.contains('hidden')) openShortcutsOverlay();
+    else closeShortcutsOverlay();
+  }
+  document.getElementById('shortcuts-close')?.addEventListener('click', closeShortcutsOverlay);
+  document.getElementById('shortcuts-dismiss')?.addEventListener('click', closeShortcutsOverlay);
 
   // ── Group search ──────────────────────────────────────────────────────────
   const groupSearchInput = document.getElementById('group-search-input');

@@ -2,14 +2,31 @@
 
 // ── SETTINGS MODAL ────────────────────────────────────────────────────────────
 
+// Active focus-trap teardown, if the modal is currently open.
+let _settingsTrap = null;
+
 function openCfg() {
   document.getElementById('cfg-url').value = cfg.baseUrl;
   document.getElementById('cfg-email').value = cfg.email;
   document.getElementById('cfg-token').value = cfg.token;
   document.getElementById('cfg-open-in-window').checked = state.openInWindow !== false;
   clearSettingsErrors();
-  document.getElementById('settings-overlay').classList.remove('hidden');
+  const overlay = document.getElementById('settings-overlay');
+  overlay.classList.remove('hidden');
   document.getElementById('cfg-email').focus();
+  // Install a focus trap that also handles Escape and backdrop click. The old
+  // implementation only caught Escape if the overlay itself had focus — easy to
+  // miss when focus was on an input. This one listens at the document level.
+  if (_settingsTrap) _settingsTrap();
+  _settingsTrap = trapFocus(overlay, () => closeCfgInternal());
+}
+
+function closeCfgInternal() {
+  document.getElementById('settings-overlay').classList.add('hidden');
+  if (_settingsTrap) {
+    _settingsTrap();
+    _settingsTrap = null;
+  }
 }
 
 function showSettingsError(inputId, message) {
@@ -37,15 +54,10 @@ function initSettings() {
 
   settingsBtn.addEventListener('click', openCfg);
 
-  const closeCfg = () => {
-    document.getElementById('settings-overlay').classList.add('hidden');
-    settingsBtn.focus();
-  };
+  // closeCfg restores focus to the settings button via the trapFocus teardown.
+  const closeCfg = () => closeCfgInternal();
   document.getElementById('settings-close').addEventListener('click', closeCfg);
   document.getElementById('settings-cancel').addEventListener('click', closeCfg);
-  document.getElementById('settings-overlay').addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeCfg();
-  });
 
   document.getElementById('settings-save').addEventListener('click', () => {
     clearSettingsErrors();
@@ -67,7 +79,7 @@ function initSettings() {
     saveConfig();
     saveState();
     closeCfg();
-    toast('Settings saved');
+    toast('Settings saved', 'success');
     if (getActiveGroup().keys.length) loadAllGroupTickets();
   });
 }
