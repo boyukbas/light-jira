@@ -126,7 +126,13 @@ function _isSafeUrl(raw) {
   // Allow absolute http(s), protocol-relative, mailto, tel, hash anchors, and
   // same-origin absolute/relative paths.
   if (/^(https?:|mailto:|tel:)/i.test(s)) return true;
-  if (s.startsWith('//') || s.startsWith('/') || s.startsWith('#') || s.startsWith('./') || s.startsWith('../')) {
+  if (
+    s.startsWith('//') ||
+    s.startsWith('/') ||
+    s.startsWith('#') ||
+    s.startsWith('./') ||
+    s.startsWith('../')
+  ) {
     return true;
   }
   return false;
@@ -149,7 +155,7 @@ function _sanitizeJiraNode(node) {
       child.remove();
       continue;
     }
-    
+
     if (!(tag in _SAFE_JIRA_TAGS)) {
       // Unknown tag — sanitize its subtree, then unwrap (lift children, drop element).
       _sanitizeJiraNode(child);

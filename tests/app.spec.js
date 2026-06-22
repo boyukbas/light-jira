@@ -1722,9 +1722,9 @@ test.describe('Jira Beam', () => {
     await page.goto(`/?beam=${encoded}`);
 
     // The beamed group should appear…
-    await expect(
-      page.locator('#group-list .group-item', { hasText: 'Beamed Group' })
-    ).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#group-list .group-item', { hasText: 'Beamed Group' })).toBeVisible({
+      timeout: 3000,
+    });
     // …and the pre-existing saved group must still be there.
     await expect(
       page.locator('#group-list .group-item', { hasText: 'My Saved Group' })
@@ -1792,9 +1792,7 @@ test.describe('Jira HTML sanitization', () => {
     await page.waitForTimeout(200);
     const hit = await page.evaluate(() => window.__xss);
     expect(hit).toBeUndefined();
-    const hasOnerror = await page
-      .locator('.description img[onerror]')
-      .count();
+    const hasOnerror = await page.locator('.description img[onerror]').count();
     expect(hasOnerror).toBe(0);
   });
 
