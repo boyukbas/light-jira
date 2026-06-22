@@ -29,9 +29,175 @@ function esc(s) {
 }
 
 function stripHtml(html) {
-  const t = document.createElement('div');
-  t.innerHTML = html;
-  return t.textContent;
+  // Use DOMParser instead of a detached div+innerHTML — the parser builds an
+  // inert document that never triggers resource loads or inline handlers, so
+  // malicious markup in Jira-rendered HTML can't fire even during search
+  // indexing in middle.js.
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(String(html), 'text/html');
+  return doc.body ? doc.body.textContent : '';
+}
+
+// ── JIRA HTML SANITIZER ───────────────────────────────────────────────────────
+// Centralised allowlist sanitizer for any HTML that originated in Jira
+// (issue.renderedFields.description, rendered custom fields, rendered
+// comment bodies). Jira renders user-authored content server-side and
+// the markup reaches us as a string; without sanitization we'd be injecting
+// arbitrary HTML into the DOM. Anything not on the allowlist is either
+// dropped (script/style/etc.) or unwrapped (unknown tags keep their text).
+const _SAFE_JIRA_TAGS = {
+  a: ['href', 'title'],
+  abbr: ['title'],
+  b: [],
+  blockquote: [],
+  br: [],
+  caption: [],
+  code: ['class'],
+  col: ['span'],
+  colgroup: ['span'],
+  dd: [],
+  del: [],
+  div: ['class'],
+  dl: [],
+  dt: [],
+  em: [],
+  figcaption: [],
+  figure: ['class'],
+  h1: [],
+  h2: [],
+  h3: [],
+  h4: [],
+  h5: [],
+  h6: [],
+  hr: [],
+  i: [],
+  img: ['src', 'alt', 'title', 'width', 'height', 'data-attachment-name'],
+  ins: [],
+  kbd: [],
+  li: [],
+  mark: [],
+  ol: ['start', 'type'],
+  p: [],
+  pre: ['class'],
+  q: [],
+  s: [],
+  samp: [],
+  small: [],
+  span: ['class'],
+  strong: [],
+  sub: [],
+  sup: [],
+  table: ['class'],
+  tbody: [],
+  td: ['colspan', 'rowspan'],
+  tfoot: [],
+  th: ['colspan', 'rowspan', 'scope'],
+  thead: [],
+  tr: [],
+  u: [],
+  ul: [],
+};
+
+// Tags we drop outright — their content is markup, not user-visible prose,
+// so unwrapping them would expose CSS/JS source as text.
+const _STRIP_JIRA_TAGS = new Set([
+  'script',
+  'style',
+  'iframe',
+  'object',
+  'embed',
+  'link',
+  'meta',
+  'base',
+  'form',
+  'input',
+  'button',
+  'textarea',
+  'select',
+  'option',
+  'noscript',
+  'svg',
+  'math',
+]);
+
+function _isSafeUrl(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return false;
+  // Allow absolute http(s), protocol-relative, mailto, tel, hash anchors, and
+  // same-origin absolute/relative paths.
+  if (/^(https?:|mailto:|tel:)/i.test(s)) return true;
+  if (s.startsWith('//') || s.startsWith('/') || s.startsWith('#') || s.startsWith('./') || s.startsWith('../')) {
+    return true;
+  }
+  return false;
+}
+
+function _sanitizeJiraNode(node) {
+  // Snapshot children — we may remove nodes during iteration.
+  const children = Array.from(node.childNodes);
+  for (const child of children) {
+    if (child.nodeType === 8) {
+      // Comments — strip.
+      child.remove();
+      continue;
+    }
+    if (child.nodeType !== 1) continue; // keep text nodes as-is
+
+    const tag = child.tagName.toLowerCase();
+
+    if (_STRIP_JIRA_TAGS.has(tag)) {
+      child.remove();
+      continue;
+    }
+
+    if (!(tag in _SAFE_JIRA_TAGS)) {
+      // Unknown tag — unwrap: keep children, drop the element.
+      const parent = child.parentNode;
+      while (child.firstChild) parent.insertBefore(child.firstChild, child);
+      parent.removeChild(child);
+      // Re-sanitize the parent since we spliced in new children.
+      _sanitizeJiraNode(parent);
+      continue;
+    }
+
+    const allowed = _SAFE_JIRA_TAGS[tag];
+    for (const attr of Array.from(child.attributes)) {
+      const name = attr.name.toLowerCase();
+      // Always-disallowed: event handlers and style (style enables CSS-based
+      // attacks such as expression() on old IE and positioning tricks).
+      if (name.startsWith('on') || name === 'style') {
+        child.removeAttribute(attr.name);
+        continue;
+      }
+      if (!allowed.includes(name)) {
+        child.removeAttribute(attr.name);
+        continue;
+      }
+      // URL attributes: validate schemes.
+      if ((tag === 'a' && name === 'href') || (tag === 'img' && name === 'src')) {
+        if (!_isSafeUrl(attr.value)) {
+          child.removeAttribute(attr.name);
+        }
+      }
+    }
+
+    // Force safe link behaviour for anchors that survived.
+    if (tag === 'a' && child.getAttribute('href')) {
+      child.setAttribute('target', '_blank');
+      child.setAttribute('rel', 'noopener noreferrer');
+    }
+
+    _sanitizeJiraNode(child);
+  }
+}
+
+function sanitizeJiraHtml(html) {
+  if (!html) return '';
+  // DOMParser builds a detached document — no scripts execute, no resources fetched.
+  const doc = new DOMParser().parseFromString(String(html), 'text/html');
+  if (!doc || !doc.body) return '';
+  _sanitizeJiraNode(doc.body);
+  return doc.body.innerHTML;
 }
 
 function statusClass(cat) {
@@ -64,16 +230,73 @@ function relDate(iso) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+// Severity → on-screen lifetime. Errors stick around long enough to read and
+// copy; warnings a bit less; successful/neutral toasts are brief.
+const _TOAST_LIFETIME_MS = { error: 8000, warn: 5000, success: 3000, info: 3000 };
+let _toastHideTimer = null;
+
+/**
+ * Show a non-blocking toast.
+ * @param {string} msg  The message. Rendered as text (not HTML).
+ * @param {'success'|'warn'|'error'|'info'} [type]  Severity. Controls lifetime
+ *   and — for 'error' — adds a "Copy" button so the user can grab the message
+ *   for a bug report even if it disappears before they finish reading it.
+ */
 function toast(msg, type) {
   const el = document.getElementById('toast');
   if (!el) return;
-  el.textContent = msg;
+  const severity = type || 'info';
+
+  // Re-announce to screen readers even when the visible text is unchanged:
+  // clear aria-live then reassign after a tick.
+  el.setAttribute('aria-live', severity === 'error' ? 'assertive' : 'polite');
+
+  // Build DOM (not innerHTML — msg is untrusted).
+  el.textContent = '';
+  el.dataset.severity = severity;
+  const textSpan = document.createElement('span');
+  textSpan.className = 'toast-text';
+  textSpan.textContent = msg;
+  el.appendChild(textSpan);
+
+  if (severity === 'error') {
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'toast-copy';
+    copyBtn.textContent = 'Copy';
+    copyBtn.setAttribute('aria-label', 'Copy error message');
+    copyBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(msg);
+        } else {
+          // Fallback for contexts without the async clipboard API.
+          const ta = document.createElement('textarea');
+          ta.value = msg;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+        copyBtn.textContent = 'Copied';
+      } catch {
+        copyBtn.textContent = 'Copy failed';
+      }
+    });
+    el.appendChild(copyBtn);
+  }
+
   el.style.opacity = '1';
   el.style.transform = 'translateY(0)';
-  setTimeout(() => {
+
+  clearTimeout(_toastHideTimer);
+  _toastHideTimer = setTimeout(() => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(50px)';
-  }, 3000);
+  }, _TOAST_LIFETIME_MS[severity] ?? _TOAST_LIFETIME_MS.info);
 }
 
 const AV_COLORS = [
@@ -208,6 +431,62 @@ function renderGroupSection(config) {
 
   const addBtn = document.getElementById(addBtnId);
   if (addBtn) addBtn.onclick = onAdd;
+}
+
+// ── MODAL FOCUS TRAP ──────────────────────────────────────────────────────────
+// Keep focus inside a modal while it's open, restore focus to the trigger on
+// close, and close on Escape. Callers pass the overlay element (visible wrapper)
+// and an onClose callback. Returns a teardown function.
+const _FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function trapFocus(overlay, onClose) {
+  if (!overlay) return () => {};
+  const previouslyFocused = document.activeElement;
+
+  function focusables() {
+    return Array.from(overlay.querySelectorAll(_FOCUSABLE_SELECTOR)).filter(
+      (el) => el.offsetParent !== null
+    );
+  }
+
+  function onKey(e) {
+    if (overlay.classList.contains('hidden')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose?.();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const list = focusables();
+    if (!list.length) return;
+    const first = list[0];
+    const last = list[list.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || !overlay.contains(active))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  function onClickBackdrop(e) {
+    // Click on the overlay itself (not a child) → dismiss.
+    if (e.target === overlay) onClose?.();
+  }
+
+  document.addEventListener('keydown', onKey, true);
+  overlay.addEventListener('mousedown', onClickBackdrop);
+
+  return () => {
+    document.removeEventListener('keydown', onKey, true);
+    overlay.removeEventListener('mousedown', onClickBackdrop);
+    if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+      previouslyFocused.focus();
+    }
+  };
 }
 
 function startInlineCreate(listEl, placeholder, onCommit) {

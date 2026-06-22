@@ -410,7 +410,7 @@
             autocomplete="off"
           />
         </div>
-        <div id="ticket-list"></div>
+        <div id="ticket-list" role="listbox" aria-label="Tickets"></div>
       </div>
 
       <div class="resizer" id="resizer-middle"></div>
@@ -847,6 +847,40 @@
       </div>
     </div>
 
+    <!-- SHORTCUTS CHEAT SHEET -->
+    <div id="shortcuts-overlay" class="hidden">
+      <div
+        id="shortcuts-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-modal-title"
+      >
+        <div class="modal-header">
+          <span id="shortcuts-modal-title">Keyboard shortcuts</span>
+          <button class="modal-close" id="shortcuts-close" aria-label="Close shortcuts">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <dl class="shortcut-list">
+            <dt><kbd>/</kbd> or <kbd>F2</kbd></dt>
+            <dd>Focus the search bar</dd>
+            <dt><kbd>?</kbd></dt>
+            <dd>Show this cheat sheet</dd>
+            <dt><kbd>Esc</kbd></dt>
+            <dd>Close an open dialog</dd>
+            <dt><kbd>&uarr;</kbd> / <kbd>&darr;</kbd></dt>
+            <dd>Move through tickets in the active list</dd>
+            <dt><kbd>Enter</kbd></dt>
+            <dd>In the search bar: open the ticket or run the JQL filter</dd>
+          </dl>
+        </div>
+        <div class="modal-footer">
+          <button class="top-btn primary" id="shortcuts-dismiss">Got it</button>
+        </div>
+      </div>
+    </div>
+
     <!-- SETTINGS MODAL -->
     <div id="settings-overlay" class="hidden">
       <div
@@ -905,7 +939,7 @@
       </div>
     </div>
 
-    <div id="toast"></div>
+    <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- LIBRARIES & APP -->
     <script src="lib/mermaid.min.js"></script>

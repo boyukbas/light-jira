@@ -51,13 +51,18 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.id) {
   });
 }
 
-// Handle ?beam=<base64-JSON> sent by the extension when the app tab was not open
-try {
-  const beamParam = new URLSearchParams(window.location.search).get('beam');
-  if (beamParam) {
+// Handle ?beam=<base64-JSON> sent by the extension when the app tab was not open.
+// MUST run AFTER loadState() has populated `state` from chrome.storage. Otherwise
+// handleBeam() mutates the default empty state and saveState() overwrites stored
+// data — wiping the user's groups, labels, notes, etc. init.js calls this after
+// awaiting loadState().
+function processBeamUrlParam() {
+  try {
+    const beamParam = new URLSearchParams(window.location.search).get('beam');
+    if (!beamParam) return;
     handleBeam(JSON.parse(atob(beamParam)));
     window.history.replaceState({}, '', window.location.pathname);
+  } catch {
+    /* ignore malformed beam param */
   }
-} catch {
-  /* ignore malformed beam param */
 }

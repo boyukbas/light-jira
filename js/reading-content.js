@@ -176,7 +176,7 @@ function buildContentHtml(issue) {
     cleanDesc = cleanDesc.replace(/<img[^>]*info-modeler[^>]*>/gi, '');
     html +=
       '<div class="section-title">Description</div><div class="description">' +
-      cleanDesc +
+      sanitizeJiraHtml(cleanDesc) +
       '</div>';
   }
   for (const [keyField, val] of Object.entries(issue.renderedFields)) {
@@ -193,7 +193,7 @@ function buildContentHtml(issue) {
       '<div class="section-title">' +
       esc(fName) +
       '</div><div class="description">' +
-      val +
+      sanitizeJiraHtml(val) +
       '</div>';
   }
   return html;
@@ -252,7 +252,7 @@ function buildCommentsHtml(f, issue) {
       relDate(c.created) +
       '</span></div>' +
       '<div class="c-body description">' +
-      (rc[i] ? rc[i].body : '') +
+      (rc[i] ? sanitizeJiraHtml(rc[i].body) : '') +
       '</div></div></div>';
   }
   return html + '</div>';

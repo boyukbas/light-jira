@@ -1680,6 +1680,132 @@ test.describe('Jira Beam', () => {
       timeout: 3000,
     });
   });
+
+  // Regression: a ?beam= URL param used to fire before loadState() populated the
+  // in-memory state. handleBeam() would then save the default (empty) state back
+  // to storage, wiping every pre-existing group, label, note, etc. This test
+  // guarantees that the user's prior data survives a cold-load beam.
+  test('?beam= URL param preserves pre-existing saved groups', async ({ page }) => {
+    const payload = { type: 'open-group', name: 'Beamed Group', keys: ['PROJ-9'] };
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
+    await page.addInitScript(initConfig);
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'jira_state',
+        JSON.stringify({
+          groups: [
+            { id: 'inbox', name: 'Inbox', keys: [] },
+            { id: 'g_saved', name: 'My Saved Group', keys: ['PROJ-5'] },
+            { id: 'history', name: 'History', keys: [] },
+          ],
+          activeGroupId: 'inbox',
+          activeKey: null,
+          appMode: 'jira',
+          notes: { 'PROJ-5': 'important note' },
+          labels: { 'PROJ-5': ['urgent'] },
+          labelColors: { urgent: '#f85149' },
+        })
+      );
+    });
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto(`/?beam=${encoded}`);
+
+    // The beamed group should appear…
+    await expect(
+      page.locator('#group-list .group-item', { hasText: 'Beamed Group' })
+    ).toBeVisible({ timeout: 3000 });
+    // …and the pre-existing saved group must still be there.
+    await expect(
+      page.locator('#group-list .group-item', { hasText: 'My Saved Group' })
+    ).toBeVisible();
+
+    // Persisted in storage too — the notes/labels should be intact.
+    const persisted = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
+      return {
+        groupIds: (s.groups || []).map((g) => g.id),
+        note: s.notes?.['PROJ-5'] || null,
+        label: s.labels?.['PROJ-5']?.[0] || null,
+      };
+    });
+    expect(persisted.groupIds).toContain('g_saved');
+    expect(persisted.note).toBe('important note');
+    expect(persisted.label).toBe('urgent');
+  });
+});
+
+// ── XSS SANITIZATION (Jira-rendered HTML) ────────────────────────────────────
+test.describe('Jira HTML sanitization', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+  });
+
+  test('script tags inside description do not execute', async ({ page }) => {
+    const xssIssue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      renderedFields: {
+        description: '<p>before</p><script>window.__xss = 1;</script><p>after</p>',
+      },
+    };
+    mockIssueRoute(page, xssIssue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('.description').first()).toContainText('before', { timeout: 5000 });
+    // Script tag was stripped — no global set, and no <script> in the DOM.
+    const hit = await page.evaluate(() => window.__xss);
+    expect(hit).toBeUndefined();
+    const scriptCount = await page.locator('.description script').count();
+    expect(scriptCount).toBe(0);
+  });
+
+  test('onerror handlers on img are stripped', async ({ page }) => {
+    const xssIssue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      renderedFields: {
+        description: '<img src="x" onerror="window.__xss=1">',
+      },
+    };
+    mockIssueRoute(page, xssIssue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+    // Let any pending error handler fire.
+    await page.waitForTimeout(200);
+    const hit = await page.evaluate(() => window.__xss);
+    expect(hit).toBeUndefined();
+    const hasOnerror = await page
+      .locator('.description img[onerror]')
+      .count();
+    expect(hasOnerror).toBe(0);
+  });
+
+  test('javascript: href is stripped from anchors', async ({ page }) => {
+    const xssIssue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      renderedFields: {
+        description: '<a href="javascript:window.__xss=1" id="bad">click</a>',
+      },
+    };
+    mockIssueRoute(page, xssIssue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('.description a').first()).toBeVisible({ timeout: 5000 });
+    const href = await page.locator('.description a').first().getAttribute('href');
+    expect(href).toBeNull();
+  });
 });
 
 // ── FIND DUPLICATES ───────────────────────────────────────────────────────────
