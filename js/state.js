@@ -535,9 +535,9 @@ function getState() {
  */
 function update(fn, opts) {
   const save = opts?.save !== false;
-  // Shallow snapshot for rollback. Deep clone would be safer but also ~10× more
-  // expensive for state.groups on power users with thousands of keys.
-  const before = { ...state };
+  // Deep snapshot so rollback can undo nested mutations — callers mutate
+  // state.groups[…].keys etc., which a shallow copy would share by reference.
+  const before = structuredClone(state);
   try {
     const result = fn(state);
     if (save) saveState();
