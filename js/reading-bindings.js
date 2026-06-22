@@ -389,10 +389,6 @@ function startDateFieldEdit(item, valueEl, openPicker, getCurrent, onCommit) {
   input.className = 'meta-edit-input';
   valueEl.replaceWith(input);
   input.focus();
-  if (openPicker)
-    try {
-      input.showPicker();
-    } catch {}
 
   const commit = async () => {
     const val = input.value;
