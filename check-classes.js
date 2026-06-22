@@ -31,6 +31,9 @@ const KNOWN_DYNAMIC = new Set([
   'mention',
   'panel',
   'expand',
+  // marker classes set on elements as JS/state hooks, intentionally unstyled
+  'first-run',
+  'toast-text',
 ]);
 
 // ── File discovery ────────────────────────────────────────────────────────────
