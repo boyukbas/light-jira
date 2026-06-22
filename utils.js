@@ -149,14 +149,11 @@ function _sanitizeJiraNode(node) {
       child.remove();
       continue;
     }
-
+    
     if (!(tag in _SAFE_JIRA_TAGS)) {
-      // Unknown tag — unwrap: keep children, drop the element.
-      const parent = child.parentNode;
-      while (child.firstChild) parent.insertBefore(child.firstChild, child);
-      parent.removeChild(child);
-      // Re-sanitize the parent since we spliced in new children.
-      _sanitizeJiraNode(parent);
+      // Unknown tag — sanitize its subtree, then unwrap (lift children, drop element).
+      _sanitizeJiraNode(child);
+      child.replaceWith(...child.childNodes);
       continue;
     }
 
