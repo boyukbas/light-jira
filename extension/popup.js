@@ -32,7 +32,12 @@ async function beamToApp(payload) {
     await chrome.tabs.update(appTab.id, { active: true });
     await chrome.windows.update(appTab.windowId, { focused: true });
   } else {
-    const encoded = btoa(JSON.stringify(payload));
+    // btoa only accepts Latin-1; UTF-8-encode first so Jira titles with
+    // em-dashes, smart quotes, emoji, etc. survive the round-trip.
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let bin = '';
+    for (const b of bytes) bin += String.fromCharCode(b);
+    const encoded = btoa(bin);
     const url = `${getAppUrl()}?beam=${encoded}`;
     if (openInWindow) {
       await chrome.windows.create({ url, type: 'popup', width: 1440, height: 900 });
