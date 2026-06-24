@@ -17,6 +17,7 @@
     "types": ["chrome"]
   },
   "include": [
+    "globals.d.ts",
     "js/**/*.js",
     "api.js",
     "utils.js",

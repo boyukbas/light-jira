@@ -145,8 +145,9 @@ test.describe('Settings', () => {
   });
 
   test('settings values are saved and reloaded after page refresh', async ({ page }) => {
-    // No initConfig so modal auto-opens on first load
+    // No initConfig — open Settings explicitly (the app no longer auto-opens it).
     await page.goto('/');
+    await page.click('#settings-btn');
     await page.fill('#cfg-email', 'user@test.com');
     await page.fill('#cfg-token', 'mytoken123');
     await page.fill('#cfg-url', 'https://mysite.atlassian.net');
@@ -1579,18 +1580,27 @@ test.describe('openTicketByKey guards', () => {
   test('beaming to a filter group targetGroupId routes to default group instead', async ({
     page,
   }) => {
-    // Seed a filter group into state
-    await page.evaluate(() => {
-      const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
-      s.groups = s.groups || [];
-      s.groups.unshift({
-        id: 'g_filter',
-        name: 'My Filter',
-        keys: ['PROJ-10'],
-        isFilter: true,
-        query: 'project = PROJ',
-      });
-      localStorage.setItem('jira_state', JSON.stringify(s));
+    // Seed a filter group alongside the default groups via addInitScript so it is in
+    // place before the app's loadState() runs on reload — a plain evaluate()+reload()
+    // races the app's own save and the seed gets clobbered.
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'jira_state',
+        JSON.stringify({
+          groups: [
+            { id: 'inbox', name: 'Inbox', keys: [] },
+            {
+              id: 'g_filter',
+              name: 'My Filter',
+              keys: ['PROJ-10'],
+              isFilter: true,
+              query: 'project = PROJ',
+            },
+            { id: 'history', name: 'History', keys: [] },
+          ],
+          activeGroupId: 'inbox',
+        })
+      );
     });
     await page.reload();
     await page.evaluate(() => {
@@ -1712,9 +1722,9 @@ test.describe('Jira Beam', () => {
     await page.goto(`/?beam=${encoded}`);
 
     // The beamed group should appear…
-    await expect(
-      page.locator('#group-list .group-item', { hasText: 'Beamed Group' })
-    ).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('#group-list .group-item', { hasText: 'Beamed Group' })).toBeVisible({
+      timeout: 3000,
+    });
     // …and the pre-existing saved group must still be there.
     await expect(
       page.locator('#group-list .group-item', { hasText: 'My Saved Group' })
@@ -1782,9 +1792,7 @@ test.describe('Jira HTML sanitization', () => {
     await page.waitForTimeout(200);
     const hit = await page.evaluate(() => window.__xss);
     expect(hit).toBeUndefined();
-    const hasOnerror = await page
-      .locator('.description img[onerror]')
-      .count();
+    const hasOnerror = await page.locator('.description img[onerror]').count();
     expect(hasOnerror).toBe(0);
   });
 
@@ -2358,16 +2366,16 @@ test.describe('Editable field re-activation', () => {
     await roundTrip(page, '[data-editable="assignee"]', 'text', null);
   });
 
-  test('edit-hint pencil is still shown on hover after a commit', async ({ page }) => {
-    // After committing, the new .meta-value must still contain .edit-hint
+  test('date field keeps its calendar affordance after a commit', async ({ page }) => {
+    // After committing, the rebuilt .meta-value must still expose its edit affordance.
     const valueLocator = page.locator('[data-editable="due-date"] .meta-value');
     const inputLocator = page.locator('[data-editable="due-date"] input[type="date"]');
     await valueLocator.click();
     await expect(inputLocator).toBeVisible({ timeout: 3000 });
     await inputLocator.press('Escape');
     await expect(inputLocator).not.toBeVisible({ timeout: 2000 });
-    // The replaced .meta-value should still have the .edit-hint span
-    await expect(page.locator('[data-editable="due-date"] .meta-value .edit-hint')).toBeAttached();
+    // Date fields use the calendar button as their affordance (non-date fields use .edit-hint).
+    await expect(page.locator('[data-editable="due-date"] .meta-value .cal-btn')).toBeAttached();
   });
 });
 
