@@ -60,7 +60,8 @@ function processBeamUrlParam() {
   try {
     const beamParam = new URLSearchParams(window.location.search).get('beam');
     if (!beamParam) return;
-    handleBeam(JSON.parse(atob(beamParam)));
+    const bytes = Uint8Array.from(atob(beamParam), (c) => c.charCodeAt(0));
+    handleBeam(JSON.parse(new TextDecoder().decode(bytes)));
     window.history.replaceState({}, '', window.location.pathname);
   } catch {
     /* ignore malformed beam param */

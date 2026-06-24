@@ -211,6 +211,7 @@ async function init() {
     btn.style.pointerEvents = 'none';
     btn.style.opacity = '0.5';
     const g = getActiveGroup();
+    const gId = g.id;
 
     if (g.isFilter && g.query) {
       try {
@@ -232,6 +233,8 @@ async function init() {
 
     btn.style.pointerEvents = '';
     btn.style.opacity = '1';
+    // The user may have switched lists during the await — don't repaint a stale group.
+    if (getActiveGroup().id !== gId) return;
     renderMiddle();
     if (state.activeKey) renderReading();
   });
