@@ -1814,6 +1814,89 @@ test.describe('Jira HTML sanitization', () => {
     const href = await page.locator('.description a').first().getAttribute('href');
     expect(href).toBeNull();
   });
+
+  // Regression: multiple sibling "unknown" tags (not allowlisted, not stripped)
+  // used to crash the sanitizer with "null (reading 'removeChild')" — the old
+  // unwrap path re-scanned the parent and detached a sibling mid-iteration.
+  test('multiple sibling unknown tags in description do not crash', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const issue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      renderedFields: {
+        description: '<p>start</p><widget>alpha</widget><gadget>beta</gadget><p>end</p>',
+      },
+    };
+    mockIssueRoute(page, issue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('.description').first()).toContainText('start', { timeout: 5000 });
+    const text = await page.locator('.description').first().innerText();
+    expect(text).toContain('alpha'); // unknown tag unwrapped, text kept
+    expect(text).toContain('beta');
+    expect(text).toContain('end');
+    expect(errors).toEqual([]);
+  });
+
+  test('multiple sibling unknown tags in a comment do not crash', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const issue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      fields: {
+        ...issueFixture.fields,
+        comment: {
+          comments: [{ author: { displayName: 'Ada' }, created: '2026-01-01T00:00:00.000+0000' }],
+          total: 1,
+        },
+      },
+      renderedFields: {
+        description: '<p>ok</p>',
+        comment: { comments: [{ body: '<widget>one</widget><gadget>two</gadget>' }] },
+      },
+    };
+    mockIssueRoute(page, issue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('.comment-item .c-body').first()).toBeVisible({ timeout: 5000 });
+    const text = await page.locator('.comment-item .c-body').first().innerText();
+    expect(text).toContain('one');
+    expect(text).toContain('two');
+    expect(errors).toEqual([]);
+  });
+
+  // <tt> is Jira's legacy monospace element ({{...}} / inline code). It is benign,
+  // so it is allowlisted and preserved rather than unwrapped. Two siblings mirror
+  // the real tickets that crashed the published build (TTN-116061, PAPI-80667).
+  test('<tt> monospace tags are preserved', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const issue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      renderedFields: {
+        description: '<p>see <tt>CODE_A</tt> and <tt>CODE_B</tt></p>',
+      },
+    };
+    mockIssueRoute(page, issue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('.description').first()).toContainText('see', { timeout: 5000 });
+    await expect(page.locator('.description tt')).toHaveCount(2);
+    await expect(page.locator('.description tt').first()).toHaveText('CODE_A');
+    expect(errors).toEqual([]);
+  });
 });
 
 // ── FIND DUPLICATES ───────────────────────────────────────────────────────────

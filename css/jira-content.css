@@ -34,7 +34,8 @@
 .description li {
   margin-bottom: 4px;
 }
-.description code {
+.description code,
+.description tt {
   font-family: var(--mono);
   font-size: 13px;
   background: rgba(110, 118, 129, 0.15);
