@@ -94,6 +94,7 @@ const _SAFE_JIRA_TAGS = {
   th: ['colspan', 'rowspan', 'scope'],
   thead: [],
   tr: [],
+  tt: [], // legacy monospace element Jira emits for {{...}} / inline code
   u: [],
   ul: [],
 };
