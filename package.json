@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "lint": "npm run lint:css && npm run lint:classes && npm run lint:format",
-    "lint:css": "stylelint \"css/**/*.css\" \"style.css\"",
+    "lint:css": "stylelint \"css/**/*.css\" \"style.css\" \"extension/*.css\"",
     "lint:classes": "node check-classes.js",
     "lint:format": "prettier --check \"**/*.{html,css,js}\" --ignore-path .prettierignore",
     "format": "prettier --write \"**/*.{html,css,js}\" --ignore-path .prettierignore",
