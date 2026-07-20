@@ -1,4 +1,4 @@
-/* Matches Light Jira's dark theme palette (see css/base.css) */
+/* Matches Crisp for Jira's dark theme palette (values kept in sync with css/base.css) */
 :root {
   --bg: #0d1117;
   --surface: #161b22;
@@ -8,7 +8,9 @@
   --text: #e6edf3;
   --muted: #8b949e;
   --green: #3fb950;
+  --red: #f85149;
   --font: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', Consolas, monospace;
 }
 
 *,
@@ -59,9 +61,32 @@ header {
   border-color: var(--green);
 }
 
+/* ── Quick-open bar ── */
+.quick-open {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.quick-open .text-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-open .btn {
+  width: auto;
+  flex-shrink: 0;
+  padding: 6px 14px;
+}
+
 /* ── Sections ── */
 main {
   padding: 8px 0 4px;
+}
+
+main:empty {
+  display: none;
 }
 
 section {
@@ -228,10 +253,28 @@ section + section {
 }
 
 .keys-list .key-label {
-  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-family: var(--mono);
   font-size: 12px;
   color: var(--text);
   cursor: pointer;
+}
+
+/* ── Recent tickets (one-click open rows, no checkbox) ── */
+.recent-list {
+  max-height: 200px;
+}
+
+.recent-list li {
+  gap: 8px;
+}
+
+.recent-list .key-label {
+  flex-shrink: 0;
+}
+
+.recent-list .key-title {
+  flex: 1;
+  min-width: 0;
 }
 
 .keys-list .key-title {
@@ -296,6 +339,22 @@ footer {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+/* ── Inline feedback ── */
+.popup-msg {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+.popup-msg.error {
+  color: var(--red);
+}
+
+.popup-msg.success {
+  color: var(--green);
 }
 
 /* ── Utility ── */
