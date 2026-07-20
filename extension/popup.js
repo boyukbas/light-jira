@@ -22,6 +22,32 @@ async function getOpenInWindow() {
   }
 }
 
+// Screen-relative, centred bounds for the app popup window. Pure function of the
+// available screen size so it is unit-testable and never opens larger than the
+// display — the old hardcoded 1440x900 overflowed small laptops and looked lost
+// on large monitors.
+function computeAppWindowBounds(availW, availH) {
+  const width = Math.min(1600, Math.max(900, Math.round(availW * 0.85)));
+  const height = Math.min(1000, Math.max(600, Math.round(availH * 0.9)));
+  const left = Math.max(0, Math.round((availW - width) / 2));
+  const top = Math.max(0, Math.round((availH - height) / 2));
+  return { width, height, left, top };
+}
+
+function openAppWindow(url) {
+  const b = computeAppWindowBounds(screen.availWidth, screen.availHeight);
+  return chrome.windows.create({ url, type: 'popup', ...b });
+}
+
+// Inline feedback line. kind: '' | 'success' | 'error'.
+function showMsg(text, kind) {
+  const el = document.getElementById('popup-msg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'popup-msg' + (kind ? ' ' + kind : '');
+  el.classList.remove('hidden');
+}
+
 // Send a beam payload to the app.
 // If the app tab is open, focus it and send the payload via runtime messaging.
 // If not, open the app using either a popup window or a tab per the openInWindow setting.
@@ -40,7 +66,7 @@ async function beamToApp(payload) {
     const encoded = btoa(bin);
     const url = `${getAppUrl()}?beam=${encoded}`;
     if (openInWindow) {
-      await chrome.windows.create({ url, type: 'popup', width: 1440, height: 900 });
+      await openAppWindow(url);
     } else {
       await chrome.tabs.create({ url });
     }
@@ -48,8 +74,21 @@ async function beamToApp(payload) {
   window.close();
 }
 
+// Open a ticket / JQL / filter string in the app. The app's handleBeam already
+// classifies bare keys, browse URLs, filter IDs and JQL (see js/beam.js), so the
+// popup just forwards the raw string as an open-url payload — no parsing here.
+function quickOpen(raw) {
+  const value = (raw || '').trim();
+  if (!value) return;
+  beamToApp({ type: 'open-url', url: value });
+}
+
 // Collect tickets from all open Jira tabs and beam them as a group.
-async function beamAllJiraTabs() {
+async function beamAllJiraTabs(btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Scanning…';
+  }
   const tabs = await chrome.tabs.query({ url: 'https://*.atlassian.net/*' });
   const ticketMap = new Map();
   for (const tab of tabs) {
@@ -67,7 +106,12 @@ async function beamAllJiraTabs() {
     }
   }
   if (!ticketMap.size) {
-    window.close();
+    // Give the user feedback instead of silently closing the popup.
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Beam All Jira Tabs';
+    }
+    showMsg('No tickets found in open Jira tabs.', 'error');
     return;
   }
   beamToApp({
@@ -104,12 +148,70 @@ async function loadAppGroups() {
   }
 }
 
+// Load recent tickets from the app's history group, newest first. Titles come
+// from the device-local issue cache when present (history entries store only
+// {key, added}). Returns [] if there is no history.
+async function loadRecents(limit = 6) {
+  try {
+    const [synced, local] = await Promise.all([
+      chrome.storage.sync.get('crisp_groups'),
+      chrome.storage.local.get('jira_issue_cache'),
+    ]);
+    const groups = synced.crisp_groups || [];
+    const history = groups.find((g) => g.id === 'history');
+    if (!history || !history.keys || !history.keys.length) return [];
+    const cache = local.jira_issue_cache || {};
+    return history.keys
+      .slice()
+      .sort((a, b) => (b.added || 0) - (a.added || 0))
+      .slice(0, limit)
+      .map((e) => {
+        const key = typeof e === 'string' ? e : e.key;
+        return { key, title: cache[key]?.fields?.summary || '' };
+      })
+      .filter((t) => t.key);
+  } catch {
+    return [];
+  }
+}
+
+function renderRecents(recents, listEl) {
+  listEl.innerHTML = '';
+  for (const { key, title } of recents) {
+    const li = document.createElement('li');
+    li.setAttribute('role', 'button');
+    li.tabIndex = 0;
+    const keySpan = document.createElement('span');
+    keySpan.className = 'key-label';
+    keySpan.textContent = key;
+    li.appendChild(keySpan);
+    if (title && title !== key) {
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'key-title';
+      titleSpan.textContent = title;
+      li.appendChild(titleSpan);
+    }
+    li.addEventListener('click', () => quickOpen(key));
+    li.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        quickOpen(key);
+      }
+    });
+    listEl.appendChild(li);
+  }
+}
+
 async function init() {
   const statusEl = document.getElementById('app-status');
   const openAppBtn = document.getElementById('open-app-btn');
+  const quickInput = document.getElementById('quick-open-input');
+  const quickBtn = document.getElementById('quick-open-btn');
   const sectionUrl = document.getElementById('section-url');
-  const sectionNotJira = document.getElementById('section-not-jira');
   const sectionKeys = document.getElementById('section-keys');
+  const sectionRecent = document.getElementById('section-recent');
+  const sectionHint = document.getElementById('section-hint');
+  const recentList = document.getElementById('recent-list');
   const urlDisplay = document.getElementById('url-display');
   const beamUrlGroup = document.getElementById('beam-url-group');
   const beamUrlBtn = document.getElementById('beam-url-btn');
@@ -137,7 +239,7 @@ async function init() {
     } else {
       const openInWindow = await getOpenInWindow();
       if (openInWindow) {
-        chrome.windows.create({ url: getAppUrl(), type: 'popup', width: 1440, height: 900 });
+        openAppWindow(getAppUrl());
       } else {
         chrome.tabs.create({ url: getAppUrl() });
       }
@@ -145,7 +247,19 @@ async function init() {
     window.close();
   });
 
-  document.getElementById('beam-all-btn')?.addEventListener('click', () => beamAllJiraTabs());
+  document
+    .getElementById('beam-all-btn')
+    ?.addEventListener('click', (e) => beamAllJiraTabs(e.currentTarget));
+
+  // ── Quick-open (always visible launcher) ──────────────────────────────────
+  quickBtn.addEventListener('click', () => quickOpen(quickInput.value));
+  quickInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      quickOpen(quickInput.value);
+    }
+  });
+  quickInput.focus();
 
   // ── Current tab ───────────────────────────────────────────────────────────
   const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -154,7 +268,14 @@ async function init() {
   const isJiraPage = /^https:\/\/[^/]+\.atlassian\.net\//.test(currentTab.url || '');
 
   if (!isJiraPage) {
-    sectionNotJira.classList.remove('hidden');
+    // Off Jira: surface recent tickets as a launcher instead of a dead-end.
+    const recents = await loadRecents();
+    if (recents.length) {
+      renderRecents(recents, recentList);
+      sectionRecent.classList.remove('hidden');
+    } else {
+      sectionHint.classList.remove('hidden');
+    }
     return;
   }
 
@@ -270,16 +391,27 @@ async function init() {
   // Start in "all selected" state, so the link label reflects what clicking will do
   selectAllLink.textContent = 'Deselect all';
 
-  beamGroupBtn.addEventListener('click', () => {
+  function beamSelectedGroup() {
     const selected = Array.from(keysList.querySelectorAll('input[type=checkbox]:checked')).map(
       (cb) => cb.id.replace('key-', '')
     );
-    if (!selected.length) return;
+    if (!selected.length) {
+      showMsg('Select at least one ticket to beam.', 'error');
+      return;
+    }
     beamToApp({
       type: 'open-group',
       name: groupNameInput.value.trim() || 'Jira Group',
       keys: selected,
     });
+  }
+
+  beamGroupBtn.addEventListener('click', beamSelectedGroup);
+  groupNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      beamSelectedGroup();
+    }
   });
 }
 
