@@ -57,6 +57,7 @@ const _SAFE_JIRA_TAGS = {
   colgroup: ['span'],
   dd: [],
   del: [],
+  details: ['open'],
   div: ['class'],
   dl: [],
   dt: [],
@@ -86,6 +87,7 @@ const _SAFE_JIRA_TAGS = {
   span: ['class'],
   strong: [],
   sub: [],
+  summary: [],
   sup: [],
   table: ['class'],
   tbody: [],
@@ -93,10 +95,12 @@ const _SAFE_JIRA_TAGS = {
   tfoot: [],
   th: ['colspan', 'rowspan', 'scope'],
   thead: [],
+  time: ['datetime'],
   tr: [],
   tt: [], // legacy monospace element Jira emits for {{...}} / inline code
   u: [],
   ul: [],
+  wbr: [],
 };
 
 // Tags we drop outright — their content is markup, not user-visible prose,
@@ -139,6 +143,26 @@ function _isSafeUrl(raw) {
   return false;
 }
 
+// Render specific ADF leftover tags as styled tokens instead of flattening them
+// to bare text: <status>Done</status> → a coloured lozenge, <mention>Bob</mention>
+// → an @Bob chip. Returns a fresh <span> built from the (trusted) text content.
+function _jiraToken(child, tag) {
+  const span = child.ownerDocument.createElement('span');
+  const text = (child.textContent || '').trim();
+  if (tag === 'status') {
+    span.className = 'jira-status';
+    const color = (child.getAttribute('data-color') || child.getAttribute('color') || '')
+      .toLowerCase()
+      .trim();
+    if (color) span.setAttribute('data-color', color);
+    span.textContent = text;
+  } else {
+    span.className = 'jira-mention';
+    span.textContent = '@' + text.replace(/^@/, '');
+  }
+  return span;
+}
+
 function _sanitizeJiraNode(node) {
   // Snapshot children — we may remove nodes during iteration.
   const children = Array.from(node.childNodes);
@@ -154,6 +178,12 @@ function _sanitizeJiraNode(node) {
 
     if (_STRIP_JIRA_TAGS.has(tag)) {
       child.remove();
+      continue;
+    }
+
+    if (tag === 'status' || tag === 'mention') {
+      // Known ADF tokens — render richly rather than unwrapping to plain text.
+      child.replaceWith(_jiraToken(child, tag));
       continue;
     }
 
