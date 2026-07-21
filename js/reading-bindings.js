@@ -37,8 +37,41 @@ function bindReadingHandlers(container, key) {
       case 'open-ticket':
         el.addEventListener('click', () => openTicketByKey(elKey));
         break;
+      case 'submit-comment':
+        el.addEventListener('click', () => submitComment(el, elKey));
+        break;
+      case 'cancel-comment':
+        el.addEventListener('click', () => {
+          const ta = document.getElementById('comment-input');
+          if (ta) ta.value = '';
+        });
+        break;
     }
   });
+}
+
+// Post the compose box's text as a comment, then re-fetch the issue so the
+// server-rendered comment (ADF → HTML) appears. A blank box is a no-op.
+async function submitComment(btn, key) {
+  const ta = document.getElementById('comment-input');
+  const text = (ta?.value || '').trim();
+  if (!text) return;
+  btn.disabled = true;
+  try {
+    await addComment(key, text);
+    toast('Comment added', 'success');
+    try {
+      const data = await fetchIssue(key);
+      issueCache[key] = data;
+      saveState();
+    } catch {
+      /* the comment posted; a failed refresh just means it shows on next load */
+    }
+    if (state.activeKey === key) renderReading();
+  } catch (e) {
+    toast('Failed to add comment: ' + e.message, 'error');
+    btn.disabled = false;
+  }
 }
 
 function bindCodeCopyButtons(container) {
