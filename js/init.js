@@ -122,6 +122,14 @@ async function init() {
   }
 
   window.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd+K → command palette. A modifier chord, so it fires even while a
+    // text field is focused (unlike the bare "/" and "?" shortcuts below).
+    if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey) && !e.altKey) {
+      e.preventDefault();
+      if (typeof openCommandPalette === 'function') openCommandPalette();
+      return;
+    }
+
     // "/" or F2 → focus search bar from anywhere (not while typing)
     if ((e.key === '/' || e.key === 'F2') && !_isEditingTarget()) {
       e.preventDefault();
@@ -195,6 +203,8 @@ async function init() {
   }
   document.getElementById('shortcuts-close')?.addEventListener('click', closeShortcutsOverlay);
   document.getElementById('shortcuts-dismiss')?.addEventListener('click', closeShortcutsOverlay);
+  // Exposed so the command palette can open the cheat sheet.
+  window.toggleShortcutsOverlay = toggleShortcutsOverlay;
 
   // ── Group search ──────────────────────────────────────────────────────────
   const groupSearchInput = document.getElementById('group-search-input');
