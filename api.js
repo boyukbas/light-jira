@@ -154,6 +154,12 @@ async function addComment(key, text) {
   });
 }
 
+// The current user — used by "Assign to me". Returned object carries accountId +
+// displayName. Callers cache it (see getMyself in tickets.js) so this fires once.
+async function fetchMyself() {
+  return _apiFetchJson('/rest/api/3/myself');
+}
+
 async function searchUsers(query) {
   try {
     return await _apiFetchJson(

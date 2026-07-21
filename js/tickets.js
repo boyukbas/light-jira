@@ -67,6 +67,38 @@ window.openFromHistory = function (key) {
   updateViewMode();
 };
 
+// ── ASSIGN TO ME ──────────────────────────────────────────────────────────────
+// Cache the current user for the session so the one-click assign doesn't re-fetch
+// /myself on every use.
+let _myself = null;
+async function getMyself() {
+  if (_myself) return _myself;
+  _myself = await fetchMyself();
+  return _myself;
+}
+
+async function assignToMe(key) {
+  try {
+    const me = await getMyself();
+    if (!me?.accountId) {
+      toast('Could not identify the current user', 'error');
+      return;
+    }
+    await updateIssueFields(key, { assignee: { accountId: me.accountId } });
+    if (issueCache[key]?.fields) {
+      issueCache[key].fields.assignee = { accountId: me.accountId, displayName: me.displayName };
+    }
+    saveState();
+    toast('Assigned to you', 'success');
+    if (state.appMode === 'jira' || state.appMode === 'labels') {
+      renderMiddle();
+      if (state.activeKey === key) renderReading();
+    }
+  } catch (e) {
+    toast('Failed to assign: ' + e.message, 'error');
+  }
+}
+
 // Sequentially loads all tickets in the active group that are not yet cached.
 // Renders incrementally so cards appear as data arrives. A single saveState()
 // call at the end batches what was previously a write-per-ticket storm — for a

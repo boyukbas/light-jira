@@ -53,6 +53,7 @@ function buildCardHtml(entry, activeKey, sel) {
   const f = (issueCache[key] || {}).fields || {};
   const sum = f.summary || 'Loading...';
   const stat = f.status ? f.status.name : '';
+  const staleHtml = staleBadge(f.updated);
 
   return (
     '<div class="list-card' +
@@ -67,12 +68,17 @@ function buildCardHtml(entry, activeKey, sel) {
     '" data-cached="' +
     (f.summary ? 'true' : 'false') +
     '" draggable="true">' +
-    (stat
-      ? '<div class="lc-key-row"><span class="status-badge ' +
-        statusClass(f.status?.statusCategory?.name || stat) +
-        '">' +
-        esc(stat) +
-        '</span></div>'
+    (stat || staleHtml
+      ? '<div class="lc-key-row">' +
+        staleHtml +
+        (stat
+          ? '<span class="status-badge ' +
+            statusClass(f.status?.statusCategory?.name || stat) +
+            '">' +
+            esc(stat) +
+            '</span>'
+          : '') +
+        '</div>'
       : '') +
     '<div class="lc-title-row">' +
     (f.assignee ? avBadge(f.assignee.displayName, 'av-rg') : '') +
@@ -90,6 +96,10 @@ function buildCardHtml(entry, activeKey, sel) {
     '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
     '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
     '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>' +
+    '<button class="lc-assign-me" title="Assign to me" aria-label="Assign to me">' +
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">' +
+    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' +
+    '<line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></button>' +
     '<button class="lc-delete" title="Remove from list">\u2715</button>' +
     '</div>'
   );
@@ -262,6 +272,11 @@ function renderMiddle() {
     el.querySelector('.lc-delete').addEventListener('click', (e) => {
       e.stopPropagation();
       removeTicket(k);
+    });
+
+    el.querySelector('.lc-assign-me')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      assignToMe(k);
     });
 
     el.addEventListener('dragstart', (e) => handleDragStart(e, k));

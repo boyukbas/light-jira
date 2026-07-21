@@ -2389,6 +2389,104 @@ test.describe('Command palette', () => {
   });
 });
 
+// ── ASSIGN TO ME ──────────────────────────────────────────────────────────────
+test.describe('Assign to me', () => {
+  const myself = { accountId: 'me-123', displayName: 'Me Myself', emailAddress: 'me@example.com' };
+
+  function mockMyselfRoute(page) {
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/myself'),
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(myself),
+        });
+      }
+    );
+  }
+
+  function mockPutRoute(page, onBody) {
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/PROJ-123'),
+      async (route) => {
+        if (route.request().method() === 'PUT') {
+          onBody(route.request().postDataJSON());
+          await route.fulfill({ status: 204, body: '' });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(issueFixture),
+          });
+        }
+      }
+    );
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('reading pane has an Assign to me button', async ({ page }) => {
+    await expect(page.locator('.rs-actions [data-action="assign-me"]')).toBeVisible();
+  });
+
+  test('a ticket card has an assign-to-me button', async ({ page }) => {
+    await expect(page.locator('#ticket-list .list-card .lc-assign-me').first()).toHaveCount(1);
+  });
+
+  test('clicking Assign to me PUTs my accountId to Jira', async ({ page }) => {
+    mockMyselfRoute(page);
+    let putBody = null;
+    mockPutRoute(page, (b) => (putBody = b));
+    await page.locator('.rs-actions [data-action="assign-me"]').click();
+    await expect(async () => {
+      expect(putBody?.fields?.assignee?.accountId).toBe('me-123');
+    }).toPass({ timeout: 3000 });
+  });
+});
+
+// ── STALE TICKET BADGE ────────────────────────────────────────────────────────
+test.describe('Stale ticket badge', () => {
+  function issueWithUpdated(updated) {
+    const clone = JSON.parse(JSON.stringify(issueFixture));
+    clone.fields.updated = updated;
+    return clone;
+  }
+
+  async function openTicket(page, issue) {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    // Wait until the card has real (cached) data before asserting the badge.
+    await expect(page.locator('#ticket-list .list-card[data-cached="true"]')).toBeVisible({
+      timeout: 5000,
+    });
+  }
+
+  test('a long-untouched ticket shows an idle badge on its card', async ({ page }) => {
+    await openTicket(page, issueWithUpdated('2000-01-01T00:00:00.000+0000'));
+    await expect(page.locator('#ticket-list .list-card .lc-stale')).toBeVisible();
+    await expect(page.locator('#ticket-list .list-card .lc-stale')).toContainText('idle');
+  });
+
+  test('a freshly updated ticket shows no idle badge', async ({ page }) => {
+    await openTicket(page, issueWithUpdated(new Date().toISOString()));
+    await expect(page.locator('#ticket-list .list-card .lc-stale')).toHaveCount(0);
+  });
+});
+
 // ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
 test.describe('Open in Jira buttons', () => {
   test.beforeEach(async ({ page }) => {

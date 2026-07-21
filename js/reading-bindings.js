@@ -37,6 +37,9 @@ function bindReadingHandlers(container, key) {
       case 'open-ticket':
         el.addEventListener('click', () => openTicketByKey(elKey));
         break;
+      case 'assign-me':
+        el.addEventListener('click', () => assignToMe(elKey));
+        break;
       case 'submit-comment':
         el.addEventListener('click', () => submitComment(el, elKey));
         break;
