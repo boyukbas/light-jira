@@ -44,6 +44,45 @@
   color: var(--orange);
 }
 
+/* ADF tokens rendered by the sanitizer (see _jiraToken in utils.js) */
+.description .jira-status {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.description .jira-status[data-color='green'] {
+  background: rgba(63, 185, 80, 0.2);
+  color: var(--green);
+}
+
+.description .jira-status[data-color='red'] {
+  background: rgba(248, 81, 73, 0.2);
+  color: var(--red);
+}
+
+.description .jira-status[data-color='yellow'] {
+  background: rgba(240, 136, 62, 0.2);
+  color: var(--orange);
+}
+
+.description .jira-status[data-color='blue'] {
+  background: rgba(88, 166, 255, 0.2);
+  color: #58a6ff;
+}
+
+.description .jira-mention {
+  font-weight: 500;
+  color: var(--accent);
+}
+
 .description blockquote {
   border-left: 4px solid var(--accent);
   padding: 8px 16px;
