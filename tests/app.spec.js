@@ -1897,6 +1897,62 @@ test.describe('Jira HTML sanitization', () => {
     await expect(page.locator('.description tt').first()).toHaveText('CODE_A');
     expect(errors).toEqual([]);
   });
+
+  // C1: benign legacy/semantic tags Jira can emit are allowlisted (preserved),
+  // not unwrapped to bare text.
+  test('benign legacy tags (time/details/summary/wbr) are preserved', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const issue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      renderedFields: {
+        description:
+          '<p>due <time datetime="2026-01-01">Jan 1</time><wbr /></p>' +
+          '<details open><summary>More</summary><p>hidden</p></details>',
+      },
+    };
+    mockIssueRoute(page, issue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('.description').first()).toContainText('due', { timeout: 5000 });
+    await expect(page.locator('.description time')).toHaveCount(1);
+    await expect(page.locator('.description time')).toHaveAttribute('datetime', '2026-01-01');
+    await expect(page.locator('.description details')).toHaveCount(1);
+    await expect(page.locator('.description summary')).toHaveText('More');
+    await expect(page.locator('.description wbr')).toHaveCount(1);
+    expect(errors).toEqual([]);
+  });
+
+  // C2: ADF <status>/<mention> tokens render as styled spans instead of flattening.
+  test('<status> renders as a lozenge and <mention> as an @chip', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const issue = {
+      ...issueFixture,
+      key: 'PROJ-123',
+      renderedFields: {
+        description:
+          '<p><status data-color="green">Done</status> by <mention>Ada Lovelace</mention></p>',
+      },
+    };
+    mockIssueRoute(page, issue);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('.description .jira-status')).toHaveText('Done', { timeout: 5000 });
+    await expect(page.locator('.description .jira-status')).toHaveAttribute('data-color', 'green');
+    await expect(page.locator('.description .jira-mention')).toHaveText('@Ada Lovelace');
+    // Raw ADF tags are gone (replaced by spans).
+    await expect(page.locator('.description status')).toHaveCount(0);
+    await expect(page.locator('.description mention')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
 });
 
 // ── FIND DUPLICATES ───────────────────────────────────────────────────────────
