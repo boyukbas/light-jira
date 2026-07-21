@@ -36,6 +36,12 @@ Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a str
 - **Custom Groups** — Create, rename, reorder (drag), and delete ticket lists. Filter groups (JQL) shown with a funnel badge.
 - **Bulk Actions** — Select multiple tickets to move, delete, or re-assign to any Jira user in one operation.
 - **Editable Fields** — Click Story Points, Assignee, or Due Date to edit directly in the reading pane (saved to Jira). Click Start or ETA to set internal planning dates (saved locally).
+- **Status Transitions** — Click the Status field to move the ticket through its workflow; only transitions valid from the current status are offered (saved to Jira).
+- **Comments** — Read and post comments without leaving the app; the compose box sits under the thread.
+- **Assign to Me** — One click from the reading pane, a card hover button, or the command palette.
+- **Command Palette** — Press `Ctrl/Cmd + K` for a fuzzy launcher over tabs, lists, recent tickets, and quick actions.
+- **Cross-Linking** — Attach any note, diagram, or snippet to a ticket; linked items show in the reading pane and open in their tab (local-only).
+- **Stale Indicators** — Cards flag tickets that haven't been updated in 14+ days with an "idle" chip.
 - **Labels System** — Tag tickets with coloured labels. The Labels tab auto-generates groups from your tags. Tickets with no labels appear in a "no-label" bucket.
 - **Internal Timeline** — Assign private Start and ETA dates to any ticket. The Timeline tab renders a Gantt-style chart across all scheduled tickets — no Jira configuration required.
 - **Freeform Notes Canvas** — Click anywhere to place a text block. Drag blocks freely. Paste or drop images. Insert live Mermaid diagrams inline.
@@ -311,6 +317,7 @@ The meta grid at the top of every ticket shows key fields. Editable fields have 
 
 | Field | Input type | Notes |
 |---|---|---|
+| **Status** | Transition dropdown | Lists only workflow-legal transitions; posts via `POST /issue/{key}/transitions` |
 | **Story Points** | Number input | Saves to `story_points` field |
 | **Assignee** | Text search → dropdown | Searches Jira users; click to assign |
 | **Due Date** | Date picker | Saves Jira's built-in `duedate` field; clear to remove |
@@ -358,7 +365,8 @@ Linked tickets (blocks/is blocked by, relates to, etc.) appear in a section with
 
 | Key | Action | Context |
 |---|---|---|
-| `F2` | Focus the search bar | Anywhere |
+| `Ctrl/Cmd + K` | Open the command palette | Anywhere |
+| `F2` or `/` | Focus the search bar | Anywhere |
 | `↑` / `↓` | Navigate ticket list | Jira tab, no input focused |
 | `Enter` | Open ticket / Load filter | Search bar focused |
 | `Escape` | Blur search bar / cancel edit | Search bar or editable field |
@@ -466,7 +474,8 @@ No build step. No framework. No bundler. The extension uses `host_permissions` t
 
 | File | Responsibility |
 |---|---|
-| `api.js` | Jira API calls (`fetchIssue`, `fetchByJql`, `fetchFilter`, `updateIssueFields`, `searchUsers`), config load/save |
+| `api.js` | Jira API calls — reads (`fetchIssue`, `fetchByJql`, `fetchFilter`, `searchUsers`, `fetchMyself`, `fetchTransitions`) and writes (`updateIssueFields`, `doTransition`, `addComment`), config load/save |
+| `js/command-palette.js` | Command palette (`Ctrl/Cmd+K`) — fuzzy launcher over tabs, lists, recent tickets, and quick actions |
 | `utils.js` | `esc()`, `relDate()`, `avBadge()`, `statusClass()`, `stripHtml()`, `AV_COLORS` |
 | `js/state.js` | App state object, `loadState`/`saveState` (chrome.storage), group helpers, migrations |
 | `js/layout.js` | `updateViewMode()` (master render dispatcher), pane collapse, resizer drag |
