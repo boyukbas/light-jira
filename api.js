@@ -133,6 +133,27 @@ async function doTransition(key, transitionId) {
   });
 }
 
+// ── COMMENTS ─────────────────────────────────────────────────────────────────
+// Jira's comment body must be ADF (Atlassian Document Format), not HTML. We only
+// ever author plain text, so textToAdf() wraps each non-empty line in its own
+// paragraph node — enough for the compose box without a full ADF builder.
+function textToAdf(text) {
+  const content = String(text || '')
+    .split(/\n/)
+    .filter((ln) => ln.trim().length)
+    .map((ln) => ({ type: 'paragraph', content: [{ type: 'text', text: ln }] }));
+  if (!content.length) content.push({ type: 'paragraph', content: [] });
+  return { type: 'doc', version: 1, content };
+}
+
+async function addComment(key, text) {
+  return _apiFetchJson('/rest/api/3/issue/' + encodeURIComponent(key) + '/comment', {
+    method: 'POST',
+    headers: { ...commonHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body: textToAdf(text) }),
+  });
+}
+
 async function searchUsers(query) {
   try {
     return await _apiFetchJson(
