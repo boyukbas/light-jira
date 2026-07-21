@@ -240,3 +240,120 @@ test.describe('Popup — window sizing', () => {
     expect(large.left).toBe(Math.round((3840 - 1600) / 2));
   });
 });
+
+// Decode the beam payload of the most recently created app window.
+const decodeLastWindowBeam = (page) =>
+  page.evaluate(() => {
+    const b64 = new URL(window.__calls.windowsCreated[0].url).searchParams.get('beam');
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))));
+  });
+
+test.describe('Popup — issue-page primary action (B1)', () => {
+  test('on a /browse/KEY page the button opens that ticket by key', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: {
+        id: 5,
+        url: 'https://regusit.atlassian.net/browse/TTN-116061',
+        title: 'TTN-116061 A thing',
+      },
+      groups: [HISTORY([])],
+      prefs: { openInWindow: true },
+      extractResponse: { tickets: [{ key: 'TTN-116061', title: 'A thing' }] },
+    });
+
+    await expect(page.locator('#beam-url-btn')).toHaveText('Open TTN-116061');
+    await page.click('#beam-url-btn');
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    expect(await decodeLastWindowBeam(page)).toEqual({ type: 'open-url', url: 'TTN-116061' });
+  });
+});
+
+test.describe('Popup — fuzzy quick-open (B2)', () => {
+  test('typing fuzzy-matches history and clicking a suggestion opens it', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([{ key: 'ABC-9', added: 1 }])],
+      issueCache: { 'ABC-9': { fields: { summary: 'Payment gateway timeout' } } },
+      prefs: { openInWindow: true },
+    });
+
+    await page.fill('#quick-open-input', 'paymnt'); // fuzzy (typo)
+    await expect(page.locator('#quick-open-results')).toBeVisible();
+    await expect(page.locator('#quick-open-results li .key-label').first()).toHaveText('ABC-9');
+
+    await page.locator('#quick-open-results li').first().click();
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    expect(await decodeLastWindowBeam(page)).toEqual({ type: 'open-url', url: 'ABC-9' });
+  });
+
+  test('Enter with no suggestion falls back to a raw open-url', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([{ key: 'ABC-9', added: 1 }])],
+      issueCache: { 'ABC-9': { fields: { summary: 'Payment gateway timeout' } } },
+      prefs: { openInWindow: true },
+    });
+
+    await page.fill('#quick-open-input', 'QQQQ-1'); // matches nothing in history
+    await expect(page.locator('#quick-open-results')).toBeHidden();
+    await page.locator('#quick-open-input').press('Enter');
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    expect(await decodeLastWindowBeam(page)).toEqual({ type: 'open-url', url: 'QQQQ-1' });
+  });
+});
+
+test.describe('Popup — arrow-key navigation (B3)', () => {
+  test('ArrowDown highlights a suggestion and Enter opens the highlighted one', async ({
+    page,
+  }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [
+        HISTORY([
+          { key: 'PAY-1', added: 2 },
+          { key: 'PAY-2', added: 1 },
+        ]),
+      ],
+      issueCache: {
+        'PAY-1': { fields: { summary: 'Payment retry' } },
+        'PAY-2': { fields: { summary: 'Payment refund' } },
+      },
+      prefs: { openInWindow: true },
+    });
+
+    await page.fill('#quick-open-input', 'payment');
+    await expect(page.locator('#quick-open-results li').first()).toBeVisible();
+    await page.locator('#quick-open-input').press('ArrowDown');
+
+    const activeKey = await page
+      .locator('#quick-open-results li.active .key-label')
+      .first()
+      .innerText();
+    await page.locator('#quick-open-input').press('Enter');
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    expect(await decodeLastWindowBeam(page)).toEqual({ type: 'open-url', url: activeKey });
+  });
+});
+
+test.describe('Popup — Beam All is parallel (B4)', () => {
+  test('aggregates tickets across multiple Jira tabs', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: { openInWindow: true },
+      atlassianTabs: [{ id: 10 }, { id: 11 }],
+      extractResponse: { tickets: [{ key: 'D-1', title: 'd' }] },
+    });
+
+    await page.click('#beam-all-btn');
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    const payload = await decodeLastWindowBeam(page);
+    expect(payload.type).toBe('open-group');
+    expect(payload.keys).toEqual(['D-1']);
+  });
+});

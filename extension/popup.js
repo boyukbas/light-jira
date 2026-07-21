@@ -90,19 +90,21 @@ async function beamAllJiraTabs(btn) {
     btn.textContent = 'Scanning…';
   }
   const tabs = await chrome.tabs.query({ url: 'https://*.atlassian.net/*' });
+  // Query every tab concurrently — a serial await-loop made the popup feel slow
+  // when many Jira tabs were open. allSettled preserves tab order (so the title
+  // dedup below stays deterministic) and never rejects on a content-script-less tab.
+  const settled = await Promise.allSettled(
+    tabs.map((tab) => chrome.tabs.sendMessage(tab.id, { type: 'extract-keys' }))
+  );
   const ticketMap = new Map();
-  for (const tab of tabs) {
-    try {
-      const response = await chrome.tabs.sendMessage(tab.id, { type: 'extract-keys' });
-      const tickets =
-        response?.tickets || (response?.keys || []).map((k) => ({ key: k, title: k }));
-      for (const { key, title } of tickets) {
-        if (!ticketMap.has(key) || (title && title !== key)) {
-          ticketMap.set(key, title || key);
-        }
+  for (const r of settled) {
+    if (r.status !== 'fulfilled' || !r.value) continue;
+    const response = r.value;
+    const tickets = response.tickets || (response.keys || []).map((k) => ({ key: k, title: k }));
+    for (const { key, title } of tickets) {
+      if (!ticketMap.has(key) || (title && title !== key)) {
+        ticketMap.set(key, title || key);
       }
-    } catch {
-      // Tab may not have the content script (e.g. non-ticket pages) — skip silently
     }
   }
   if (!ticketMap.size) {
@@ -148,31 +150,47 @@ async function loadAppGroups() {
   }
 }
 
-// Load recent tickets from the app's history group, newest first. Titles come
-// from the device-local issue cache when present (history entries store only
-// {key, added}). Returns [] if there is no history.
-async function loadRecents(limit = 6) {
+// Load every ticket in the app's history group with its cached title. History
+// entries store only {key, added}; titles come from the device-local issue
+// cache when present. Callers sort/slice as needed (recents vs. search index).
+async function loadHistoryTickets() {
   try {
     const [synced, local] = await Promise.all([
       chrome.storage.sync.get('crisp_groups'),
       chrome.storage.local.get('jira_issue_cache'),
     ]);
-    const groups = synced.crisp_groups || [];
-    const history = groups.find((g) => g.id === 'history');
-    if (!history || !history.keys || !history.keys.length) return [];
+    const history = (synced.crisp_groups || []).find((g) => g.id === 'history');
+    if (!history || !history.keys) return [];
     const cache = local.jira_issue_cache || {};
     return history.keys
-      .slice()
-      .sort((a, b) => (b.added || 0) - (a.added || 0))
-      .slice(0, limit)
       .map((e) => {
         const key = typeof e === 'string' ? e : e.key;
-        return { key, title: cache[key]?.fields?.summary || '' };
+        const added = typeof e === 'string' ? 0 : e.added || 0;
+        return { key, title: cache[key]?.fields?.summary || '', added };
       })
       .filter((t) => t.key);
   } catch {
     return [];
   }
+}
+
+const recentsByRecency = (tickets, limit = 6) =>
+  tickets
+    .slice()
+    .sort((a, b) => b.added - a.added)
+    .slice(0, limit);
+
+// Roving arrow-key navigation over a list of focusable <li> rows.
+function enableListArrowNav(listEl) {
+  listEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const items = [...listEl.querySelectorAll('li')];
+    if (!items.length) return;
+    e.preventDefault();
+    const idx = items.indexOf(document.activeElement);
+    const next = e.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+    items[Math.max(next, 0)].focus();
+  });
 }
 
 function renderRecents(recents, listEl) {
@@ -200,6 +218,7 @@ function renderRecents(recents, listEl) {
     });
     listEl.appendChild(li);
   }
+  enableListArrowNav(listEl);
 }
 
 async function init() {
@@ -252,11 +271,78 @@ async function init() {
     ?.addEventListener('click', (e) => beamAllJiraTabs(e.currentTarget));
 
   // ── Quick-open (always visible launcher) ──────────────────────────────────
+  // Fuzzy-match the user's history as they type (Fuse over key+title); Enter with
+  // no highlighted suggestion falls back to a raw open-url (key / JQL / filter).
+  const qoResults = document.getElementById('quick-open-results');
+  const historyTickets = await loadHistoryTickets();
+  const fuse =
+    typeof Fuse !== 'undefined' && historyTickets.length
+      ? new Fuse(historyTickets, { keys: ['key', 'title'], threshold: 0.4, ignoreLocation: true })
+      : null;
+  let qoMatches = [];
+  let qoActive = -1; // index of the highlighted suggestion, -1 = none
+
+  function renderQoResults() {
+    qoResults.innerHTML = '';
+    if (!qoMatches.length) {
+      qoResults.classList.add('hidden');
+      return;
+    }
+    qoMatches.forEach((m, i) => {
+      const li = document.createElement('li');
+      if (i === qoActive) li.classList.add('active');
+      const k = document.createElement('span');
+      k.className = 'key-label';
+      k.textContent = m.key;
+      li.appendChild(k);
+      if (m.title) {
+        const t = document.createElement('span');
+        t.className = 'key-title';
+        t.textContent = m.title;
+        li.appendChild(t);
+      }
+      // mousedown, not click, so the pick registers before the input's blur.
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        quickOpen(m.key);
+      });
+      qoResults.appendChild(li);
+    });
+    qoResults.classList.remove('hidden');
+  }
+
+  function updateQoMatches() {
+    const v = quickInput.value.trim();
+    qoActive = -1;
+    qoMatches =
+      v && fuse
+        ? fuse
+            .search(v)
+            .slice(0, 6)
+            .map((r) => r.item)
+        : [];
+    renderQoResults();
+  }
+
+  quickInput.addEventListener('input', updateQoMatches);
   quickBtn.addEventListener('click', () => quickOpen(quickInput.value));
   quickInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'ArrowDown' && qoMatches.length) {
       e.preventDefault();
-      quickOpen(quickInput.value);
+      qoActive = Math.min(qoActive + 1, qoMatches.length - 1);
+      renderQoResults();
+    } else if (e.key === 'ArrowUp' && qoMatches.length) {
+      e.preventDefault();
+      qoActive = Math.max(qoActive - 1, -1);
+      renderQoResults();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (qoActive >= 0 && qoMatches[qoActive]) quickOpen(qoMatches[qoActive].key);
+      else quickOpen(quickInput.value);
+    } else if (e.key === 'Escape') {
+      qoMatches = [];
+      qoActive = -1;
+      renderQoResults();
     }
   });
   quickInput.focus();
@@ -269,7 +355,7 @@ async function init() {
 
   if (!isJiraPage) {
     // Off Jira: surface recent tickets as a launcher instead of a dead-end.
-    const recents = await loadRecents();
+    const recents = recentsByRecency(historyTickets);
     if (recents.length) {
       renderRecents(recents, recentList);
       sectionRecent.classList.remove('hidden');
@@ -279,11 +365,19 @@ async function init() {
     return;
   }
 
-  // ── Section A: beam current URL ───────────────────────────────────────────
+  // ── Section A: beam current page / ticket ─────────────────────────────────
   sectionUrl.classList.remove('hidden');
   // Strip " - Site Name" / " | Site Name" suffix only — use \s+ on both sides so
   // the dash inside a ticket key (TTN-12345) is never matched.
   const pageTitle = (currentTab.title || '').replace(/\s+[-|]\s+.+$/, '').trim();
+  // On a single issue page, make the primary action a one-click "Open TTN-123"
+  // that beams the KEY (unambiguous) rather than the raw browse URL.
+  const browseKey = (currentTab.url.match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/i) || [])[1];
+  if (browseKey) {
+    beamUrlBtn.textContent = 'Open ' + browseKey.toUpperCase();
+    const label = sectionUrl.querySelector('.section-label');
+    if (label) label.textContent = 'This Ticket';
+  }
   if (pageTitle) {
     urlDisplay.innerHTML =
       `<strong>${escHtml(truncate(pageTitle, 45))}</strong>` +
@@ -319,7 +413,10 @@ async function init() {
 
   beamUrlBtn.addEventListener('click', () => {
     const targetGroupId = beamUrlGroup.value || null;
-    const payload = { type: 'open-url', url: currentTab.url };
+    const payload = {
+      type: 'open-url',
+      url: browseKey ? browseKey.toUpperCase() : currentTab.url,
+    };
     if (targetGroupId) payload.targetGroupId = targetGroupId;
     beamToApp(payload);
   });
@@ -355,10 +452,12 @@ async function init() {
 
   extractedTickets.forEach(({ key, title }) => {
     const li = document.createElement('li');
+    li.tabIndex = 0; // the row is the tab stop / arrow-nav target
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.id = 'key-' + key;
     cb.checked = true;
+    cb.tabIndex = -1; // toggled via the row, not a separate tab stop
     const lbl = document.createElement('label');
     lbl.htmlFor = cb.id;
     const keySpan = document.createElement('span');
@@ -377,8 +476,16 @@ async function init() {
     li.addEventListener('click', (e) => {
       if (e.target !== cb) cb.checked = !cb.checked;
     });
+    // Space / Enter toggles when the row has keyboard focus
+    li.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        cb.checked = !cb.checked;
+      }
+    });
     keysList.appendChild(li);
   });
+  enableListArrowNav(keysList);
 
   // Select-all / deselect-all toggle
   let allSelected = true;

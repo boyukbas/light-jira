@@ -47,6 +47,12 @@
       />
       <button id="quick-open-btn" class="btn primary" aria-label="Open in app">Open</button>
     </div>
+    <ul
+      id="quick-open-results"
+      class="keys-list recent-list qo-results hidden"
+      role="listbox"
+      aria-label="Suggestions"
+    ></ul>
 
     <main>
       <!-- Section A: Beam the current page URL (Jira pages only) -->
@@ -91,6 +97,7 @@
       <button id="open-app-btn" class="btn ghost">Open App</button>
     </footer>
 
+    <script src="../lib/fuse.min.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>
