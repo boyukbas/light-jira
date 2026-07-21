@@ -656,13 +656,20 @@ test.describe('History', () => {
 
     await expect(page.locator('#ticket-list .list-card')).toBeVisible({ timeout: 5000 });
 
-    // Check history group in localStorage
-    const histCount = await page.evaluate(() => {
-      const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
-      const hist = (s.groups || []).find((g) => g.id === 'history');
-      return hist ? hist.keys.length : 0;
-    });
-    expect(histCount).toBeGreaterThan(0);
+    // History is recorded and persisted asynchronously after the ticket opens,
+    // so poll the stored state rather than reading it once — a single read can
+    // win the race against the write (source of intermittent flakiness).
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const s = JSON.parse(localStorage.getItem('jira_state') || '{}');
+            const hist = (s.groups || []).find((g) => g.id === 'history');
+            return hist ? hist.keys.length : 0;
+          }),
+        { timeout: 5000 }
+      )
+      .toBeGreaterThan(0);
   });
 });
 
