@@ -116,6 +116,23 @@ async function updateIssueFields(key, fields) {
   });
 }
 
+// ── WORKFLOW TRANSITIONS ─────────────────────────────────────────────────────
+// GET returns only the transitions legal from the issue's CURRENT status, so the
+// UI can never offer an illegal move. Each transition carries `to` — the status
+// the issue lands in — which we use to update the cache without a re-fetch.
+async function fetchTransitions(key) {
+  const data = await _apiFetchJson('/rest/api/3/issue/' + encodeURIComponent(key) + '/transitions');
+  return data?.transitions || [];
+}
+
+async function doTransition(key, transitionId) {
+  await _apiFetchJson('/rest/api/3/issue/' + encodeURIComponent(key) + '/transitions', {
+    method: 'POST',
+    headers: { ...commonHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transition: { id: transitionId } }),
+  });
+}
+
 async function searchUsers(query) {
   try {
     return await _apiFetchJson(

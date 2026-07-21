@@ -2120,6 +2120,89 @@ test.describe('Field Editing', () => {
   });
 });
 
+// ── STATUS TRANSITIONS ────────────────────────────────────────────────────────
+test.describe('Status Transitions', () => {
+  const transitionsFixture = {
+    transitions: [
+      {
+        id: '21',
+        name: 'Done',
+        to: { name: 'Done', statusCategory: { key: 'done', name: 'Done' } },
+      },
+      {
+        id: '11',
+        name: 'To Do',
+        to: { name: 'To Do', statusCategory: { key: 'new', name: 'To Do' } },
+      },
+    ],
+  };
+
+  // The transitions endpoint (/rest/api/3/issue/KEY/transitions) also matches the
+  // generic issue matcher, so this route is registered AFTER mockIssueRoute in the
+  // test body — Playwright runs the most-recently-added matching handler first.
+  function mockTransitionsRoute(page, onPost) {
+    page.route(
+      (url) => url.toString().includes('/transitions'),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          if (onPost) onPost(route.request().postDataJSON());
+          await route.fulfill({ status: 204, body: '' });
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(transitionsFixture),
+          });
+        }
+      }
+    );
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('.meta-grid')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('Status field is editable and carries the Jira scope badge', async ({ page }) => {
+    await expect(page.locator('[data-editable="status"]')).toBeVisible();
+    await expect(page.locator('[data-editable="status"] .field-scope-jira')).toBeVisible();
+  });
+
+  test('clicking Status shows a dropdown of available transitions', async ({ page }) => {
+    mockTransitionsRoute(page);
+    await page.locator('[data-editable="status"] .meta-value').click();
+    await expect(page.locator('.status-transition-option:text("Done")')).toBeVisible({
+      timeout: 3000,
+    });
+    await expect(page.locator('.status-transition-option:text("To Do")')).toBeVisible();
+  });
+
+  test('selecting a transition POSTs it to Jira', async ({ page }) => {
+    let postBody = null;
+    mockTransitionsRoute(page, (b) => (postBody = b));
+    await page.locator('[data-editable="status"] .meta-value').click();
+    await page.locator('.status-transition-option:text("Done")').click({ timeout: 3000 });
+    await expect(async () => {
+      expect(postBody?.transition?.id).toBe('21');
+    }).toPass({ timeout: 3000 });
+  });
+
+  test('after a transition the status badge reflects the new status', async ({ page }) => {
+    mockTransitionsRoute(page);
+    await page.locator('[data-editable="status"] .meta-value').click();
+    await page.locator('.status-transition-option:text("Done")').click({ timeout: 3000 });
+    await expect(page.locator('[data-editable="status"] .status-badge')).toContainText('Done', {
+      timeout: 3000,
+    });
+  });
+});
+
 // ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
 test.describe('Open in Jira buttons', () => {
   test.beforeEach(async ({ page }) => {
