@@ -11,6 +11,7 @@ function openCfg() {
   document.getElementById('cfg-token').value = cfg.token;
   document.getElementById('cfg-open-in-window').checked = state.openInWindow !== false;
   clearSettingsErrors();
+  renderSnapshotList();
   const overlay = document.getElementById('settings-overlay');
   overlay.classList.remove('hidden');
   document.getElementById('cfg-email').focus();
@@ -49,6 +50,37 @@ function clearSettingsErrors() {
   document.querySelectorAll('#settings-modal .field-error').forEach((el) => el.remove());
 }
 
+// Render the automatic-snapshot list (dates + Restore) inside the settings modal.
+async function renderSnapshotList() {
+  const container = document.getElementById('backup-snapshots');
+  if (!container || typeof listSnapshots !== 'function') return;
+  const dates = await listSnapshots();
+  if (!dates.length) {
+    container.innerHTML = '<div class="snapshot-empty">No automatic backups yet.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  for (const d of dates) {
+    const row = document.createElement('div');
+    row.className = 'snapshot-row';
+    const label = document.createElement('span');
+    label.className = 'snapshot-date';
+    label.textContent = d;
+    const btn = document.createElement('button');
+    btn.className = 'top-btn';
+    btn.type = 'button';
+    btn.textContent = 'Restore';
+    btn.addEventListener('click', async () => {
+      if (!confirm('Restore data from ' + d + '? Your current data will be overwritten.')) return;
+      await restoreSnapshot(d);
+      closeCfgInternal();
+    });
+    row.appendChild(label);
+    row.appendChild(btn);
+    container.appendChild(row);
+  }
+}
+
 function initSettings() {
   const settingsBtn = document.getElementById('settings-btn');
 
@@ -58,6 +90,16 @@ function initSettings() {
   const closeCfg = () => closeCfgInternal();
   document.getElementById('settings-close').addEventListener('click', closeCfg);
   document.getElementById('settings-cancel').addEventListener('click', closeCfg);
+
+  // ── Data: export / import ──────────────────────────────────────────────────
+  document.getElementById('export-data-btn')?.addEventListener('click', () => exportData());
+  const importInput = document.getElementById('import-file-input');
+  document.getElementById('import-data-btn')?.addEventListener('click', () => importInput?.click());
+  importInput?.addEventListener('change', () => {
+    const file = importInput.files && importInput.files[0];
+    if (file) importBackupFile(file, () => renderSnapshotList());
+    importInput.value = ''; // allow re-importing the same file
+  });
 
   document.getElementById('settings-save').addEventListener('click', () => {
     clearSettingsErrors();

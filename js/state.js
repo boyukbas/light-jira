@@ -325,6 +325,9 @@ async function loadState() {
   if (fatal && typeof toast === 'function') {
     toast('Could not load saved data — using defaults (backup preserved).', 'error');
   }
+  // Fire-and-forget daily snapshot (backup.js). Guarded so state.js has no hard
+  // dependency on backup.js load order.
+  if (typeof maybeSnapshot === 'function') maybeSnapshot();
 }
 
 // ── SAVE STATE ────────────────────────────────────────────────────────────────
