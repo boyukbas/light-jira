@@ -277,6 +277,15 @@ section + section {
   min-width: 0;
 }
 
+/* ── Quick-open results dropdown (reuses keys-list + recent-list layout) ── */
+.qo-results {
+  margin: 0 14px 8px;
+}
+
+.qo-results li.active {
+  background: var(--surface-hover);
+}
+
 .keys-list .key-title {
   font-size: 11px;
   color: var(--muted);
