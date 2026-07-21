@@ -2335,6 +2335,60 @@ test.describe('Cross-linking', () => {
   });
 });
 
+// ── COMMAND PALETTE (Ctrl/Cmd+K) ──────────────────────────────────────────────
+test.describe('Command palette', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await expect(page.locator('#sidebar')).toBeVisible();
+  });
+
+  test('Ctrl+K opens the palette and focuses the input', async ({ page }) => {
+    await page.keyboard.press('Control+k');
+    await expect(page.locator('#command-palette-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#command-palette-input')).toBeFocused();
+  });
+
+  test('Escape closes the palette', async ({ page }) => {
+    await page.keyboard.press('Control+k');
+    await expect(page.locator('#command-palette-overlay')).not.toHaveClass(/hidden/);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#command-palette-overlay')).toHaveClass(/hidden/);
+  });
+
+  test('typing filters the command list', async ({ page }) => {
+    await page.keyboard.press('Control+k');
+    await page.locator('#command-palette-input').fill('Timeline');
+    await expect(page.locator('.cp-option:has-text("Timeline")')).toBeVisible();
+  });
+
+  test('selecting the Timeline command switches to the Timeline tab', async ({ page }) => {
+    await page.keyboard.press('Control+k');
+    await page.locator('#command-palette-input').fill('Timeline');
+    await page.locator('.cp-option:has-text("Timeline")').click();
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'timeline');
+    await expect(page.locator('#command-palette-overlay')).toHaveClass(/hidden/);
+  });
+
+  test('Enter runs the highlighted command', async ({ page }) => {
+    await page.keyboard.press('Control+k');
+    await page.locator('#command-palette-input').fill('History');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'history');
+  });
+
+  test('arrow keys move the active option', async ({ page }) => {
+    await page.keyboard.press('Control+k');
+    await expect(page.locator('.cp-option.active')).toHaveCount(1);
+    const first = await page.locator('.cp-option.active').textContent();
+    await page.keyboard.press('ArrowDown');
+    const second = await page.locator('.cp-option.active').textContent();
+    expect(second).not.toBe(first);
+  });
+});
+
 // ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
 test.describe('Open in Jira buttons', () => {
   test.beforeEach(async ({ page }) => {

@@ -864,6 +864,14 @@
         <div class="modal-body">
           <dl class="shortcut-list">
             <dt>
+              <kbd>Ctrl</kbd>
+              /
+              <kbd>&#8984;</kbd>
+              +
+              <kbd>K</kbd>
+            </dt>
+            <dd>Open the command palette</dd>
+            <dt>
               <kbd>/</kbd>
               or
               <kbd>F2</kbd>
@@ -886,6 +894,22 @@
         <div class="modal-footer">
           <button class="top-btn primary" id="shortcuts-dismiss">Got it</button>
         </div>
+      </div>
+    </div>
+
+    <!-- COMMAND PALETTE -->
+    <div id="command-palette-overlay" class="hidden">
+      <div id="command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+        <input
+          id="command-palette-input"
+          type="text"
+          placeholder="Type a command… (tabs, lists, recent tickets, actions)"
+          autocomplete="off"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="command-palette-results"
+        />
+        <div id="command-palette-results" role="listbox" aria-label="Commands"></div>
       </div>
     </div>
 
@@ -977,6 +1001,7 @@
     <script src="js/timeline.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/beam.js"></script>
+    <script src="js/command-palette.js"></script>
     <script src="js/init.js"></script>
     <script src="js/sw-register.js"></script>
   </body>
