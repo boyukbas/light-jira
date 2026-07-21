@@ -333,6 +333,23 @@ function toast(msg, type) {
   }, _TOAST_LIFETIME_MS[severity] ?? _TOAST_LIFETIME_MS.info);
 }
 
+// Compact "idle" chip for a ticket that hasn't been updated in a while. Returns
+// '' below the threshold so freshly-touched tickets stay uncluttered. Kept as an
+// HTML-string builder to match the rest of the card markup.
+const STALE_THRESHOLD_DAYS = 14;
+function staleBadge(updated) {
+  if (!updated) return '';
+  const ms = Date.now() - new Date(updated).getTime();
+  if (isNaN(ms) || ms < 0) return '';
+  const days = Math.floor(ms / 86400000);
+  if (days < STALE_THRESHOLD_DAYS) return '';
+  let label;
+  if (days < 60) label = days + 'd';
+  else if (days < 365) label = Math.floor(days / 30) + 'mo';
+  else label = Math.floor(days / 365) + 'y';
+  return '<span class="lc-stale" title="No update in ' + days + ' days">' + label + ' idle</span>';
+}
+
 const AV_COLORS = [
   '#f85149',
   '#f0883e',

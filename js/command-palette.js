@@ -55,6 +55,13 @@ function _cpBuildCommands() {
   }
 
   // Quick actions
+  if (state.activeKey) {
+    cmds.push({
+      title: 'Assign ' + state.activeKey + ' to me',
+      hint: 'Action',
+      run: () => assignToMe(state.activeKey),
+    });
+  }
   cmds.push({
     title: 'Search / run JQL…',
     hint: 'Action',
