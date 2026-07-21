@@ -43,6 +43,7 @@ Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a str
 - **Cross-Linking** — Attach any note, diagram, or snippet to a ticket; linked items show in the reading pane and open in their tab (local-only).
 - **Stale Indicators** — Cards flag tickets that haven't been updated in 14+ days with an "idle" chip.
 - **Backup & Export** — Export/import a portable JSON backup from Settings, plus automatic rolling daily snapshots you can restore in one click (all local, no backend).
+- **Progressive Disclosure** — A new install opens with just the Jira tab; enable Labels, Timeline, History, Notes, Mindmap, or Snippets when you want them, via the tab-bar **+** menu or Settings → Tabs. Existing installs keep every tab.
 - **Labels System** — Tag tickets with coloured labels. The Labels tab auto-generates groups from your tags. Tickets with no labels appear in a "no-label" bucket.
 - **Internal Timeline** — Assign private Start and ETA dates to any ticket. The Timeline tab renders a Gantt-style chart across all scheduled tickets — no Jira configuration required.
 - **Freeform Notes Canvas** — Click anywhere to place a text block. Drag blocks freely. Paste or drop images. Insert live Mermaid diagrams inline.

@@ -227,6 +227,14 @@
   color: var(--text-tertiary);
 }
 
+/* Tab visibility checkboxes (Settings modal) */
+.tabvis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  margin-top: 6px;
+}
+
 /* Data export / import + snapshot restore (Settings modal) */
 .backup-actions {
   display: flex;

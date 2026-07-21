@@ -138,6 +138,29 @@
           </svg>
           History
         </button>
+        <div class="tab-add-wrap">
+          <button
+            class="tab-add-btn"
+            id="tab-add-btn"
+            title="Show more tabs"
+            aria-label="Show more tabs"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+          <div id="tab-add-menu" class="tab-add-menu hidden" role="menu"></div>
+        </div>
       </div>
 
       <!-- Search — grows to fill the middle -->
@@ -962,6 +985,36 @@
                 Open app in a popup window (off = opens in a tab)
               </span>
             </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tabs</label>
+            <div class="form-hint">Jira is always shown. Enable the tabs you use:</div>
+            <div class="tabvis-grid">
+              <label class="setting-toggle">
+                <input type="checkbox" id="tabvis-labels" data-tab="labels" />
+                <span class="setting-toggle-hint">Labels</span>
+              </label>
+              <label class="setting-toggle">
+                <input type="checkbox" id="tabvis-timeline" data-tab="timeline" />
+                <span class="setting-toggle-hint">Timeline</span>
+              </label>
+              <label class="setting-toggle">
+                <input type="checkbox" id="tabvis-history" data-tab="history" />
+                <span class="setting-toggle-hint">History</span>
+              </label>
+              <label class="setting-toggle">
+                <input type="checkbox" id="tabvis-notes" data-tab="notes" />
+                <span class="setting-toggle-hint">Notes</span>
+              </label>
+              <label class="setting-toggle">
+                <input type="checkbox" id="tabvis-mindmap" data-tab="mindmap" />
+                <span class="setting-toggle-hint">Mindmap</span>
+              </label>
+              <label class="setting-toggle">
+                <input type="checkbox" id="tabvis-snippets" data-tab="snippets" />
+                <span class="setting-toggle-hint">Snippets</span>
+              </label>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Data</label>

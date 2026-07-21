@@ -12,6 +12,10 @@ function openCfg() {
   document.getElementById('cfg-open-in-window').checked = state.openInWindow !== false;
   clearSettingsErrors();
   renderSnapshotList();
+  // Reflect current tab visibility into the checkboxes.
+  document.querySelectorAll('#settings-modal [id^="tabvis-"]').forEach((cb) => {
+    cb.checked = !state.tabVisibility || state.tabVisibility[cb.dataset.tab] !== false;
+  });
   const overlay = document.getElementById('settings-overlay');
   overlay.classList.remove('hidden');
   document.getElementById('cfg-email').focus();
@@ -99,6 +103,11 @@ function initSettings() {
     const file = importInput.files && importInput.files[0];
     if (file) importBackupFile(file, () => renderSnapshotList());
     importInput.value = ''; // allow re-importing the same file
+  });
+
+  // ── Tab visibility checkboxes ──────────────────────────────────────────────
+  document.querySelectorAll('#settings-modal [id^="tabvis-"]').forEach((cb) => {
+    cb.addEventListener('change', () => setTabVisible(cb.dataset.tab, cb.checked));
   });
 
   document.getElementById('settings-save').addEventListener('click', () => {

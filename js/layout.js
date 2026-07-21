@@ -3,8 +3,13 @@
 function updateViewMode() {
   document.body.setAttribute('data-app-mode', state.appMode);
 
-  // Update tab bar
-  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+  // Update tab bar — active state + per-tab visibility (progressive disclosure)
+  document.querySelectorAll('.tab-btn').forEach((b) => {
+    b.classList.remove('active');
+    const t = b.dataset.tab;
+    if (t)
+      b.classList.toggle('tab-hidden', state.tabVisibility && state.tabVisibility[t] === false);
+  });
   const activeTab = document.getElementById('tab-' + state.appMode);
   if (activeTab) activeTab.classList.add('active');
 
@@ -84,6 +89,18 @@ function updateViewMode() {
     renderReading();
   }
 }
+
+// Show or hide a tab (Jira can't be hidden). Hiding the active tab falls back to
+// Jira. Used by the Settings checkboxes and the tab-bar "+" menu.
+function setTabVisible(tab, visible) {
+  if (tab === 'jira') return;
+  if (!state.tabVisibility) state.tabVisibility = {};
+  state.tabVisibility[tab] = !!visible;
+  if (!visible && state.appMode === tab) state.appMode = 'jira';
+  saveState();
+  updateViewMode();
+}
+window.setTabVisible = setTabVisible;
 
 window.toggleCollapse = function (id) {
   if (id === 'sidebar') state.layout.sidebarCollapsed = !state.layout.sidebarCollapsed;

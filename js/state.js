@@ -35,7 +35,8 @@
 //   autoRefresh: boolean,
 //   openInWindow: boolean,
 //   labelsActiveKey: string|null,
-//   jiraActiveKey: string|null
+//   jiraActiveKey: string|null,
+//   tabVisibility: Record<string, boolean>
 // }} AppState
 
 /** @type {AppState} */
@@ -75,7 +76,32 @@ let state = {
   openInWindow: true, // open app in popup window (false = open in tab)
   labelsActiveKey: null, // active ticket key while in Labels tab
   jiraActiveKey: null, // saved Jira key while Labels tab is open
+  // Which tabs are shown. Jira is always true. New installs start minimal
+  // (Jira only); existing installs keep everything (see loadState).
+  tabVisibility: {
+    jira: true,
+    labels: true,
+    timeline: true,
+    history: true,
+    notes: true,
+    mindmap: true,
+    snippets: true,
+  },
 };
+
+// Tab ids in display order. Used by the visibility defaults + migration.
+const TAB_IDS = ['jira', 'labels', 'timeline', 'history', 'notes', 'mindmap', 'snippets'];
+function _allTabVis() {
+  const o = {};
+  for (const t of TAB_IDS) o[t] = true;
+  return o;
+}
+function _minimalTabVis() {
+  const o = {};
+  for (const t of TAB_IDS) o[t] = false;
+  o.jira = true; // Jira can never be hidden
+  return o;
+}
 
 let draggedKey = null; // for ticket drag & drop
 let draggedGroupId = null; // for group reordering drag
@@ -193,6 +219,18 @@ function applyMigrations() {
   if (state.openInWindow === undefined) state.openInWindow = true;
   if (state.labelsActiveKey === undefined) state.labelsActiveKey = null;
   if (state.jiraActiveKey === undefined) state.jiraActiveKey = null;
+
+  // Tab visibility: ensure the map exists and has every tab (existing users and
+  // any future-added tab default to visible). Jira can never be hidden.
+  if (!state.tabVisibility || typeof state.tabVisibility !== 'object') {
+    state.tabVisibility = _allTabVis();
+  }
+  for (const t of TAB_IDS) {
+    if (state.tabVisibility[t] === undefined) state.tabVisibility[t] = true;
+  }
+  state.tabVisibility.jira = true;
+  // Never leave the app on a hidden tab.
+  if (state.appMode && state.tabVisibility[state.appMode] === false) state.appMode = 'jira';
 }
 
 // ── LOAD/SAVE GUARDS ──────────────────────────────────────────────────────────
@@ -239,11 +277,15 @@ function _evictScreenshots() {
 // ── LOAD STATE ────────────────────────────────────────────────────────────────
 async function loadState() {
   let fatal = false;
+  // Whether we loaded real prior data. A brand-new install (nothing stored)
+  // starts with the minimal Jira-only tab set; existing installs keep everything.
+  let foundExisting = false;
   try {
     if (IS_EXT) {
       const synced = await chrome.storage.sync.get(Object.values(SK));
 
       if (synced[SK.groups]) {
+        foundExisting = true;
         // Restore from chrome.storage.sync
         const prefs = synced[SK.prefs] || {};
         state = {
@@ -276,6 +318,7 @@ async function loadState() {
           const parsed = JSON.parse(raw);
           if (parsed.groups?.length) {
             state = parsed;
+            foundExisting = true;
             // NB: we deliberately do NOT saveState() here. stateLoaded is still
             // false at this point; the first real save after loadState finishes
             // will persist the migrated data into chrome.storage.sync.
@@ -292,16 +335,25 @@ async function loadState() {
       const raw = localStorage.getItem('jira_state');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed.groups?.length) state = parsed;
+        if (parsed.groups?.length) {
+          state = parsed;
+          foundExisting = true;
+        }
       } else {
         const old = localStorage.getItem('jira_open_keys');
-        if (old) state.groups[0].keys = JSON.parse(old);
+        if (old) {
+          state.groups[0].keys = JSON.parse(old);
+          foundExisting = true;
+        }
       }
       const cached = localStorage.getItem('jira_issue_cache');
       if (cached) issueCache = JSON.parse(cached);
       const ssData = localStorage.getItem('jira_screenshots');
       if (ssData) screenshotStore = JSON.parse(ssData);
     }
+
+    // Fresh install → minimal UI (Jira only). Existing users keep every tab.
+    if (!foundExisting) state.tabVisibility = _minimalTabVis();
 
     applyMigrations();
   } catch (err) {
@@ -357,6 +409,7 @@ function _buildPrefsSlice() {
     openInWindow: state.openInWindow,
     labelsActiveKey: state.labelsActiveKey,
     jiraActiveKey: state.jiraActiveKey,
+    tabVisibility: state.tabVisibility,
   };
 }
 

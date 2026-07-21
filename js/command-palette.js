@@ -24,7 +24,12 @@ function _cpBuildCommands() {
     ['mindmap', 'Mindmap'],
   ];
   for (const [id, label] of tabs) {
-    cmds.push({ title: 'Go to ' + label + ' tab', hint: 'Tab', run: () => switchTab(id) });
+    const hidden = state.tabVisibility && state.tabVisibility[id] === false;
+    cmds.push({
+      title: 'Go to ' + label + ' tab',
+      hint: hidden ? 'Tab · hidden' : 'Tab',
+      run: () => switchTab(id), // switchTab reveals a hidden tab
+    });
   }
 
   // Lists (non-history groups)

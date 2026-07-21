@@ -61,6 +61,58 @@ async function init() {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
+  // ── Tab customize menu ("+" in the tab bar) ────────────────────────────────
+  const tabAddBtn = document.getElementById('tab-add-btn');
+  const tabAddMenu = document.getElementById('tab-add-menu');
+  const TAB_MENU_LABELS = {
+    labels: 'Labels',
+    timeline: 'Timeline',
+    history: 'History',
+    notes: 'Notes',
+    mindmap: 'Mindmap',
+    snippets: 'Snippets',
+  };
+  function onTabAddDocClick(e) {
+    if (!e.target.closest('.tab-add-wrap')) closeTabAddMenu();
+  }
+  function closeTabAddMenu() {
+    tabAddMenu?.classList.add('hidden');
+    tabAddBtn?.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', onTabAddDocClick, true);
+  }
+  function buildTabAddMenu() {
+    if (!tabAddMenu) return;
+    tabAddMenu.innerHTML = '';
+    for (const tab of Object.keys(TAB_MENU_LABELS)) {
+      const on = !state.tabVisibility || state.tabVisibility[tab] !== false;
+      const row = document.createElement('button');
+      row.className = 'tab-add-option' + (on ? ' on' : '');
+      row.dataset.tab = tab;
+      row.setAttribute('role', 'menuitemcheckbox');
+      row.setAttribute('aria-checked', on ? 'true' : 'false');
+      row.textContent = (on ? '✓ ' : '') + TAB_MENU_LABELS[tab];
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setTabVisible(tab, !on);
+        buildTabAddMenu(); // refresh checkmarks in place
+      });
+      tabAddMenu.appendChild(row);
+    }
+  }
+  if (tabAddBtn && tabAddMenu) {
+    tabAddBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (tabAddMenu.classList.contains('hidden')) {
+        buildTabAddMenu();
+        tabAddMenu.classList.remove('hidden');
+        tabAddBtn.setAttribute('aria-expanded', 'true');
+        setTimeout(() => document.addEventListener('click', onTabAddDocClick, true), 0);
+      } else {
+        closeTabAddMenu();
+      }
+    });
+  }
+
   // ── Smart search bar ──────────────────────────────────────────────────────
   const searchInput = document.getElementById('search-input');
 
