@@ -46,8 +46,127 @@ function bindReadingHandlers(container, key) {
           if (ta) ta.value = '';
         });
         break;
+      case 'link-item-add':
+        el.addEventListener('click', () => openLinkPicker(el, elKey));
+        break;
+      case 'open-linked-item':
+        el.addEventListener('click', () => openLinkedItem(el.dataset.type, el.dataset.id));
+        break;
+      case 'unlink-item':
+        el.addEventListener('click', () => {
+          unlinkItemFromKey(el.dataset.type, el.dataset.id, elKey);
+          if (state.activeKey === elKey) renderReading();
+        });
+        break;
     }
   });
+}
+
+// ── CROSS-LINKING (notes / diagrams / snippets ↔ tickets) ─────────────────────
+// A ticket can be linked to any note, diagram, or snippet. The link lives on the
+// item (as linkedKeys[]), so it's local-only and never touches Jira.
+const LINK_TYPE_LABEL = { note: 'Note', mindmap: 'Diagram', snippet: 'Snippet' };
+
+function _linkCollections() {
+  return [
+    { type: 'note', arr: state.standAloneNotes || [], titleOf: (x) => x.title },
+    { type: 'mindmap', arr: state.mindMaps || [], titleOf: (x) => x.name },
+    { type: 'snippet', arr: state.codeBlocks || [], titleOf: (x) => x.title },
+  ];
+}
+
+function _findLinkItem(type, id) {
+  const c = _linkCollections().find((c) => c.type === type);
+  return c ? c.arr.find((x) => x.id === id) : null;
+}
+
+function allLinkableItems() {
+  const out = [];
+  for (const c of _linkCollections()) {
+    for (const x of c.arr) {
+      out.push({ type: c.type, id: x.id, title: (c.titleOf(x) || '').trim() || 'Untitled' });
+    }
+  }
+  return out;
+}
+
+function linkedItemsForKey(key) {
+  return allLinkableItems().filter((it) => {
+    const obj = _findLinkItem(it.type, it.id);
+    return obj && Array.isArray(obj.linkedKeys) && obj.linkedKeys.includes(key);
+  });
+}
+
+function linkItemToKey(type, id, key) {
+  const obj = _findLinkItem(type, id);
+  if (!obj) return;
+  if (!Array.isArray(obj.linkedKeys)) obj.linkedKeys = [];
+  if (!obj.linkedKeys.includes(key)) obj.linkedKeys.push(key);
+  saveState();
+}
+
+function unlinkItemFromKey(type, id, key) {
+  const obj = _findLinkItem(type, id);
+  if (!obj || !Array.isArray(obj.linkedKeys)) return;
+  obj.linkedKeys = obj.linkedKeys.filter((k) => k !== key);
+  saveState();
+}
+
+function openLinkedItem(type, id) {
+  if (type === 'note') {
+    state.activeNoteId = id;
+    switchTab('notes');
+  } else if (type === 'mindmap') {
+    state.activeMindMapId = id;
+    switchTab('mindmap');
+  } else if (type === 'snippet') {
+    state.activeCodeBlockId = id;
+    switchTab('snippets');
+  }
+}
+
+// Dropdown of every linkable item not already attached to this ticket. Mirrors
+// the assignee/status dropdown: opens below the "+ Link" button, closes on an
+// outside click.
+function openLinkPicker(btn, key) {
+  const container = btn.parentElement;
+  if (!container || container.querySelector('.link-picker')) return;
+
+  const picker = document.createElement('div');
+  picker.className = 'link-picker';
+
+  const onDoc = (e) => {
+    if (!container.contains(e.target)) close();
+  };
+  const close = () => {
+    picker.remove();
+    document.removeEventListener('click', onDoc, true);
+  };
+  setTimeout(() => document.addEventListener('click', onDoc, true), 0);
+
+  const alreadyLinked = new Set(linkedItemsForKey(key).map((it) => it.type + ':' + it.id));
+  const available = allLinkableItems().filter((it) => !alreadyLinked.has(it.type + ':' + it.id));
+
+  if (!available.length) {
+    const empty = document.createElement('div');
+    empty.className = 'link-picker-empty';
+    empty.textContent = 'No notes, diagrams, or snippets to link';
+    picker.appendChild(empty);
+  } else {
+    available.forEach((it) => {
+      const row = document.createElement('div');
+      row.className = 'link-picker-option';
+      row.textContent = (LINK_TYPE_LABEL[it.type] || it.type) + ' · ' + it.title;
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        close();
+        linkItemToKey(it.type, it.id, key);
+        if (state.activeKey === key) renderReading();
+      });
+      picker.appendChild(row);
+    });
+  }
+  container.appendChild(picker);
 }
 
 // Post the compose box's text as a comment, then re-fetch the issue so the

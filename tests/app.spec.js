@@ -2268,6 +2268,73 @@ test.describe('Comments', () => {
   });
 });
 
+// ── CROSS-LINKING (notes / diagrams / snippets ↔ tickets) ─────────────────────
+test.describe('Cross-linking', () => {
+  const seededState = {
+    groups: [
+      { id: 'inbox', name: 'Inbox', keys: [] },
+      { id: 'history', name: 'History', keys: [] },
+    ],
+    activeGroupId: 'inbox',
+    standAloneNotes: [
+      { id: 'note_1', title: 'Design spike', blocks: [], created: 1, updated: 1, linkedKeys: [] },
+    ],
+    mindMaps: [{ id: 'mm_1', name: 'Rollout plan', code: 'graph TD; A-->B', linkedKeys: [] }],
+    codeBlocks: [],
+  };
+  const seedState = (st) => localStorage.setItem('jira_state', JSON.stringify(st));
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.addInitScript(seedState, seededState);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('reading pane shows a Link button in a linked-items section', async ({ page }) => {
+    await expect(page.locator('[data-action="link-item-add"]')).toBeVisible();
+  });
+
+  test('linking a note shows it in the linked list', async ({ page }) => {
+    await page.locator('[data-action="link-item-add"]').click();
+    await page.locator('.link-picker-option:has-text("Design spike")').click();
+    await expect(page.locator('.linked-item:has-text("Design spike")')).toBeVisible();
+  });
+
+  test('a linked note persists in state', async ({ page }) => {
+    await page.locator('[data-action="link-item-add"]').click();
+    await page.locator('.link-picker-option:has-text("Design spike")').click();
+    await expect(page.locator('.linked-item:has-text("Design spike")')).toBeVisible();
+    const linked = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('jira_state'));
+      return s.standAloneNotes[0].linkedKeys;
+    });
+    expect(linked).toContain('PROJ-123');
+  });
+
+  test('unlinking removes it from the list', async ({ page }) => {
+    await page.locator('[data-action="link-item-add"]').click();
+    await page.locator('.link-picker-option:has-text("Design spike")').click();
+    await expect(page.locator('.linked-item:has-text("Design spike")')).toBeVisible();
+    await page.locator('.linked-item:has-text("Design spike") [data-action="unlink-item"]').click();
+    await expect(page.locator('.linked-item:has-text("Design spike")')).toHaveCount(0);
+  });
+
+  test('clicking a linked note opens the Notes tab with that note active', async ({ page }) => {
+    await page.locator('[data-action="link-item-add"]').click();
+    await page.locator('.link-picker-option:has-text("Design spike")').click();
+    await page.locator('.linked-item[data-type="note"] [data-action="open-linked-item"]').click();
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'notes');
+    const activeId = await page.evaluate(() => window.getState().activeNoteId);
+    expect(activeId).toBe('note_1');
+  });
+});
+
 // ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
 test.describe('Open in Jira buttons', () => {
   test.beforeEach(async ({ page }) => {

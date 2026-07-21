@@ -75,6 +75,7 @@ function renderReading() {
     '<div id="hierarchy-chain" style="margin-bottom:12px;"></div>';
   html += buildContentHtml(issue);
   html += buildLinkedIssuesHtml(f);
+  html += buildLinkedItemsHtml(key);
   html += buildCommentsHtml(f, issue, key);
 
   content.innerHTML = html;
