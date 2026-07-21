@@ -62,11 +62,11 @@ let state = {
   },
   appMode: 'jira', // 'jira' | 'labels' | 'notes' | 'history' | 'mindmap' | 'snippets'
   labelsActiveGroup: null, // active label name in labels tab (string | null)
-  standAloneNotes: [], // [{id, title, blocks[], created, updated}]
+  standAloneNotes: [], // [{id, title, blocks[], created, updated, groupId, linkedKeys[]}]
   activeNoteId: null,
-  mindMaps: [], // [{id, name, code}]
+  mindMaps: [], // [{id, name, code, groupId, linkedKeys[]}]
   activeMindMapId: null,
-  codeBlocks: [], // [{id, title, code, language, groupId, created, updated}]
+  codeBlocks: [], // [{id, title, code, language, groupId, created, updated, linkedKeys[]}]
   activeCodeBlockId: null,
   cbGroups: [], // [{id, name}]
   activeCbGroupId: null,
@@ -150,6 +150,7 @@ function applyMigrations() {
   // Ensure all notes and mindmaps have a groupId field
   for (const note of state.standAloneNotes) {
     if (note.groupId === undefined) note.groupId = null;
+    if (!Array.isArray(note.linkedKeys)) note.linkedKeys = [];
   }
 
   // Migrate old note body string → canvas blocks format
@@ -174,6 +175,7 @@ function applyMigrations() {
   if (state.activeMindMapId === undefined) state.activeMindMapId = null;
   for (const mm of state.mindMaps) {
     if (mm.groupId === undefined) mm.groupId = null;
+    if (!Array.isArray(mm.linkedKeys)) mm.linkedKeys = [];
   }
   if (!state.codeBlocks) state.codeBlocks = [];
   if (state.activeCodeBlockId === undefined) state.activeCodeBlockId = null;
@@ -185,6 +187,7 @@ function applyMigrations() {
   if (state.layout.cbSidebarCollapsed === undefined) state.layout.cbSidebarCollapsed = false;
   for (const cb of state.codeBlocks) {
     if (cb.groupId === undefined) cb.groupId = null;
+    if (!Array.isArray(cb.linkedKeys)) cb.linkedKeys = [];
   }
   if (state.autoRefresh === undefined) state.autoRefresh = false;
   if (state.openInWindow === undefined) state.openInWindow = true;
