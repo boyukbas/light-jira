@@ -235,6 +235,47 @@ function buildLinkedIssuesHtml(f) {
   return html + '</div>';
 }
 
+// Cross-links: notes / diagrams / snippets attached to this ticket. The section
+// always renders so the "+ Link" affordance is available even before anything is
+// linked. Data + mutation helpers (linkedItemsForKey, LINK_TYPE_LABEL, etc.) live
+// in reading-bindings.js and are globals by the time this builder runs.
+function buildLinkedItemsHtml(key) {
+  const linked = linkedItemsForKey(key);
+  let html = '<div class="section-title">Linked Notes &amp; Diagrams</div>';
+  html += '<div class="linked-items">';
+  for (const it of linked) {
+    html +=
+      '<div class="linked-item" data-type="' +
+      esc(it.type) +
+      '" data-id="' +
+      esc(it.id) +
+      '">' +
+      '<span class="linked-item-type">' +
+      esc(LINK_TYPE_LABEL[it.type] || it.type) +
+      '</span>' +
+      '<span class="linked-item-title" data-action="open-linked-item" data-type="' +
+      esc(it.type) +
+      '" data-id="' +
+      esc(it.id) +
+      '" title="Open">' +
+      esc(it.title) +
+      '</span>' +
+      '<button class="x-btn" data-action="unlink-item" data-type="' +
+      esc(it.type) +
+      '" data-id="' +
+      esc(it.id) +
+      '" data-key="' +
+      esc(key) +
+      '" title="Unlink" aria-label="Unlink">✕</button>' +
+      '</div>';
+  }
+  html +=
+    '<button class="link-add-btn" data-action="link-item-add" data-key="' +
+    esc(key) +
+    '">+ Link</button>';
+  return html + '</div>';
+}
+
 function buildCommentsHtml(f, issue, key) {
   const comments = f.comment?.comments || [];
   const rc = issue.renderedFields?.comment?.comments || [];
