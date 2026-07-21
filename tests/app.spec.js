@@ -2487,6 +2487,83 @@ test.describe('Stale ticket badge', () => {
   });
 });
 
+// ── BACKUP & EXPORT ───────────────────────────────────────────────────────────
+test.describe('Backup & export', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    await expect(page.locator('#sidebar')).toBeVisible();
+  });
+
+  test('Settings exposes Export and Import controls', async ({ page }) => {
+    await page.click('#settings-btn');
+    await expect(page.locator('#export-data-btn')).toBeVisible();
+    await expect(page.locator('#import-data-btn')).toBeVisible();
+  });
+
+  test('Export downloads a JSON backup containing the groups', async ({ page }) => {
+    const fs = require('fs');
+    await page.click('#settings-btn');
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#export-data-btn'),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^crisp-backup-.*\.json$/);
+    const path = await download.path();
+    const parsed = JSON.parse(fs.readFileSync(path, 'utf8'));
+    expect(parsed.data && Array.isArray(parsed.data.groups)).toBe(true);
+    // Credentials must never be in the backup.
+    expect(JSON.stringify(parsed)).not.toContain('fake-api-token');
+  });
+
+  test('an automatic daily snapshot is written on load', async ({ page }) => {
+    await expect
+      .poll(async () =>
+        page.evaluate(
+          () => Object.keys(localStorage).filter((k) => k.startsWith('crisp_backup_')).length
+        )
+      )
+      .toBeGreaterThan(0);
+  });
+
+  test('the settings modal lists at least one restorable snapshot', async ({ page }) => {
+    // Give the on-load snapshot a moment to persist.
+    await expect
+      .poll(async () =>
+        page.evaluate(
+          () => Object.keys(localStorage).filter((k) => k.startsWith('crisp_backup_')).length
+        )
+      )
+      .toBeGreaterThan(0);
+    await page.click('#settings-btn');
+    await expect(page.locator('#backup-snapshots .snapshot-row').first()).toBeVisible({
+      timeout: 3000,
+    });
+  });
+
+  test('importing a backup replaces the current state', async ({ page }) => {
+    const backup = JSON.stringify({
+      app: 'crisp-for-jira',
+      schema: 1,
+      data: {
+        groups: [
+          { id: 'inbox', name: 'Imported List', keys: [] },
+          { id: 'history', name: 'History', keys: [] },
+        ],
+        activeGroupId: 'inbox',
+      },
+    });
+    page.on('dialog', (d) => d.accept());
+    await page.click('#settings-btn');
+    await page.setInputFiles('#import-file-input', {
+      name: 'backup.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(backup),
+    });
+    await expect(page.locator('#group-list')).toContainText('Imported List', { timeout: 3000 });
+  });
+});
+
 // ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
 test.describe('Open in Jira buttons', () => {
   test.beforeEach(async ({ page }) => {

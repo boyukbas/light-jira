@@ -42,6 +42,7 @@ Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a str
 - **Command Palette** — Press `Ctrl/Cmd + K` for a fuzzy launcher over tabs, lists, recent tickets, and quick actions.
 - **Cross-Linking** — Attach any note, diagram, or snippet to a ticket; linked items show in the reading pane and open in their tab (local-only).
 - **Stale Indicators** — Cards flag tickets that haven't been updated in 14+ days with an "idle" chip.
+- **Backup & Export** — Export/import a portable JSON backup from Settings, plus automatic rolling daily snapshots you can restore in one click (all local, no backend).
 - **Labels System** — Tag tickets with coloured labels. The Labels tab auto-generates groups from your tags. Tickets with no labels appear in a "no-label" bucket.
 - **Internal Timeline** — Assign private Start and ETA dates to any ticket. The Timeline tab renders a Gantt-style chart across all scheduled tickets — no Jira configuration required.
 - **Freeform Notes Canvas** — Click anywhere to place a text block. Drag blocks freely. Paste or drop images. Insert live Mermaid diagrams inline.
@@ -422,6 +423,13 @@ Crisp uses **`chrome.storage.sync`** for your personal data, enabling automatic 
 
 `chrome.storage.sync` has a 100 KB total quota and an 8 KB per-item limit. Crisp splits state across seven keys to stay under the per-item limit. If the total quota is exceeded (very heavy use), Crisp automatically falls back to `chrome.storage.local` and shows a warning toast: *"Sync quota full — data saved locally"*. No data is lost; sync is simply paused.
 
+### Backup & restore
+
+Beyond cross-device sync, **Settings → Data** offers two backend-free safety nets:
+
+- **Export / Import** — *Export data* downloads a portable `crisp-backup-YYYY-MM-DD.json` (your groups, labels, notes, diagrams, snippets, timelines, and preferences — **never** credentials or the re-fetchable issue cache). *Import data* restores from such a file after a confirmation prompt.
+- **Automatic daily snapshots** — Crisp keeps a rolling ring of the **last 7 daily snapshots** in local storage. Each is listed under Settings → Data with a one-click **Restore**. This protects against accidental deletion or a corrupted sync; because it's local, it does not survive uninstalling the extension — use Export for that.
+
 ---
 
 ## Development
@@ -476,6 +484,7 @@ No build step. No framework. No bundler. The extension uses `host_permissions` t
 |---|---|
 | `api.js` | Jira API calls — reads (`fetchIssue`, `fetchByJql`, `fetchFilter`, `searchUsers`, `fetchMyself`, `fetchTransitions`) and writes (`updateIssueFields`, `doTransition`, `addComment`), config load/save |
 | `js/command-palette.js` | Command palette (`Ctrl/Cmd+K`) — fuzzy launcher over tabs, lists, recent tickets, and quick actions |
+| `js/backup.js` | Data backup — JSON export/import + automatic rolling daily local snapshots with restore |
 | `utils.js` | `esc()`, `relDate()`, `avBadge()`, `statusClass()`, `stripHtml()`, `AV_COLORS` |
 | `js/state.js` | App state object, `loadState`/`saveState` (chrome.storage), group helpers, migrations |
 | `js/layout.js` | `updateViewMode()` (master render dispatcher), pane collapse, resizer drag |
