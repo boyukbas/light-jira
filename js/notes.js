@@ -5,6 +5,11 @@
 // Block-level construction lives in notes-canvas.js.
 
 function switchTab(tab) {
+  // Navigating to a hidden tab (command palette, cross-link open) reveals it —
+  // this is the single choke point every programmatic switch flows through.
+  if (state.tabVisibility && state.tabVisibility[tab] === false) {
+    state.tabVisibility[tab] = true;
+  }
   // Isolate activeKey between Jira and Labels tabs so each has its own selection context
   if (state.appMode === 'labels') {
     // Leaving Labels — save Labels selection, restore Jira selection
