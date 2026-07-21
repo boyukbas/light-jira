@@ -6,7 +6,10 @@ const searchFixture = require('./fixtures/search-results.json');
 const filterFixture = require('./fixtures/filter.json');
 
 // Inject a valid config into localStorage so the app starts configured
-// (prevents settings modal from auto-opening)
+// (prevents settings modal from auto-opening). Also seeds a baseline existing
+// state so the app treats the test as a RETURNING user — all tabs visible.
+// Progressive disclosure hides advanced tabs only on a brand-new install, which
+// the "Tab visibility" suite covers explicitly via initConfigFresh().
 const initConfig = () => {
   const config = {
     email: 'test@example.com',
@@ -15,6 +18,42 @@ const initConfig = () => {
     useCloud: false,
   };
   localStorage.setItem('jira_config', JSON.stringify(config));
+  if (!localStorage.getItem('jira_state')) {
+    localStorage.setItem(
+      'jira_state',
+      JSON.stringify({
+        groups: [
+          { id: 'inbox', name: 'Inbox', keys: [] },
+          { id: 'history', name: 'History', keys: [] },
+        ],
+        activeGroupId: 'inbox',
+        tabVisibility: {
+          jira: true,
+          labels: true,
+          timeline: true,
+          history: true,
+          notes: true,
+          mindmap: true,
+          snippets: true,
+        },
+      })
+    );
+  }
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.register = () => Promise.resolve({});
+  }
+};
+
+// Configured but with NO prior state — a genuine first run (advanced tabs hidden).
+const initConfigFresh = () => {
+  localStorage.setItem(
+    'jira_config',
+    JSON.stringify({
+      email: 'test@example.com',
+      token: 'fake-api-token',
+      baseUrl: 'https://site.atlassian.net',
+    })
+  );
   if (navigator.serviceWorker) {
     navigator.serviceWorker.register = () => Promise.resolve({});
   }
@@ -2561,6 +2600,58 @@ test.describe('Backup & export', () => {
       buffer: Buffer.from(backup),
     });
     await expect(page.locator('#group-list')).toContainText('Imported List', { timeout: 3000 });
+  });
+});
+
+// ── TAB VISIBILITY (progressive disclosure) ───────────────────────────────────
+test.describe('Tab visibility', () => {
+  const ADV = ['labels', 'timeline', 'history', 'notes', 'mindmap', 'snippets'];
+
+  test('a new install shows only the Jira tab', async ({ page }) => {
+    await page.addInitScript(initConfigFresh);
+    await page.goto('/');
+    await expect(page.locator('#tab-jira')).toBeVisible();
+    for (const t of ADV) {
+      await expect(page.locator('#tab-' + t)).toBeHidden();
+    }
+  });
+
+  test('an existing install keeps all tabs visible', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+    for (const t of ['jira', ...ADV]) {
+      await expect(page.locator('#tab-' + t)).toBeVisible();
+    }
+  });
+
+  test('the tab-bar + menu enables a hidden tab', async ({ page }) => {
+    await page.addInitScript(initConfigFresh);
+    await page.goto('/');
+    await expect(page.locator('#tab-timeline')).toBeHidden();
+    await page.click('#tab-add-btn');
+    await page.locator('.tab-add-option[data-tab="timeline"]').click();
+    await expect(page.locator('#tab-timeline')).toBeVisible();
+  });
+
+  test('Settings checkboxes toggle a tab on and off', async ({ page }) => {
+    await page.addInitScript(initConfigFresh);
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await page.locator('#tabvis-snippets').check();
+    await expect(page.locator('#tab-snippets')).toBeVisible();
+    await page.locator('#tabvis-snippets').uncheck();
+    await expect(page.locator('#tab-snippets')).toBeHidden();
+  });
+
+  test('the command palette reveals and switches to a hidden tab', async ({ page }) => {
+    await page.addInitScript(initConfigFresh);
+    await page.goto('/');
+    await expect(page.locator('#tab-mindmap')).toBeHidden();
+    await page.keyboard.press('Control+k');
+    await page.locator('#command-palette-input').fill('Mindmap');
+    await page.locator('.cp-option:has-text("Mindmap")').click();
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'mindmap');
+    await expect(page.locator('#tab-mindmap')).toBeVisible();
   });
 });
 

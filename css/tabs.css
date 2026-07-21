@@ -51,6 +51,69 @@
   flex-shrink: 0;
 }
 
+/* Progressive disclosure — a tab toggled off is removed from the bar and the
+   focus order entirely (not just visually hidden). */
+.tab-hidden {
+  display: none !important;
+}
+
+/* Tab-bar "+" customize control and its dropdown menu */
+.tab-add-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.tab-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.tab-add-btn:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+.tab-add-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 200;
+  margin-top: 6px;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.tab-add-menu.hidden {
+  display: none;
+}
+.tab-add-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+}
+.tab-add-option:hover {
+  background: var(--surface-hover);
+}
+.tab-add-option.on {
+  color: var(--accent);
+}
+
 /* ── HISTORY TAB LAYOUT ── */
 body[data-app-mode='history'] #sidebar,
 body[data-app-mode='history'] #resizer-sidebar,
