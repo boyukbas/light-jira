@@ -212,6 +212,35 @@
   opacity: 1 !important;
   color: var(--accent);
 }
+.lc-assign-me {
+  position: absolute;
+  right: 52px;
+  bottom: 8px;
+  opacity: 0;
+  color: var(--text-tertiary);
+  padding: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+}
+.list-card:hover .lc-assign-me {
+  opacity: 0.6;
+}
+.lc-assign-me:hover {
+  opacity: 1 !important;
+  color: var(--accent);
+}
+.lc-stale {
+  margin-right: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  color: var(--orange);
+  background: rgba(240, 136, 62, 0.12);
+  white-space: nowrap;
+}
 
 /* ── HISTORY TABLE ── */
 #history-pane {
