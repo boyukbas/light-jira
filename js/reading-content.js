@@ -235,10 +235,9 @@ function buildLinkedIssuesHtml(f) {
   return html + '</div>';
 }
 
-function buildCommentsHtml(f, issue) {
+function buildCommentsHtml(f, issue, key) {
   const comments = f.comment?.comments || [];
   const rc = issue.renderedFields?.comment?.comments || [];
-  if (!comments.length) return '';
   let html = '<div class="section-title">Comments (' + comments.length + ')</div><div>';
   for (let i = 0; i < comments.length; i++) {
     const c = comments[i];
@@ -257,5 +256,17 @@ function buildCommentsHtml(f, issue) {
       (rc[i] ? sanitizeJiraHtml(rc[i].body) : '') +
       '</div></div></div>';
   }
-  return html + '</div>';
+  html += '</div>';
+  // Always-visible compose box — add or reply to comments without leaving the app.
+  html +=
+    '<div class="comment-compose">' +
+    '<textarea id="comment-input" class="comment-input" rows="3" ' +
+    'placeholder="Add a comment…" aria-label="Add a comment"></textarea>' +
+    '<div class="comment-compose-actions">' +
+    '<button class="top-btn" data-action="cancel-comment">Cancel</button>' +
+    '<button class="top-btn primary" data-action="submit-comment" data-key="' +
+    esc(key) +
+    '">Comment</button>' +
+    '</div></div>';
+  return html;
 }

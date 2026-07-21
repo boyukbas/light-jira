@@ -2203,6 +2203,71 @@ test.describe('Status Transitions', () => {
   });
 });
 
+// ── COMMENTS ──────────────────────────────────────────────────────────────────
+test.describe('Comments', () => {
+  // /comment also matches the generic issue matcher, so register after
+  // mockIssueRoute; Playwright runs the most-recently-added matching handler first.
+  function mockCommentRoute(page, onPost) {
+    page.route(
+      (url) => url.toString().includes('/comment'),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          if (onPost) onPost(route.request().postDataJSON());
+          await route.fulfill({
+            status: 201,
+            contentType: 'application/json',
+            body: JSON.stringify({ id: '10100', body: {} }),
+          });
+        } else {
+          await route.fallback();
+        }
+      }
+    );
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockIssueRoute(page, issueFixture);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-123');
+    await page.locator('#search-input').press('Enter');
+    await page.locator('#ticket-list .list-card').first().click();
+    await expect(page.locator('#reading-content')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('a comment compose box is shown even with no comments', async ({ page }) => {
+    await expect(page.locator('#comment-input')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('[data-action="submit-comment"]')).toBeVisible();
+  });
+
+  test('submitting a comment POSTs ADF to Jira', async ({ page }) => {
+    let postBody = null;
+    mockCommentRoute(page, (b) => (postBody = b));
+    await page.locator('#comment-input').fill('Looks good to me');
+    await page.locator('[data-action="submit-comment"]').click();
+    await expect(async () => {
+      expect(postBody?.body?.type).toBe('doc');
+      expect(JSON.stringify(postBody?.body)).toContain('Looks good to me');
+    }).toPass({ timeout: 3000 });
+  });
+
+  test('an empty comment is not submitted', async ({ page }) => {
+    let posted = false;
+    mockCommentRoute(page, () => (posted = true));
+    await page.locator('[data-action="submit-comment"]').click();
+    await page.waitForTimeout(500);
+    expect(posted).toBe(false);
+  });
+
+  test('the compose box clears after a successful submit', async ({ page }) => {
+    mockCommentRoute(page);
+    await page.locator('#comment-input').fill('Ship it');
+    await page.locator('[data-action="submit-comment"]').click();
+    await expect(page.locator('#comment-input')).toHaveValue('', { timeout: 3000 });
+  });
+});
+
 // ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
 test.describe('Open in Jira buttons', () => {
   test.beforeEach(async ({ page }) => {
