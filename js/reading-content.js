@@ -72,6 +72,8 @@ function buildMetaGridHtml(f, key) {
   const items = [
     {
       l: 'Status',
+      editable: 'status',
+      jira: true,
       v:
         '<span class="status-badge ' +
         statusClass(f.status?.statusCategory?.name || f.status?.name) +

@@ -230,6 +230,7 @@ function bindEditableMetaFields(container, issueKey) {
         if (!currentValueEl) return;
         if (type === 'story-points') startStoryPointsEdit(item, currentValueEl, issueKey);
         if (type === 'assignee') startAssigneeEdit(item, currentValueEl, issueKey);
+        if (type === 'status') startStatusEdit(item, currentValueEl, issueKey);
       });
     }
   });
@@ -376,6 +377,84 @@ function startAssigneeEdit(item, valueEl, issueKey) {
         makeMetaValue(issueCache[issueKey]?.fields?.assignee?.displayName || 'Unassigned')
       );
     }
+  });
+}
+
+// Status is edited differently from other meta fields: instead of an inline
+// input it opens a dropdown of workflow transitions fetched on demand. Only the
+// transitions legal from the current status come back, so every option is valid.
+async function startStatusEdit(item, valueEl, issueKey) {
+  // A second click while the dropdown is open would stack duplicates.
+  if (item.querySelector('.status-transition-dropdown')) return;
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'status-transition-dropdown';
+  const loading = document.createElement('div');
+  loading.className = 'status-transition-option status-transition-loading';
+  loading.textContent = 'Loading…';
+  dropdown.appendChild(loading);
+  item.appendChild(dropdown);
+
+  // Close on any click outside the meta-item. Attached on the next tick so the
+  // click that opened the dropdown doesn't immediately close it.
+  const onDocClick = (e) => {
+    if (!item.contains(e.target)) close();
+  };
+  const close = () => {
+    dropdown.remove();
+    document.removeEventListener('click', onDocClick, true);
+  };
+  setTimeout(() => document.addEventListener('click', onDocClick, true), 0);
+
+  let transitions;
+  try {
+    transitions = await fetchTransitions(issueKey);
+  } catch (e) {
+    toast('Could not load transitions: ' + e.message, 'error');
+    close();
+    return;
+  }
+  // The user may have closed the dropdown or navigated away during the fetch.
+  if (!item.contains(dropdown)) return;
+
+  dropdown.innerHTML = '';
+  if (!transitions.length) {
+    const none = document.createElement('div');
+    none.className = 'status-transition-option status-transition-loading';
+    none.textContent = 'No transitions available';
+    dropdown.appendChild(none);
+    return;
+  }
+
+  transitions.forEach((t) => {
+    const row = document.createElement('div');
+    row.className = 'status-transition-option';
+    row.textContent = t.name;
+    row.addEventListener('click', async (e) => {
+      // stopPropagation prevents the click from bubbling to the meta-item's own
+      // handler, which would otherwise reopen the dropdown after close().
+      e.stopPropagation();
+      close();
+      try {
+        await doTransition(issueKey, t.id);
+        const to = t.to || {};
+        if (issueCache[issueKey]?.fields) {
+          issueCache[issueKey].fields.status = {
+            name: to.name || t.name,
+            statusCategory: to.statusCategory,
+          };
+        }
+        saveState();
+        toast('Status → ' + (to.name || t.name), 'success');
+        if (state.activeKey === issueKey) {
+          renderMiddle();
+          renderReading();
+        }
+      } catch (err) {
+        toast('Failed to change status: ' + err.message, 'error');
+      }
+    });
+    dropdown.appendChild(row);
   });
 }
 
