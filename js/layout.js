@@ -97,8 +97,10 @@ function setTabVisible(tab, visible) {
   if (!state.tabVisibility) state.tabVisibility = {};
   state.tabVisibility[tab] = !!visible;
   if (!visible && state.appMode === tab) state.appMode = 'jira';
-  saveState();
+  // Render first, persist second: the visible toggle is the user's immediate
+  // feedback and must never depend on the save succeeding.
   updateViewMode();
+  saveState();
 }
 window.setTabVisible = setTabVisible;
 
