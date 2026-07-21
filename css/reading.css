@@ -310,3 +310,32 @@ input[type='number'].meta-edit-input {
 .user-search-result:hover {
   background: var(--surface-hover);
 }
+.status-transition-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  margin-top: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  overflow: hidden;
+}
+.status-transition-option {
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.status-transition-option:hover {
+  background: var(--surface-hover);
+}
+.status-transition-loading {
+  cursor: default;
+  color: var(--text-tertiary);
+}
+.status-transition-loading:hover {
+  background: none;
+}
