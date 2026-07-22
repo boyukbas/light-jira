@@ -187,7 +187,8 @@ function renderMiddle() {
         '<div style="font-size:14px;color:var(--text-primary);margin-bottom:6px;">Welcome to Crisp</div>' +
         '<div style="margin-bottom:10px;">Connect your Jira account, then beam tabs in from any Jira page.</div>' +
         '<button class="top-btn primary" data-action="first-run-settings">Connect Jira</button>' +
-        '<div style="margin-top:14px;font-size:11px;color:var(--text-tertiary);">Press <kbd>?</kbd> any time for shortcuts.</div>' +
+        '<div style="margin-top:14px;font-size:11px;color:var(--text-tertiary);">Add more tabs anytime with the <strong>+</strong> in the tab bar.</div>' +
+        '<div style="margin-top:6px;font-size:11px;color:var(--text-tertiary);">Press <kbd>?</kbd> any time for shortcuts.</div>' +
         '</div>';
       // Wire the CTA without an inline handler (CSP-friendly).
       const btn = list.querySelector('[data-action="first-run-settings"]');
