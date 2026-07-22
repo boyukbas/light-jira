@@ -2655,6 +2655,17 @@ test.describe('Tab visibility', () => {
   });
 });
 
+// ── FIRST-RUN WELCOME ─────────────────────────────────────────────────────────
+test.describe('First-run welcome', () => {
+  test('hints at customizing tabs with the + menu', async ({ page }) => {
+    // No config + no state → unconfigured first run, so the welcome renders.
+    await page.goto('/');
+    const welcome = page.locator('#ticket-list .first-run');
+    await expect(welcome).toContainText('more tabs', { timeout: 5000 });
+    await expect(welcome).toContainText('tab bar');
+  });
+});
+
 // ── OPEN IN JIRA BUTTONS ─────────────────────────────────────────────────────
 test.describe('Open in Jira buttons', () => {
   test.beforeEach(async ({ page }) => {
