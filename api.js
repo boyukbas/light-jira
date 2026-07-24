@@ -3,7 +3,9 @@
 const HISTORY_LIMIT = 150;
 
 const DEFAULTS = {
-  baseUrl: 'https://site.atlassian.net',
+  // Empty, not a real-looking host: a forgotten URL then reads as "unset"
+  // (isConfigured() is false) instead of silently 404-ing against a placeholder.
+  baseUrl: '',
   email: '',
   token: '',
 };
