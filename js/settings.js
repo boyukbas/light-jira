@@ -114,16 +114,32 @@ function initSettings() {
     clearSettingsErrors();
     const rawUrl = document.getElementById('cfg-url').value.trim();
 
-    if (rawUrl) {
-      try {
-        new URL(rawUrl);
-      } catch {
-        showSettingsError('cfg-url', 'Enter a valid URL (e.g. https://company.atlassian.net)');
-        return;
-      }
+    // A Jira site URL is required — this is the field people forget, which then
+    // 404s against nothing. Guide them right here instead.
+    if (!rawUrl) {
+      showSettingsError(
+        'cfg-url',
+        'Enter your Jira site URL, e.g. https://yourcompany.atlassian.net'
+      );
+      return;
+    }
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(rawUrl);
+    } catch {
+      showSettingsError('cfg-url', 'Enter a valid URL (e.g. https://company.atlassian.net)');
+      return;
+    }
+    // Reject the example placeholder so it can never be saved by accident.
+    if (parsedUrl.hostname === 'your-domain.atlassian.net') {
+      showSettingsError(
+        'cfg-url',
+        'Replace the example with your own Jira site, e.g. https://yourcompany.atlassian.net'
+      );
+      return;
     }
 
-    cfg.baseUrl = (rawUrl || DEFAULTS.baseUrl).replace(/\/$/, '');
+    cfg.baseUrl = rawUrl.replace(/\/$/, '');
     cfg.email = document.getElementById('cfg-email').value.trim();
     cfg.token = document.getElementById('cfg-token').value.trim();
     state.openInWindow = document.getElementById('cfg-open-in-window').checked;
