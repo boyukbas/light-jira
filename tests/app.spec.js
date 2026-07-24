@@ -199,6 +199,29 @@ test.describe('Settings', () => {
     await expect(page.locator('#cfg-url')).toHaveValue('https://mysite.atlassian.net');
   });
 
+  test('saving without a Jira URL shows a guiding error and keeps the modal open', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await page.fill('#cfg-email', 'user@test.com');
+    await page.fill('#cfg-token', 'tok');
+    await page.fill('#cfg-url', ''); // forgot to set the site
+    await page.click('#settings-save');
+    await expect(page.locator('#settings-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#cfg-url')).toHaveClass(/input-error/);
+    await expect(page.locator('.field-error')).toContainText(/Jira/i);
+  });
+
+  test('saving the example placeholder URL is rejected', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#settings-btn');
+    await page.fill('#cfg-url', 'https://your-domain.atlassian.net');
+    await page.click('#settings-save');
+    await expect(page.locator('#settings-overlay')).not.toHaveClass(/hidden/);
+    await expect(page.locator('.field-error')).toBeVisible();
+  });
+
   test('settings modal shows required field labels', async ({ page }) => {
     await page.addInitScript(initConfig);
     await page.goto('/');
