@@ -232,22 +232,33 @@
   color: var(--accent);
 }
 /* Issue-type chip: glyph + colour encode the hierarchy LEVEL (sub-task / base /
-   epic / above epic), the label is the type's own name from Jira. `margin-right:
-   auto` parks it at the left of .lc-key-row while stale + status stay right. */
+   epic / above epic), the label is the type's own name from Jira. Appearance
+   only — the card-specific layout constraints live in `.list-card .lc-type`, so
+   the same chip can also sit in the reading pane's meta grid unconstrained. */
 .lc-type {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-right: auto;
   min-width: 0;
-  max-width: 62%;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
+}
+/* Own element so a long type name truncates with an ellipsis instead of being
+   clipped mid-word — text-overflow never applies to a flex container's own text. */
+.lc-type-name {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
+}
+/* On a card the chip is parked left of .lc-key-row (stale + status stay right)
+   and capped so a verbose type name can't crowd out the status badge. */
+.list-card .lc-type {
+  margin-right: auto;
+  max-width: 62%;
 }
 .lc-type svg {
   flex-shrink: 0;
