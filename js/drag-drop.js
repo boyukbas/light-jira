@@ -47,12 +47,39 @@ window.handleDropToItem = (e, targetKey) => {
   e.stopPropagation();
   if (!draggedKey || draggedKey === targetKey) return;
   const g = getActiveGroup();
-  const oldIdx = g.keys.indexOf(draggedKey),
-    newIdx = g.keys.indexOf(targetKey);
-  if (oldIdx !== -1 && newIdx !== -1) {
-    g.keys.splice(oldIdx, 1);
-    g.keys.splice(newIdx, 0, draggedKey);
+  // entryKey handles both plain-string keys and history's {key, added} entries,
+  // and reorderById re-inserts the actual element (not the string) so object keys
+  // survive the move.
+  if (reorderById(g.keys, draggedKey, targetKey, entryKey)) {
     saveState();
     renderMiddle();
+  }
+};
+
+// ── Aux-tab item reorder (notes / mindmaps / snippets) ───────────────────────
+// Each aux list is a single flat array (state.standAloneNotes / mindMaps /
+// codeBlocks) shown through a group filter. Dragging one item onto another
+// reorders the underlying array with the same displacement semantics as ticket
+// cards; reorderById works on the full array, so items hidden by the active
+// group filter keep their positions.
+let draggedItemId = null;
+
+window.handleItemDragStart = (e, id) => {
+  draggedItemId = id;
+  draggedKey = null;
+  draggedGroupId = null;
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+};
+
+window.handleItemDrop = (e, arr, targetId, rerender) => {
+  e.preventDefault();
+  e.stopPropagation();
+  e.currentTarget.classList.remove('drag-over');
+  const movedId = draggedItemId;
+  draggedItemId = null;
+  if (!movedId || movedId === targetId) return;
+  if (reorderById(arr, movedId, targetId, (x) => x.id)) {
+    saveState();
+    rerender();
   }
 };

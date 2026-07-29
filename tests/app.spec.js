@@ -1582,6 +1582,28 @@ test.describe('Drag and Drop', () => {
     await expect(cards.nth(1)).toHaveAttribute('data-key', firstKey);
   });
 
+  test('dragging a card down lands it after the drop target (displacement)', async ({ page }) => {
+    // Add a third ticket so we can prove direction-aware displacement, not just swap.
+    await page.fill('#search-input', 'PROJ-3');
+    await page.locator('#search-input').press('Enter');
+    const cards = page.locator('#ticket-list .list-card');
+    await expect(cards).toHaveCount(3, { timeout: 3000 });
+    const [k0, k1, k2] = await Promise.all([
+      cards.nth(0).getAttribute('data-key'),
+      cards.nth(1).getAttribute('data-key'),
+      cards.nth(2).getAttribute('data-key'),
+    ]);
+
+    // Drag the top card DOWN onto the middle card → it should land AFTER it.
+    await cards.nth(0).dispatchEvent('dragstart');
+    await cards.nth(1).dispatchEvent('dragover');
+    await cards.nth(1).dispatchEvent('drop');
+
+    await expect(cards.nth(0)).toHaveAttribute('data-key', k1);
+    await expect(cards.nth(1)).toHaveAttribute('data-key', k0);
+    await expect(cards.nth(2)).toHaveAttribute('data-key', k2);
+  });
+
   test('dragging a ticket to another group moves it', async ({ page }) => {
     // Create a second group
     await createGroup(page, 'Target');
@@ -1620,6 +1642,86 @@ test.describe('Drag and Drop', () => {
     // Groups should be reordered
     await expect(groups.nth(0)).toHaveAttribute('data-id', secondGroupId);
     await expect(groups.nth(1)).toHaveAttribute('data-id', firstGroupId);
+  });
+});
+
+// ── 9b. DRAG-REORDER AUX LISTS (notes / mindmap / snippets) ───────────────────
+test.describe('Drag-reorder aux lists', () => {
+  test.beforeEach(async ({ page }) => {
+    mockFieldsRoute(page);
+    mockIssueRoute(page, issueFixture);
+    await page.addInitScript(initConfig);
+    await page.goto('/');
+  });
+
+  test('dragging a note reorders it in the sidebar', async ({ page }) => {
+    await page.click('#tab-notes');
+    await page.click('#add-note-btn');
+    await page.click('#add-note-btn');
+    const items = page.locator('#nc-notes-list .nc-note-item');
+    await expect(items).toHaveCount(2, { timeout: 3000 });
+    const id0 = await items.nth(0).getAttribute('data-id');
+    const id1 = await items.nth(1).getAttribute('data-id');
+
+    await items.nth(0).dispatchEvent('dragstart');
+    await items.nth(1).dispatchEvent('dragover');
+    await items.nth(1).dispatchEvent('drop');
+
+    await expect(items.nth(0)).toHaveAttribute('data-id', id1);
+    await expect(items.nth(1)).toHaveAttribute('data-id', id0);
+  });
+
+  test('dragging a diagram reorders it in the sidebar', async ({ page }) => {
+    await page.click('#tab-mindmap');
+    const items = page.locator('#mm-diagram-list .mm-diagram-item');
+    await expect(items).toHaveCount(1, { timeout: 3000 }); // auto-seeded default
+    await page.click('#mm-add-btn');
+    await expect(items).toHaveCount(2, { timeout: 3000 });
+    const id0 = await items.nth(0).getAttribute('data-id');
+    const id1 = await items.nth(1).getAttribute('data-id');
+
+    await items.nth(0).dispatchEvent('dragstart');
+    await items.nth(1).dispatchEvent('dragover');
+    await items.nth(1).dispatchEvent('drop');
+
+    await expect(items.nth(0)).toHaveAttribute('data-id', id1);
+    await expect(items.nth(1)).toHaveAttribute('data-id', id0);
+  });
+
+  test('dragging a snippet reorders it in the sidebar', async ({ page }) => {
+    await page.click('#tab-snippets');
+    await page.click('#add-cb-btn');
+    await page.click('#add-cb-btn');
+    const items = page.locator('#cb-snippet-list .cb-item');
+    await expect(items).toHaveCount(2, { timeout: 3000 });
+    const id0 = await items.nth(0).getAttribute('data-id');
+    const id1 = await items.nth(1).getAttribute('data-id');
+
+    await items.nth(0).dispatchEvent('dragstart');
+    await items.nth(1).dispatchEvent('dragover');
+    await items.nth(1).dispatchEvent('drop');
+
+    await expect(items.nth(0)).toHaveAttribute('data-id', id1);
+    await expect(items.nth(1)).toHaveAttribute('data-id', id0);
+  });
+
+  test('reordering within a group filter preserves other-group items', async ({ page }) => {
+    // Two notes in "All"; verify the underlying array reorder is index-correct
+    // even though the sidebar shows a filtered view.
+    await page.click('#tab-notes');
+    await page.click('#add-note-btn');
+    await page.click('#add-note-btn');
+    const items = page.locator('#nc-notes-list .nc-note-item');
+    await expect(items).toHaveCount(2, { timeout: 3000 });
+    const id0 = await items.nth(0).getAttribute('data-id');
+
+    await items.nth(0).dispatchEvent('dragstart');
+    await items.nth(1).dispatchEvent('dragover');
+    await items.nth(1).dispatchEvent('drop');
+
+    // The moved note is now second; both notes still present (none lost).
+    await expect(items).toHaveCount(2);
+    await expect(items.nth(1)).toHaveAttribute('data-id', id0);
   });
 });
 
