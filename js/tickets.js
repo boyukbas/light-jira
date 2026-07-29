@@ -99,26 +99,71 @@ async function assignToMe(key) {
   }
 }
 
-// Sequentially loads all tickets in the active group that are not yet cached.
-// Renders incrementally so cards appear as data arrives. A single saveState()
-// call at the end batches what was previously a write-per-ticket storm — for a
-// 50-ticket group that's 50 localStorage writes vs 1 (and in extension mode the
-// debounced sync path is called N times but only persists once anyway).
+// Keys whose last load attempt failed, so cards can say so instead of sitting on
+// "Loading…" forever. Session-only (never persisted) — a refresh clears it.
+const loadFailedKeys = new Set();
+window.loadFailedKeys = loadFailedKeys;
+
+// Jira caps `key in (...)` clauses well above this, but keeping batches modest
+// bounds the URL length and matches the JQL endpoint's default page size.
+const HYDRATE_BATCH = 50;
+const KEY_SHAPE = /^[A-Z][A-Z0-9]{0,9}-\d+$/;
+
+// Hydrate every uncached ticket in the active group.
+//
+// One JQL `key in (...)` request per batch instead of one `fields=*all` request
+// per ticket: a 20-ticket beamed list went from 20 serial heavy round-trips (and
+// 20 full list re-renders) to a single request. The JQL payload carries exactly
+// the fields a card needs; it has no `renderedFields`/description, so opening a
+// ticket still triggers a full fetch in renderReading() — which already detects
+// partial cache entries. Anything the batch can't return (deleted, moved,
+// permission-restricted) is marked failed rather than left mid-load.
 async function loadAllGroupTickets() {
   const group = getActiveGroup();
-  let fetched = false;
-  for (const key of group.keys) {
-    const k = entryKey(key);
-    if (!issueCache[k]) {
-      try {
-        issueCache[k] = await fetchIssue(k);
-        fetched = true;
-        renderMiddle();
-        if (state.activeKey === k) renderReading();
-      } catch (err) {
-        console.warn('Failed to load', k, err.message);
-      }
-    }
+  const missing = [];
+  for (const entry of group.keys) {
+    const k = entryKey(entry);
+    if (!issueCache[k]) missing.push(k);
   }
+  if (!missing.length) return;
+
+  // A malformed key would break the whole JQL clause — fetch those individually.
+  const batchable = missing.filter((k) => KEY_SHAPE.test(k));
+  const oddballs = missing.filter((k) => !KEY_SHAPE.test(k));
+  let fetched = false;
+
+  for (let i = 0; i < batchable.length; i += HYDRATE_BATCH) {
+    const batch = batchable.slice(i, i + HYDRATE_BATCH);
+    try {
+      const res = await fetchByJql('key in (' + batch.join(',') + ')', batch.length);
+      const returned = new Set();
+      for (const iss of res.issues || []) {
+        if (!iss || !iss.key) continue;
+        issueCache[iss.key] = iss;
+        returned.add(iss.key);
+        loadFailedKeys.delete(iss.key);
+        fetched = true;
+      }
+      for (const k of batch) if (!returned.has(k)) loadFailedKeys.add(k);
+    } catch (err) {
+      console.warn('Batch load failed', batch.join(','), err.message);
+      for (const k of batch) loadFailedKeys.add(k);
+    }
+    renderMiddle();
+  }
+
+  for (const k of oddballs) {
+    try {
+      issueCache[k] = await fetchIssue(k);
+      loadFailedKeys.delete(k);
+      fetched = true;
+    } catch (err) {
+      console.warn('Failed to load', k, err.message);
+      loadFailedKeys.add(k);
+    }
+    renderMiddle();
+  }
+
+  if (state.activeKey && issueCache[state.activeKey]) renderReading();
   if (fetched) saveState();
 }
