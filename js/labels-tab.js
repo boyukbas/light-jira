@@ -131,6 +131,7 @@ function renderLabelsMiddle() {
     const f = issue.fields || {};
     const sum = f.summary || 'Loading...';
     const stat = f.status ? f.status.name : '';
+    const typeHtml = typeBadge(f.issuetype);
 
     html +=
       '<div class="list-card' +
@@ -140,12 +141,17 @@ function renderLabelsMiddle() {
       '" data-cached="' +
       (f.summary ? 'true' : 'false') +
       '">' +
-      (stat
-        ? '<div class="lc-key-row"><span class="status-badge ' +
-          statusClass(f.status?.statusCategory?.name || stat) +
-          '">' +
-          esc(stat) +
-          '</span></div>'
+      (stat || typeHtml
+        ? '<div class="lc-key-row">' +
+          typeHtml +
+          (stat
+            ? '<span class="status-badge ' +
+              statusClass(f.status?.statusCategory?.name || stat) +
+              '">' +
+              esc(stat) +
+              '</span>'
+            : '') +
+          '</div>'
         : '') +
       '<div class="lc-title-row">' +
       (f.assignee ? avBadge(f.assignee.displayName, 'av-rg') : '') +

@@ -231,6 +231,48 @@
   opacity: 1 !important;
   color: var(--accent);
 }
+/* Issue-type chip: glyph + colour encode the hierarchy LEVEL (sub-task / base /
+   epic / above epic), the label is the type's own name from Jira. `margin-right:
+   auto` parks it at the left of .lc-key-row while stale + status stay right. */
+.lc-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+  min-width: 0;
+  max-width: 62%;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lc-type svg {
+  flex-shrink: 0;
+}
+.lc-type-sub {
+  color: #58a6ff;
+  background: rgba(88, 166, 255, 0.12);
+}
+.lc-type-base {
+  color: var(--green);
+  background: rgba(63, 185, 80, 0.12);
+}
+.lc-type-epic {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+.lc-type-above {
+  color: var(--orange);
+  background: rgba(240, 136, 62, 0.12);
+}
+.lc-type-unknown {
+  color: var(--text-tertiary);
+  background: rgba(110, 118, 129, 0.15);
+}
+
 .lc-stale {
   margin-right: 6px;
   font-size: 10px;
