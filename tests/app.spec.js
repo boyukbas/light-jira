@@ -1725,6 +1725,177 @@ test.describe('Drag-reorder aux lists', () => {
   });
 });
 
+// ── 9c. ISSUE TYPE / HIERARCHY LEVEL INDICATOR ────────────────────────────────
+// The tier is derived from Jira's own issuetype.hierarchyLevel (-1 sub-task,
+// 0 base, 1 epic, 2+ above epic) — never from the type NAME — so site-specific
+// and renamed types classify correctly on any Jira instance.
+function mockIssueTypeRoute(page, typeByKey) {
+  page.route(
+    (url) => url.toString().includes('/rest/api/3/issue/'),
+    async (route) => {
+      const m = route
+        .request()
+        .url()
+        .match(/\/issue\/([A-Za-z][A-Za-z0-9]*-\d+)/);
+      const key = m ? m[1] : issueFixture.key;
+      const it = key in typeByKey ? typeByKey[key] : issueFixture.fields.issuetype;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...issueFixture,
+          key,
+          fields: { ...issueFixture.fields, issuetype: it },
+        }),
+      });
+    }
+  );
+}
+
+test.describe('Issue type / hierarchy level indicator', () => {
+  const addTicket = async (page, key) => {
+    await page.fill('#search-input', key);
+    await page.locator('#search-input').press('Enter');
+  };
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+  });
+
+  test('card shows a type chip labelled with the issue type name', async ({ page }) => {
+    mockIssueTypeRoute(page, { 'PROJ-1': { name: 'Story', hierarchyLevel: 0 } });
+    await page.goto('/');
+    await addTicket(page, 'PROJ-1');
+    const chip = page.locator('#ticket-list .list-card .lc-type');
+    await expect(chip).toHaveCount(1, { timeout: 3000 });
+    await expect(chip).toContainText('Story');
+  });
+
+  test('hierarchyLevel drives the tier class for sub-task / epic / above-epic', async ({
+    page,
+  }) => {
+    mockIssueTypeRoute(page, {
+      'PROJ-1': { name: 'Sub-task', hierarchyLevel: -1 },
+      'PROJ-2': { name: 'Story', hierarchyLevel: 0 },
+      'PROJ-3': { name: 'Epic', hierarchyLevel: 1 },
+      'PROJ-4': { name: 'Initiative', hierarchyLevel: 2 },
+    });
+    await page.goto('/');
+    for (const k of ['PROJ-1', 'PROJ-2', 'PROJ-3', 'PROJ-4']) await addTicket(page, k);
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(4, { timeout: 3000 });
+
+    const card = (k) => page.locator(`#ticket-list .list-card[data-key="${k}"] .lc-type`);
+    await expect(card('PROJ-1')).toHaveClass(/lc-type-sub/);
+    await expect(card('PROJ-2')).toHaveClass(/lc-type-base/);
+    await expect(card('PROJ-3')).toHaveClass(/lc-type-epic/);
+    await expect(card('PROJ-4')).toHaveClass(/lc-type-above/);
+  });
+
+  test('a site-specific sub-task type is labelled distinctly from a plain Sub-task', async ({
+    page,
+  }) => {
+    // Both sit at hierarchyLevel -1, so they share the tier glyph/colour, but the
+    // label comes from Jira — no hardcoded vocabulary needed to tell them apart.
+    mockIssueTypeRoute(page, {
+      'PROJ-1': { name: 'Sub-task', hierarchyLevel: -1 },
+      'PROJ-2': { name: 'NBPR', hierarchyLevel: -1 },
+    });
+    await page.goto('/');
+    await addTicket(page, 'PROJ-1');
+    await addTicket(page, 'PROJ-2');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 3000 });
+
+    const chip = (k) => page.locator(`#ticket-list .list-card[data-key="${k}"] .lc-type`);
+    await expect(chip('PROJ-1')).toContainText('Sub-task');
+    await expect(chip('PROJ-2')).toContainText('NBPR');
+    await expect(chip('PROJ-2')).toHaveClass(/lc-type-sub/);
+  });
+
+  test('subtask flag is used when hierarchyLevel is absent', async ({ page }) => {
+    mockIssueTypeRoute(page, { 'PROJ-1': { name: 'Sub-task', subtask: true } });
+    await page.goto('/');
+    await addTicket(page, 'PROJ-1');
+    await expect(page.locator('#ticket-list .list-card .lc-type')).toHaveClass(/lc-type-sub/, {
+      timeout: 3000,
+    });
+  });
+
+  test('type with no level information renders a neutral chip', async ({ page }) => {
+    mockIssueTypeRoute(page, { 'PROJ-1': { name: 'Story' } });
+    await page.goto('/');
+    await addTicket(page, 'PROJ-1');
+    const chip = page.locator('#ticket-list .list-card .lc-type');
+    await expect(chip).toHaveClass(/lc-type-unknown/, { timeout: 3000 });
+    await expect(chip).toContainText('Story');
+  });
+
+  test('missing issuetype renders no chip and does not error', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    mockIssueTypeRoute(page, { 'PROJ-1': null });
+    await page.goto('/');
+    await addTicket(page, 'PROJ-1');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+    await expect(page.locator('#ticket-list .list-card .lc-type')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  test('Labels tab cards show the type chip too', async ({ page }) => {
+    mockIssueTypeRoute(page, { 'PROJ-1': { name: 'NBPR', hierarchyLevel: -1 } });
+    await page.goto('/');
+    await addTicket(page, 'PROJ-1');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+
+    // Give the ticket a label so it shows up in a Labels-tab group.
+    await page.evaluate(() => {
+      state.labels['PROJ-1'] = ['billing'];
+      saveState();
+    });
+    await page.click('#tab-labels');
+    await expect(page.locator('body')).toHaveAttribute('data-app-mode', 'labels');
+    const chip = page.locator('#ticket-list .list-card .lc-type');
+    await expect(chip).toHaveCount(1, { timeout: 3000 });
+    await expect(chip).toContainText('NBPR');
+  });
+
+  test('reading pane meta grid shows the same type chip', async ({ page }) => {
+    mockIssueTypeRoute(page, { 'PROJ-1': { name: 'Epic', hierarchyLevel: 1 } });
+    await page.goto('/');
+    await addTicket(page, 'PROJ-1');
+    const chip = page.locator('.meta-grid .lc-type');
+    await expect(chip).toHaveCount(1, { timeout: 3000 });
+    await expect(chip).toContainText('Epic');
+  });
+
+  test('group search ranks the matching issue type first', async ({ page }) => {
+    // The type name is part of the search index, so searching a site-specific
+    // type surfaces it at the top. (The list is fuzzy-matched with a deliberately
+    // loose threshold, so this asserts ranking rather than an exact-count filter.)
+    mockIssueTypeRoute(page, {
+      'PROJ-1': { name: 'Sub-task', hierarchyLevel: -1 },
+      'PROJ-2': { name: 'NBPR', hierarchyLevel: -1 },
+    });
+    await page.goto('/');
+    // New tickets are unshifted onto the top of the list, so adding the NBPR one
+    // FIRST leaves it at the bottom — the search has to actually re-rank it.
+    await addTicket(page, 'PROJ-2');
+    await addTicket(page, 'PROJ-1');
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 3000 });
+    await expect(page.locator('#ticket-list .list-card').nth(1)).toHaveAttribute(
+      'data-key',
+      'PROJ-2'
+    );
+
+    await page.fill('#group-search-input', 'NBPR');
+    await expect(page.locator('#ticket-list .list-card').first()).toHaveAttribute(
+      'data-key',
+      'PROJ-2',
+      { timeout: 3000 }
+    );
+  });
+});
+
 // ── openTicketByKey guards ────────────────────────────────────────────────────
 test.describe('openTicketByKey guards', () => {
   test.beforeEach(async ({ page }) => {
