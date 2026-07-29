@@ -451,7 +451,12 @@ function typeBadge(issuetype) {
     'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     tier.glyph +
     '</svg>' +
+    // The name lives in its own element so it can ellipsis when the chip is
+    // capped on a narrow card — text-overflow does not apply to the text of a
+    // flex container itself.
+    '<span class="lc-type-name">' +
     esc(issuetype.name) +
+    '</span>' +
     '</span>'
   );
 }

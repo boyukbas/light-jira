@@ -1770,6 +1770,9 @@ test.describe('Issue type / hierarchy level indicator', () => {
     const chip = page.locator('#ticket-list .list-card .lc-type');
     await expect(chip).toHaveCount(1, { timeout: 3000 });
     await expect(chip).toContainText('Story');
+    // The name sits in its own element so a long type name can ellipsis rather
+    // than being clipped mid-word on a narrow card.
+    await expect(chip.locator('.lc-type-name')).toHaveText('Story');
   });
 
   test('hierarchyLevel drives the tier class for sub-task / epic / above-epic', async ({
