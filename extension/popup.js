@@ -94,45 +94,56 @@ function queryJiraTabs(allWindows) {
   return chrome.tabs.query(q);
 }
 
-// Collect tickets from the open Jira tabs and beam them as one group.
+// The one ticket a tab is sitting on, read straight from its URL. Returns null
+// for Jira pages that aren't an issue (boards, backlogs, dashboards, filters).
+function tabTicketKey(tab) {
+  const m = (tab.url || '').match(/\/browse\/([A-Z][A-Z0-9]{0,9}-\d+)/i);
+  return m ? m[1].toUpperCase() : null;
+}
+
+// One ticket per open ticket tab, deduped, in tab order.
+//
+// Deliberately URL-based rather than asking each tab's content script to scan the
+// page: N tabs give exactly N tickets (a page scan also returns linked issues,
+// sub-tasks and anything in a sidebar, so a handful of tabs could balloon into
+// dozens of keys), and it works on tabs that were opened before the extension was
+// last reloaded — those have no content script injected and would return nothing.
+// Deep per-page scanning still exists for the active tab in "Tickets on This Page".
+async function collectTabTickets(allWindows) {
+  const tabs = await queryJiraTabs(allWindows);
+  const keys = new Set();
+  for (const tab of tabs) {
+    const key = tabTicketKey(tab);
+    if (key) keys.add(key);
+  }
+  return Array.from(keys);
+}
+
+// Gather the ticket tabs of a window (or every window) and beam them as one group.
 async function beamAllJiraTabs(btn, { allWindows = false } = {}) {
   const originalLabel = btn ? btn.textContent : '';
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'Scanning…';
+    btn.textContent = 'Collecting…';
   }
-  const tabs = await queryJiraTabs(allWindows);
-  // Query every tab concurrently — a serial await-loop made the popup feel slow
-  // when many Jira tabs were open. allSettled preserves tab order (so the title
-  // dedup below stays deterministic) and never rejects on a content-script-less tab.
-  const settled = await Promise.allSettled(
-    tabs.map((tab) => chrome.tabs.sendMessage(tab.id, { type: 'extract-keys' }))
-  );
-  const ticketMap = new Map();
-  for (const r of settled) {
-    if (r.status !== 'fulfilled' || !r.value) continue;
-    const response = r.value;
-    const tickets = response.tickets || (response.keys || []).map((k) => ({ key: k, title: k }));
-    for (const { key, title } of tickets) {
-      if (!ticketMap.has(key) || (title && title !== key)) {
-        ticketMap.set(key, title || key);
-      }
-    }
-  }
-  if (!ticketMap.size) {
+  const keys = await collectTabTickets(allWindows);
+  if (!keys.length) {
     // Give the user feedback instead of silently closing the popup. Restore the
     // caller's own label — it is generated from the live tab count.
     if (btn) {
       btn.disabled = false;
       btn.textContent = originalLabel;
     }
-    showMsg('No tickets found in open Jira tabs.', 'error');
+    showMsg(
+      allWindows ? 'No Jira ticket tabs are open.' : 'No Jira ticket tabs are open in this window.',
+      'error'
+    );
     return;
   }
   beamToApp({
     type: 'open-group',
     name: allWindows ? 'All Jira Tabs' : 'Jira Tabs',
-    keys: Array.from(ticketMap.keys()),
+    keys,
   });
 }
 
@@ -295,22 +306,27 @@ async function init() {
   );
 
   (async () => {
-    const [here, everywhere] = await Promise.all([queryJiraTabs(false), queryJiraTabs(true)]);
+    // Count what will actually be beamed — ticket tabs, not every Jira tab — so
+    // the label can never promise more than the action delivers.
+    const [here, everywhere] = await Promise.all([
+      collectTabTickets(false),
+      collectTabTickets(true),
+    ]);
     const mine = here.length;
     const elsewhere = Math.max(0, everywhere.length - mine);
     if (beamAllBtn) {
       if (mine) {
-        beamAllBtn.textContent = `Beam ${mine} Jira Tab${plural(mine)}`;
-        beamAllBtn.title = `Beam ${mine} Jira tab${plural(mine)} from this window`;
+        beamAllBtn.textContent = `Beam ${mine} Ticket${plural(mine)}`;
+        beamAllBtn.title = `Beam ${mine} ticket tab${plural(mine)} open in this window`;
       } else {
         beamAllBtn.disabled = true;
-        beamAllBtn.textContent = 'No Jira Tabs';
-        beamAllBtn.title = 'No Jira tabs are open in this window';
+        beamAllBtn.textContent = 'No Ticket Tabs';
+        beamAllBtn.title = 'No Jira ticket tabs are open in this window';
       }
     }
     if (beamAllWindowsBtn && elsewhere) {
       beamAllWindowsBtn.textContent = `+${elsewhere} in other window${plural(elsewhere)}`;
-      beamAllWindowsBtn.title = `Also beam ${elsewhere} Jira tab${plural(elsewhere)} open in other Chrome windows`;
+      beamAllWindowsBtn.title = `Also beam ${elsewhere} ticket tab${plural(elsewhere)} open in other Chrome windows`;
       beamAllWindowsBtn.classList.remove('hidden');
     }
   })();
