@@ -10,7 +10,8 @@
     "format": "prettier --write \"**/*.{html,css,js}\" --ignore-path .prettierignore",
     "typecheck": "tsc -p tsconfig.json",
     "test": "playwright test",
-    "test:ui": "playwright test --ui"
+    "test:ui": "playwright test --ui",
+    "build:ext": "powershell -NoProfile -ExecutionPolicy Bypass -File custom/build-extension.ps1"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0",
