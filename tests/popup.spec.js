@@ -195,23 +195,53 @@ test.describe('Popup — recents', () => {
 });
 
 test.describe('Popup — feedback & a11y', () => {
-  test('Beam All with Jira tabs but no tickets shows a message and does not close', async ({
-    page,
-  }) => {
+  // Beam All walks the window's tabs and takes the ONE ticket each tab is sitting
+  // on, read from its URL. No content-script round-trip, so it also works on tabs
+  // opened before the extension was last reloaded.
+  const ticketTab = (id, key, windowId) => ({
+    id,
+    windowId,
+    url: `https://site.atlassian.net/browse/${key}`,
+    title: `${key} Something happened - Jira`,
+  });
+
+  test('Jira tabs that are not issue pages leave nothing to beam', async ({ page }) => {
     await openPopup(page, {
       appTab: null,
       currentTab: { id: 1, url: 'https://example.com' },
       groups: [HISTORY([])],
       prefs: {},
-      // A Jira tab is open (so the button is enabled) but it yields no keys —
-      // e.g. a dashboard or board with no issues rendered.
-      atlassianTabs: [{ id: 10 }],
-      extractResponse: { keys: [], tickets: [] },
+      // Jira tabs are open, but a dashboard and a board are not tickets — so the
+      // user is told up front rather than clicking and getting an error.
+      atlassianTabs: [
+        { id: 10, url: 'https://site.atlassian.net/jira/dashboards/1' },
+        { id: 11, url: 'https://site.atlassian.net/jira/software/projects/X/boards/2' },
+      ],
     });
 
-    await page.click('#beam-all-btn');
+    await expect(page.locator('#beam-all-btn')).toBeDisabled();
+    await expect(page.locator('#beam-all-btn')).toContainText(/no ticket tabs/i);
+  });
+
+  test('a beam that finds nothing mid-flight reports it instead of closing', async ({ page }) => {
+    // Race guard: the tabs counted when the popup opened can be closed before the
+    // click lands. Drive beamAllJiraTabs directly, since the button is by then
+    // (correctly) disabled in every reachable UI state.
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: {},
+      atlassianTabs: [{ id: 10, url: 'https://site.atlassian.net/browse/GONE-1' }],
+    });
+
+    await page.evaluate(() => {
+      chrome.tabs.query = async () => []; // every ticket tab went away
+      return beamAllJiraTabs(null);
+    });
+
     await expect(page.locator('#popup-msg')).toBeVisible();
-    await expect(page.locator('#popup-msg')).toContainText('No tickets found');
+    await expect(page.locator('#popup-msg')).toContainText(/ticket tabs/i);
     expect(await page.evaluate(() => window.__calls.closed)).toBe(false);
     expect(await page.evaluate(() => window.__calls.windowsCreated.length)).toBe(0);
   });
@@ -227,27 +257,50 @@ test.describe('Popup — feedback & a11y', () => {
 
     const btn = page.locator('#beam-all-btn');
     await expect(btn).toBeDisabled();
-    await expect(btn).toContainText(/no jira tabs/i);
+    await expect(btn).toContainText(/no ticket tabs/i);
   });
 
-  test('Beam All label reports how many Jira tabs the active window has', async ({ page }) => {
+  test('Beam All label counts the ticket tabs in the active window only', async ({ page }) => {
     await openPopup(page, {
       appTab: null,
       currentTab: { id: 1, url: 'https://example.com' },
       groups: [HISTORY([])],
       prefs: {},
       currentWindowId: 1,
-      // 2 in this window, 1 in another — the label must count only this window.
+      // 2 ticket tabs here, 1 in another window, plus a board that is not a ticket.
       atlassianTabs: [
-        { id: 10, windowId: 1 },
-        { id: 11, windowId: 1 },
-        { id: 12, windowId: 2 },
+        ticketTab(10, 'AAA-1', 1),
+        ticketTab(11, 'AAA-2', 1),
+        { id: 12, windowId: 1, url: 'https://site.atlassian.net/jira/software/boards/3' },
+        ticketTab(99, 'ZZZ-9', 2),
       ],
-      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
     });
 
     await expect(page.locator('#beam-all-btn')).toContainText('2');
     await expect(page.locator('#beam-all-btn')).toBeEnabled();
+  });
+
+  test('Beam All takes one ticket per tab and skips non-ticket tabs', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: { openInWindow: true },
+      currentWindowId: 1,
+      atlassianTabs: [
+        ticketTab(10, 'AAA-1', 1),
+        ticketTab(11, 'AAA-2', 1),
+        ticketTab(12, 'AAA-1', 1), // same ticket open twice — must dedupe
+        { id: 13, windowId: 1, url: 'https://site.atlassian.net/jira/dashboards/1' },
+      ],
+    });
+
+    await page.click('#beam-all-btn');
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    const payload = await decodeLastWindowBeam(page);
+    expect(payload.keys).toEqual(['AAA-1', 'AAA-2']);
+    // Proves the collection is URL-based: no tab was asked to extract keys.
+    expect(await page.evaluate(() => window.__calls.extracted)).toEqual([]);
   });
 
   test('Beam All only collects tabs from the active window', async ({ page }) => {
@@ -257,18 +310,13 @@ test.describe('Popup — feedback & a11y', () => {
       groups: [HISTORY([])],
       prefs: { openInWindow: true },
       currentWindowId: 1,
-      atlassianTabs: [
-        { id: 10, windowId: 1 },
-        { id: 99, windowId: 2 },
-      ],
-      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
+      atlassianTabs: [ticketTab(10, 'AAA-1', 1), ticketTab(99, 'ZZZ-9', 2)],
     });
 
     await page.click('#beam-all-btn');
     await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
-    // Only the current-window tab should have been asked to extract keys.
-    const asked = await page.evaluate(() => window.__calls.extracted);
-    expect(asked).toEqual([10]);
+    const payload = await decodeLastWindowBeam(page);
+    expect(payload.keys).toEqual(['AAA-1']);
   });
 
   test('an opt-in link beams Jira tabs from other windows too', async ({ page }) => {
@@ -278,11 +326,7 @@ test.describe('Popup — feedback & a11y', () => {
       groups: [HISTORY([])],
       prefs: { openInWindow: true },
       currentWindowId: 1,
-      atlassianTabs: [
-        { id: 10, windowId: 1 },
-        { id: 99, windowId: 2 },
-      ],
-      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
+      atlassianTabs: [ticketTab(10, 'AAA-1', 1), ticketTab(99, 'ZZZ-9', 2)],
     });
 
     const link = page.locator('#beam-all-windows-btn');
@@ -291,8 +335,8 @@ test.describe('Popup — feedback & a11y', () => {
 
     await link.click();
     await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
-    const asked = await page.evaluate(() => window.__calls.extracted);
-    expect(asked.sort()).toEqual([10, 99]);
+    const payload = await decodeLastWindowBeam(page);
+    expect(payload.keys.sort()).toEqual(['AAA-1', 'ZZZ-9']);
   });
 
   test('the other-windows link stays hidden when every Jira tab is in this window', async ({
@@ -304,8 +348,7 @@ test.describe('Popup — feedback & a11y', () => {
       groups: [HISTORY([])],
       prefs: {},
       currentWindowId: 1,
-      atlassianTabs: [{ id: 10, windowId: 1 }],
-      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
+      atlassianTabs: [ticketTab(10, 'AAA-1', 1)],
     });
 
     await expect(page.locator('#beam-all-windows-btn')).toBeHidden();
@@ -450,22 +493,37 @@ test.describe('Popup — arrow-key navigation (B3)', () => {
   });
 });
 
-test.describe('Popup — Beam All is parallel (B4)', () => {
-  test('aggregates tickets across multiple Jira tabs', async ({ page }) => {
-    await openPopup(page, {
-      appTab: null,
-      currentTab: { id: 1, url: 'https://example.com' },
-      groups: [HISTORY([])],
-      prefs: { openInWindow: true },
-      atlassianTabs: [{ id: 10 }, { id: 11 }],
-      extractResponse: { tickets: [{ key: 'D-1', title: 'd' }] },
-    });
+test.describe('Popup — Beam All group payload', () => {
+  const tabs = [
+    { id: 10, windowId: 1, url: 'https://site.atlassian.net/browse/D-1' },
+    { id: 11, windowId: 2, url: 'https://site.atlassian.net/browse/D-2' },
+  ];
+  const cfg = {
+    appTab: null,
+    currentTab: { id: 1, url: 'https://example.com' },
+    groups: [HISTORY([])],
+    prefs: { openInWindow: true },
+    currentWindowId: 1,
+    atlassianTabs: tabs,
+  };
 
+  test('a window-scoped beam is an open-group named for this window', async ({ page }) => {
+    await openPopup(page, cfg);
     await page.click('#beam-all-btn');
     await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
     const payload = await decodeLastWindowBeam(page);
     expect(payload.type).toBe('open-group');
+    expect(payload.name).toBe('Jira Tabs');
     expect(payload.keys).toEqual(['D-1']);
+  });
+
+  test('an all-windows beam is named distinctly so the two never collide', async ({ page }) => {
+    await openPopup(page, cfg);
+    await page.click('#beam-all-windows-btn');
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    const payload = await decodeLastWindowBeam(page);
+    expect(payload.name).toBe('All Jira Tabs');
+    expect(payload.keys.sort()).toEqual(['D-1', 'D-2']);
   });
 });
 
