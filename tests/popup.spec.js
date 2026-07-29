@@ -13,6 +13,7 @@ function installChromeStub(cfg) {
     windowsCreated: [],
     tabsCreated: [],
     sendMessage: [],
+    extracted: [], // tab ids asked for keys — proves which window was scanned
     closed: false,
   };
   const store = {
@@ -38,7 +39,15 @@ function installChromeStub(cfg) {
     tabs: {
       query: async (q) => {
         if (q.url && q.url.includes('index.html')) return cfg.appTab ? [cfg.appTab] : [];
-        if (q.url && q.url.includes('atlassian.net')) return cfg.atlassianTabs || [];
+        if (q.url && q.url.includes('atlassian.net')) {
+          const all = cfg.atlassianTabs || [];
+          // Honour currentWindow so window-scoped beaming can be tested. A tab
+          // with no windowId counts as being in the current window, which keeps
+          // pre-existing fixtures working unchanged.
+          if (!q.currentWindow) return all;
+          const cw = cfg.currentWindowId === undefined ? 1 : cfg.currentWindowId;
+          return all.filter((t) => t.windowId === undefined || t.windowId === cw);
+        }
         if (q.active) return cfg.currentTab ? [cfg.currentTab] : [];
         return [];
       },
@@ -46,9 +55,11 @@ function installChromeStub(cfg) {
       create: async (o) => {
         window.__calls.tabsCreated.push(o);
       },
-      sendMessage: async (_tabId, msg) => {
-        if (msg && msg.type === 'extract-keys')
+      sendMessage: async (tabId, msg) => {
+        if (msg && msg.type === 'extract-keys') {
+          window.__calls.extracted.push(tabId);
           return cfg.extractResponse || { keys: [], tickets: [] };
+        }
         return null;
       },
     },
@@ -184,7 +195,28 @@ test.describe('Popup — recents', () => {
 });
 
 test.describe('Popup — feedback & a11y', () => {
-  test('Beam All with no Jira tabs shows a message and does not close', async ({ page }) => {
+  test('Beam All with Jira tabs but no tickets shows a message and does not close', async ({
+    page,
+  }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: {},
+      // A Jira tab is open (so the button is enabled) but it yields no keys —
+      // e.g. a dashboard or board with no issues rendered.
+      atlassianTabs: [{ id: 10 }],
+      extractResponse: { keys: [], tickets: [] },
+    });
+
+    await page.click('#beam-all-btn');
+    await expect(page.locator('#popup-msg')).toBeVisible();
+    await expect(page.locator('#popup-msg')).toContainText('No tickets found');
+    expect(await page.evaluate(() => window.__calls.closed)).toBe(false);
+    expect(await page.evaluate(() => window.__calls.windowsCreated.length)).toBe(0);
+  });
+
+  test('Beam All is disabled when the active window has no Jira tabs', async ({ page }) => {
     await openPopup(page, {
       appTab: null,
       currentTab: { id: 1, url: 'https://example.com' },
@@ -193,11 +225,90 @@ test.describe('Popup — feedback & a11y', () => {
       atlassianTabs: [],
     });
 
+    const btn = page.locator('#beam-all-btn');
+    await expect(btn).toBeDisabled();
+    await expect(btn).toContainText(/no jira tabs/i);
+  });
+
+  test('Beam All label reports how many Jira tabs the active window has', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: {},
+      currentWindowId: 1,
+      // 2 in this window, 1 in another — the label must count only this window.
+      atlassianTabs: [
+        { id: 10, windowId: 1 },
+        { id: 11, windowId: 1 },
+        { id: 12, windowId: 2 },
+      ],
+      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
+    });
+
+    await expect(page.locator('#beam-all-btn')).toContainText('2');
+    await expect(page.locator('#beam-all-btn')).toBeEnabled();
+  });
+
+  test('Beam All only collects tabs from the active window', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: { openInWindow: true },
+      currentWindowId: 1,
+      atlassianTabs: [
+        { id: 10, windowId: 1 },
+        { id: 99, windowId: 2 },
+      ],
+      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
+    });
+
     await page.click('#beam-all-btn');
-    await expect(page.locator('#popup-msg')).toBeVisible();
-    await expect(page.locator('#popup-msg')).toContainText('No tickets found');
-    expect(await page.evaluate(() => window.__calls.closed)).toBe(false);
-    expect(await page.evaluate(() => window.__calls.windowsCreated.length)).toBe(0);
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    // Only the current-window tab should have been asked to extract keys.
+    const asked = await page.evaluate(() => window.__calls.extracted);
+    expect(asked).toEqual([10]);
+  });
+
+  test('an opt-in link beams Jira tabs from other windows too', async ({ page }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: { openInWindow: true },
+      currentWindowId: 1,
+      atlassianTabs: [
+        { id: 10, windowId: 1 },
+        { id: 99, windowId: 2 },
+      ],
+      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
+    });
+
+    const link = page.locator('#beam-all-windows-btn');
+    await expect(link).toBeVisible();
+    await expect(link).toContainText('1');
+
+    await link.click();
+    await expect.poll(() => page.evaluate(() => window.__calls.windowsCreated.length)).toBe(1);
+    const asked = await page.evaluate(() => window.__calls.extracted);
+    expect(asked.sort()).toEqual([10, 99]);
+  });
+
+  test('the other-windows link stays hidden when every Jira tab is in this window', async ({
+    page,
+  }) => {
+    await openPopup(page, {
+      appTab: null,
+      currentTab: { id: 1, url: 'https://example.com' },
+      groups: [HISTORY([])],
+      prefs: {},
+      currentWindowId: 1,
+      atlassianTabs: [{ id: 10, windowId: 1 }],
+      extractResponse: { tickets: [{ key: 'W-1', title: 'w' }] },
+    });
+
+    await expect(page.locator('#beam-all-windows-btn')).toBeHidden();
   });
 
   test('Select-all is a real <button>, not an anchor', async ({ page }) => {
@@ -355,5 +466,87 @@ test.describe('Popup — Beam All is parallel (B4)', () => {
     const payload = await decodeLastWindowBeam(page);
     expect(payload.type).toBe('open-group');
     expect(payload.keys).toEqual(['D-1']);
+  });
+});
+
+// ── Layout: the popup itself must never scroll ────────────────────────────────
+// A Chrome popup is capped at 600px tall. Without an internal scroll region the
+// whole body scrolls, which puts a scrollbar down the entire popup and pushes
+// the footer actions out of reach. Only <main> may scroll.
+test.describe('Popup — no outer scrollbar', () => {
+  const manyTickets = Array.from({ length: 40 }, (_, i) => ({
+    key: `LONG-${i + 1}`,
+    title: `A reasonably long ticket title number ${i + 1}`,
+  }));
+
+  const openCrowded = (page) =>
+    openPopup(page, {
+      appTab: null,
+      currentTab: {
+        id: 1,
+        url: 'https://site.atlassian.net/browse/LONG-1',
+        title: 'Crowded board - Jira',
+      },
+      groups: [HISTORY([])],
+      prefs: {},
+      atlassianTabs: [{ id: 1 }],
+      extractResponse: { tickets: manyTickets },
+    });
+
+  test('body does not scroll even with a long ticket list', async ({ page }) => {
+    // 520px rather than Chrome's 600px ceiling: at 600 this fixture lands almost
+    // exactly on the boundary, so a shorter popup makes the overflow deterministic.
+    // The invariants asserted here must hold at any popup height.
+    await page.setViewportSize({ width: 420, height: 520 });
+    await openCrowded(page);
+    await expect(page.locator('#keys-list li')).toHaveCount(40);
+
+    // Measure the scrolling element (documentElement), not body: a body with no
+    // height constraint reports its own content height, which would make this
+    // comparison trivially true.
+    const doc = await page.evaluate(() => {
+      const el = document.scrollingElement || document.documentElement;
+      return { scroll: el.scrollHeight, client: el.clientHeight };
+    });
+    // Allow a 1px rounding tolerance.
+    expect(doc.scroll).toBeLessThanOrEqual(doc.client + 1);
+  });
+
+  test('the section label states the total so off-screen rows are discoverable', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 420, height: 520 });
+    await openCrowded(page);
+    await expect(page.locator('#section-keys .section-label')).toContainText('40');
+  });
+
+  test('the ticket list is the scroll region, not the page', async ({ page }) => {
+    // 520px rather than Chrome's 600px ceiling: at 600 this fixture lands almost
+    // exactly on the boundary, so a shorter popup makes the overflow deterministic.
+    // The invariants asserted here must hold at any popup height.
+    await page.setViewportSize({ width: 420, height: 520 });
+    await openCrowded(page);
+    await expect(page.locator('#keys-list li')).toHaveCount(40);
+
+    const list = await page.evaluate(() => {
+      const el = document.getElementById('keys-list');
+      return { scroll: el.scrollHeight, client: el.clientHeight };
+    });
+    expect(list.scroll).toBeGreaterThan(list.client);
+  });
+
+  test('the section action and footer stay fully visible, never sliced', async ({ page }) => {
+    await page.setViewportSize({ width: 420, height: 520 });
+    await openCrowded(page);
+    await expect(page.locator('#keys-list li')).toHaveCount(40);
+
+    // The list gives up height so this button is never cut off at the fold.
+    await expect(page.locator('#beam-group-btn')).toBeInViewport({ ratio: 1 });
+
+    // Footer is pinned: fully inside the popup viewport without scrolling.
+    const footer = await page.locator('footer').boundingBox();
+    const viewportHeight = page.viewportSize().height;
+    expect(footer.y + footer.height).toBeLessThanOrEqual(viewportHeight + 1);
+    await expect(page.locator('#open-app-btn')).toBeInViewport({ ratio: 1 });
   });
 });

@@ -93,8 +93,12 @@
     <div id="popup-msg" class="popup-msg hidden" role="status" aria-live="polite"></div>
 
     <footer>
-      <button id="beam-all-btn" class="btn">Beam All Jira Tabs</button>
-      <button id="open-app-btn" class="btn ghost">Open App</button>
+      <!-- Opt-in escape hatch: only revealed when another window has Jira tabs -->
+      <button id="beam-all-windows-btn" type="button" class="link-btn hidden"></button>
+      <div class="footer-row">
+        <button id="beam-all-btn" class="btn">Beam All Jira Tabs</button>
+        <button id="open-app-btn" class="btn ghost">Open App</button>
+      </div>
     </footer>
 
     <script src="../lib/fuse.min.js"></script>
