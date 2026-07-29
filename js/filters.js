@@ -24,7 +24,14 @@ function parseFilterInput(input) {
 }
 
 // ── FILTER & JQL MODE ─────────────────────────────────────────────────────────
-function applyFilterGroup(keys, groupName, queryKey) {
+// `total` (optional) is how many tickets the query actually matched. When it
+// exceeds what was returned the count is reported as "N of TOTAL" — there is a
+// single #toast element, so a separate truncation toast would just overwrite this
+// one and never be read.
+function applyFilterGroup(keys, groupName, queryKey, total) {
+  const truncated = typeof total === 'number' && total > keys.length;
+  const count = truncated ? keys.length + ' of ' + total : String(keys.length);
+  const severity = truncated ? 'info' : 'success';
   const existing = state.groups.find((g) => g.isFilter && g.query === queryKey);
   if (existing) {
     existing.keys = keys;
@@ -32,7 +39,7 @@ function applyFilterGroup(keys, groupName, queryKey) {
     state.activeKey = keys[0];
     saveState();
     updateViewMode();
-    toast('Filter reloaded: ' + keys.length + ' tickets in "' + existing.name + '"', 'success');
+    toast('Filter reloaded: ' + count + ' tickets in "' + existing.name + '"', severity);
     return;
   }
   const id = 'filter_' + Date.now();
@@ -41,7 +48,7 @@ function applyFilterGroup(keys, groupName, queryKey) {
   state.activeKey = keys[0];
   saveState();
   updateViewMode();
-  toast('Loaded ' + keys.length + ' tickets into "' + groupName + '"', 'success');
+  toast('Loaded ' + count + ' tickets into "' + groupName + '"', severity);
 }
 
 async function runFilterLoad(rawInput, customName = '') {
@@ -108,5 +115,5 @@ async function runFilterLoad(rawInput, customName = '') {
     return iss.key;
   });
 
-  applyFilterGroup(keys, groupName, jql);
+  applyFilterGroup(keys, groupName, jql, results.total);
 }

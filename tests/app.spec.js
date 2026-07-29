@@ -115,6 +115,80 @@ async function createGroup(page, name) {
   await page.keyboard.press('Enter');
 }
 
+// Seed a configured app whose active group already holds `keys`, with an empty
+// issue cache — so startup has to hydrate them. activeKey stays null so the
+// reading pane never issues its own per-ticket fetch and the list-loading
+// behaviour can be measured in isolation.
+const initWithKeys = (keys) => {
+  localStorage.setItem(
+    'jira_config',
+    JSON.stringify({
+      email: 'test@example.com',
+      token: 'fake-api-token',
+      baseUrl: 'https://site.atlassian.net',
+      useCloud: false,
+    })
+  );
+  localStorage.setItem(
+    'jira_state',
+    JSON.stringify({
+      groups: [
+        { id: 'inbox', name: 'Inbox', keys },
+        { id: 'history', name: 'History', keys: [] },
+      ],
+      activeGroupId: 'inbox',
+      activeKey: null,
+      tabVisibility: {
+        jira: true,
+        labels: true,
+        timeline: true,
+        history: true,
+        notes: true,
+        mindmap: true,
+        snippets: true,
+      },
+    })
+  );
+};
+
+// Mock the JQL endpoint so it answers a `key in (...)` batch. Returns an issue
+// for every requested key unless `only` limits it (to simulate keys the server
+// won't return — deleted, moved, or permission-restricted). `total` overrides the
+// reported match count so truncation can be simulated. Records each call's JQL.
+function mockBatchJql(page, calls, { only, total } = {}) {
+  page.route(
+    (url) => url.toString().includes('/rest/api/3/search/jql'),
+    async (route) => {
+      const jql = decodeURIComponent(
+        (route
+          .request()
+          .url()
+          .match(/[?&]jql=([^&]*)/) || [])[1] || ''
+      );
+      calls.push(jql);
+      const requested = (jql.match(/[A-Z][A-Z0-9]*-\d+/g) || []).map((k) => k.toUpperCase());
+      // A general JQL (not a key batch) still needs to return something.
+      const base = requested.length ? requested : ['GEN-1', 'GEN-2', 'GEN-3'];
+      const served = only ? base.filter((k) => only.includes(k)) : base;
+      const issues = served.map((key) => ({
+        key,
+        fields: {
+          summary: 'Batched ' + key,
+          status: { name: 'Open', statusCategory: { name: 'To Do' } },
+          issuetype: { name: 'Story', hierarchyLevel: 0 },
+          assignee: null,
+          updated: new Date().toISOString(),
+        },
+      }));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ issues, total: total === undefined ? issues.length : total }),
+      });
+    }
+  );
+}
+
 // ── 1. LAYOUT ─────────────────────────────────────────────────────────────────
 test.describe('Layout', () => {
   test.beforeEach(async ({ page }) => {
@@ -1896,6 +1970,225 @@ test.describe('Issue type / hierarchy level indicator', () => {
       'PROJ-2',
       { timeout: 3000 }
     );
+  });
+});
+
+// ── 9d. BATCH TICKET HYDRATION ────────────────────────────────────────────────
+// A beamed list used to be fetched one heavy `fields=*all` request at a time,
+// serially. The list only needs card-level fields, which one JQL request can
+// return for the whole batch; the reading pane still full-fetches the ticket it
+// is showing (reading.js re-fetches any cache entry with no description).
+test.describe('Batch ticket hydration', () => {
+  const KEYS = ['AAA-1', 'AAA-2', 'AAA-3', 'AAA-4', 'AAA-5'];
+
+  test('a whole list hydrates in one JQL request, not one request per ticket', async ({ page }) => {
+    const jqlCalls = [];
+    const issueCalls = [];
+    await page.addInitScript(initWithKeys, KEYS);
+    mockFieldsRoute(page);
+    page.route(
+      (url) => url.toString().includes('/rest/api/3/issue/'),
+      async (route) => {
+        issueCalls.push(route.request().url());
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(issueFixture),
+        });
+      }
+    );
+    mockBatchJql(page, jqlCalls);
+    await page.goto('/');
+
+    // All five cards carry real summaries from the single batch response.
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(5, { timeout: 5000 });
+    for (const k of KEYS) {
+      await expect(page.locator(`#ticket-list .list-card[data-key="${k}"]`)).toContainText(
+        'Batched ' + k
+      );
+    }
+    expect(jqlCalls.length).toBe(1);
+    expect(jqlCalls[0]).toContain('key in');
+    // The whole point: no per-ticket fetches for list hydration.
+    expect(issueCalls).toEqual([]);
+  });
+
+  test('keys the batch cannot return show an error state, not a permanent Loading', async ({
+    page,
+  }) => {
+    const jqlCalls = [];
+    await page.addInitScript(initWithKeys, KEYS);
+    mockFieldsRoute(page);
+    // AAA-4 / AAA-5 are withheld, as a deleted or permission-restricted key would be.
+    mockBatchJql(page, jqlCalls, { only: ['AAA-1', 'AAA-2', 'AAA-3'] });
+    await page.goto('/');
+
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(5, { timeout: 5000 });
+    const missing = page.locator('#ticket-list .list-card[data-key="AAA-4"]');
+    await expect(missing.locator('.lc-load-error')).toHaveCount(1, { timeout: 5000 });
+    await expect(missing).not.toContainText('Loading');
+    // Successfully loaded rows are untouched.
+    await expect(
+      page.locator('#ticket-list .list-card[data-key="AAA-1"] .lc-load-error')
+    ).toHaveCount(0);
+  });
+
+  test('a failed batch marks every key in it rather than hanging', async ({ page }) => {
+    await page.addInitScript(initWithKeys, KEYS);
+    mockFieldsRoute(page);
+    await page.route(
+      (url) => url.toString().includes('/rest/api/3/search/jql'),
+      (route) => route.fulfill({ status: 500, contentType: 'application/json', body: '{}' })
+    );
+    await page.goto('/');
+
+    await expect(page.locator('#ticket-list .lc-load-error')).toHaveCount(5, { timeout: 5000 });
+  });
+});
+
+// ── 9e. FILTER RESULT TRUNCATION ──────────────────────────────────────────────
+test.describe('Filter truncation', () => {
+  test('a filter with more matches than the page size says so', async ({ page }) => {
+    const jqlCalls = [];
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    // 3 issues returned but 300 matched — the user must not believe they see all.
+    mockBatchJql(page, jqlCalls, { total: 300 });
+    await page.goto('/');
+
+    await page.fill('#search-input', 'project = AAA ORDER BY created DESC');
+    await page.locator('#search-input').press('Enter');
+
+    // Folded into the single load message — a second toast would overwrite it.
+    await expect(page.locator('#toast')).toContainText('3 of 300', { timeout: 5000 });
+  });
+});
+
+// ── 9f. PARENT KEY ON CARDS ───────────────────────────────────────────────────
+test.describe('Parent key on cards', () => {
+  test('a sub-task card names its parent', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    mockIssueRoute(page, {
+      ...issueFixture,
+      key: 'PROJ-1',
+      fields: {
+        ...issueFixture.fields,
+        summary: 'Dev: Implementation',
+        issuetype: { name: 'Sub-task', hierarchyLevel: -1 },
+        parent: { key: 'PROJ-900', fields: { summary: 'The umbrella bug' } },
+      },
+    });
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-1');
+    await page.locator('#search-input').press('Enter');
+
+    const parent = page.locator('#ticket-list .list-card .lc-parent');
+    await expect(parent).toHaveCount(1, { timeout: 3000 });
+    await expect(parent).toContainText('PROJ-900');
+    await expect(parent).toHaveAttribute('title', /umbrella bug/);
+  });
+
+  test('a card with no parent shows no parent line', async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    mockIssueRoute(page, issueFixture); // fixture has parent: null
+    await page.goto('/');
+    await page.fill('#search-input', 'PROJ-1');
+    await page.locator('#search-input').press('Enter');
+
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+    await expect(page.locator('#ticket-list .list-card .lc-parent')).toHaveCount(0);
+  });
+});
+
+// ── 9g. BEAM GROUP MERGING ────────────────────────────────────────────────────
+test.describe('Beam group merging', () => {
+  const beam = (page, name, keys) =>
+    page.evaluate(
+      ([n, k]) =>
+        window.dispatchEvent(
+          new CustomEvent('jira-beam', { detail: { type: 'open-group', name: n, keys: k } })
+        ),
+      [name, keys]
+    );
+
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    mockIssueRoute(page, issueFixture);
+    const calls = [];
+    mockBatchJql(page, calls);
+    await page.goto('/');
+  });
+
+  test('re-beaming the same name merges instead of stacking duplicate groups', async ({ page }) => {
+    await beam(page, 'Jira Tabs', ['AAA-1', 'AAA-2']);
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(2, { timeout: 3000 });
+
+    await beam(page, 'Jira Tabs', ['AAA-2', 'AAA-3']);
+    // One group named "Jira Tabs", holding the union of both beams.
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(3, { timeout: 3000 });
+    const names = await page.locator('#group-list .g-name').allTextContents();
+    expect(names.filter((n) => n === 'Jira Tabs').length).toBe(1);
+  });
+
+  test('a differently named beam still creates its own group', async ({ page }) => {
+    await beam(page, 'Jira Tabs', ['AAA-1']);
+    await expect(page.locator('#ticket-list .list-card')).toHaveCount(1, { timeout: 3000 });
+    await beam(page, 'All Jira Tabs', ['AAA-9']);
+
+    const names = await page.locator('#group-list .g-name').allTextContents();
+    expect(names).toContain('Jira Tabs');
+    expect(names).toContain('All Jira Tabs');
+  });
+});
+
+// ── 9h. SETTINGS: TEST CONNECTION ─────────────────────────────────────────────
+test.describe('Settings test connection', () => {
+  const openSettings = async (page) => {
+    await page.addInitScript(initConfig);
+    mockFieldsRoute(page);
+    await page.goto('/');
+    await page.click('#settings-btn');
+  };
+
+  test('a working site reports who you are connected as', async ({ page }) => {
+    await openSettings(page);
+    await page.route(
+      (url) => url.toString().includes('/rest/api/3/myself'),
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ displayName: 'Jane Doe' }),
+        })
+    );
+
+    await page.click('#cfg-test-btn');
+    await expect(page.locator('#cfg-test-result')).toContainText('Jane Doe', { timeout: 5000 });
+    await expect(page.locator('#cfg-test-result')).toHaveClass(/cfg-test-ok/);
+  });
+
+  test('rejected credentials are reported, not silently ignored', async ({ page }) => {
+    await openSettings(page);
+    await page.route(
+      (url) => url.toString().includes('/rest/api/3/myself'),
+      (route) => route.fulfill({ status: 401, contentType: 'application/json', body: '{}' })
+    );
+
+    await page.click('#cfg-test-btn');
+    await expect(page.locator('#cfg-test-result')).toContainText(/couldn't connect/i, {
+      timeout: 5000,
+    });
+    await expect(page.locator('#cfg-test-result')).toHaveClass(/cfg-test-bad/);
+  });
+
+  test('missing fields prompt to fill them in rather than firing a request', async ({ page }) => {
+    await openSettings(page);
+    await page.fill('#cfg-token', '');
+    await page.click('#cfg-test-btn');
+    await expect(page.locator('#cfg-test-result')).toContainText(/API token/i);
   });
 });
 

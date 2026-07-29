@@ -143,7 +143,11 @@
   gap: 6px;
   align-items: center;
 }
+/* Parent key chip on a sub-task / Epic-child card. Sits on its own line under
+   the title, so it needs the top gap; the rest of the styling predates the
+   feature being wired up. */
 .lc-parent {
+  margin-top: 3px;
   font-size: 11px;
   font-family: var(--mono);
   background: var(--surface-hover);
@@ -282,6 +286,12 @@
 .lc-type-unknown {
   color: var(--text-tertiary);
   background: rgba(110, 118, 129, 0.15);
+}
+
+/* A ticket the server wouldn't return — better than a permanent "Loading…". */
+.lc-load-error {
+  color: var(--red);
+  font-style: italic;
 }
 
 .lc-stale {
