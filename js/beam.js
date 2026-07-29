@@ -27,10 +27,41 @@ function handleBeam(payload) {
   }
 
   if (payload.type === 'open-group') {
-    const { name, keys } = payload;
+    const { keys } = payload;
     if (!keys || !keys.length) return;
+    const name = payload.name || 'Beamed Group';
+    // Re-beaming the same source (e.g. "Jira Tabs" every time you sweep a window)
+    // used to stack up identically-named groups in the sidebar. Merge into the
+    // existing beam group of that name instead — a union, so nothing beamed
+    // earlier is silently dropped.
+    const existing = state.groups.find((g) => g.id.startsWith('beam_') && g.name === name);
+    if (existing) {
+      const seen = new Set(existing.keys.map(entryKey));
+      const added = keys.filter((k) => !seen.has(k));
+      existing.keys = existing.keys.concat(added);
+      state.activeGroupId = existing.id;
+      state.activeKey = keys[0];
+      saveState();
+      updateViewMode();
+      toast(
+        added.length
+          ? 'Added ' +
+              added.length +
+              ' ticket' +
+              (added.length === 1 ? '' : 's') +
+              ' to "' +
+              name +
+              '" (' +
+              existing.keys.length +
+              ' total)'
+          : 'All ' + keys.length + ' already in "' + name + '"',
+        'success'
+      );
+      if (isConfigured()) loadAllGroupTickets();
+      return;
+    }
     const id = 'beam_' + Date.now();
-    insertGroupBeforeHistory({ id, name: name || 'Beamed Group', keys });
+    insertGroupBeforeHistory({ id, name, keys });
     state.activeGroupId = id;
     state.activeKey = keys[0];
     saveState();

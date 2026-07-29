@@ -491,6 +491,16 @@
 .form-hint a:hover {
   text-decoration: underline;
 }
+/* Test-connection verdict. Full opacity — .form-hint dims to 0.7, which would
+   mute the one line the user is waiting to read. */
+.cfg-test-ok {
+  color: var(--green);
+  opacity: 1;
+}
+.cfg-test-bad {
+  color: var(--red);
+  opacity: 1;
+}
 .form-group {
   margin-bottom: 12px;
 }

@@ -105,6 +105,36 @@ function initSettings() {
     importInput.value = ''; // allow re-importing the same file
   });
 
+  // ── Test connection ────────────────────────────────────────────────────────
+  // Tests the values currently in the form, not the saved config, so a wrong
+  // site or token is caught before it becomes the reason nothing loads.
+  document.getElementById('cfg-test-btn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const out = document.getElementById('cfg-test-result');
+    if (!out) return;
+    const url = document.getElementById('cfg-url').value.trim();
+    const email = document.getElementById('cfg-email').value.trim();
+    const token = document.getElementById('cfg-token').value.trim();
+    if (!url || !email || !token) {
+      out.className = 'form-hint cfg-test-bad';
+      out.textContent = 'Enter the site URL, your email and an API token first.';
+      return;
+    }
+    btn.disabled = true;
+    out.className = 'form-hint';
+    out.textContent = 'Checking…';
+    try {
+      const who = await testConnection(url, email, token);
+      out.className = 'form-hint cfg-test-ok';
+      out.textContent = 'Connected as ' + who;
+    } catch (err) {
+      out.className = 'form-hint cfg-test-bad';
+      out.textContent = "Couldn't connect — " + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   // ── Tab visibility checkboxes ──────────────────────────────────────────────
   document.querySelectorAll('#settings-modal [id^="tabvis-"]').forEach((cb) => {
     cb.addEventListener('change', () => setTabVisible(cb.dataset.tab, cb.checked));

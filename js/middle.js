@@ -51,6 +51,9 @@ function buildCardHtml(entry, activeKey, sel) {
   const active = activeKey === key ? ' active' : '';
   const selected = sel.has(key) ? ' selected' : '';
   const f = (issueCache[key] || {}).fields || {};
+  // A key the server wouldn't return (deleted / moved / restricted) must not sit
+  // on "Loading…" forever — say so, and let the ✕ button remove it.
+  const failed = typeof loadFailedKeys !== 'undefined' && loadFailedKeys.has(key) && !f.summary;
   const sum = f.summary || 'Loading...';
   const stat = f.status ? f.status.name : '';
   const staleHtml = staleBadge(f.updated);
@@ -68,6 +71,8 @@ function buildCardHtml(entry, activeKey, sel) {
     esc(key) +
     '" data-cached="' +
     (f.summary ? 'true' : 'false') +
+    '" data-failed="' +
+    (failed ? 'true' : 'false') +
     '" draggable="true">' +
     (stat || staleHtml || typeHtml
       ? '<div class="lc-key-row">' +
@@ -87,8 +92,22 @@ function buildCardHtml(entry, activeKey, sel) {
     '<span class="lc-summary"><span style="color:var(--accent);">' +
     esc(key) +
     '</span> ' +
-    esc(sum) +
+    (failed
+      ? '<span class="lc-load-error" title="Couldn\'t load this ticket — it may be deleted, moved, ' +
+        'or outside your permissions. Use Refresh to retry, or ✕ to remove it.">Unavailable</span>'
+      : esc(sum)) +
     '</span></div>' +
+    // A sub-task summary is often meaningless alone ("Dev: Implementation"), so
+    // name its parent. `parent` is in every payload (both the JQL field list and
+    // fields=*all), and it is present for Epic children too, which is just as useful.
+    (f.parent?.key
+      ? '<div class="lc-parent" title="Parent: ' +
+        esc(f.parent.key) +
+        (f.parent.fields?.summary ? ' — ' + esc(f.parent.fields.summary) : '') +
+        '">↳ ' +
+        esc(f.parent.key) +
+        '</div>'
+      : '') +
     (addedDate ? '<div class="lc-added">viewed ' + addedDate + '</div>' : '') +
     '<a class="lc-jira-link" href="' +
     esc(cfg.baseUrl) +
@@ -215,9 +234,17 @@ function renderMiddle() {
   const existingCards = list.querySelectorAll('.list-card');
   const currentKeyList = visibleKeys.map(entryKey);
   const existingKeyList = Array.from(existingCards, (el) => el.dataset.key);
-  const anyStaleCard = Array.from(existingCards).some(
-    (el) => el.dataset.cached === 'false' && issueCache[el.dataset.key]?.fields
-  );
+  // A card is stale if its data arrived since it rendered, OR if its load-failed
+  // state changed — otherwise a failed key keeps its "Loading…" text forever,
+  // since the key list itself hasn't changed.
+  const anyStaleCard = Array.from(existingCards).some((el) => {
+    if (el.dataset.cached === 'false' && issueCache[el.dataset.key]?.fields) return true;
+    const failedNow =
+      typeof loadFailedKeys !== 'undefined' &&
+      loadFailedKeys.has(el.dataset.key) &&
+      !issueCache[el.dataset.key]?.fields?.summary;
+    return el.dataset.failed !== String(failedNow);
+  });
   if (
     !anyStaleCard &&
     currentKeyList.length === existingKeyList.length &&

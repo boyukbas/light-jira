@@ -48,6 +48,29 @@ function apiBase() {
   return cfg.baseUrl;
 }
 
+// Verify credentials WITHOUT saving them. This catches the one class of mistake
+// the URL validator cannot: a perfectly well-formed URL pointing at the wrong
+// Jira site (or a stale/mistyped token). Deliberately does not read `cfg` — it
+// tests exactly what is typed in the form. Resolves to the account's display name.
+async function testConnection(baseUrl, email, token) {
+  const base = (baseUrl || '').replace(/\/$/, '');
+  const r = await fetch(base + '/rest/api/3/myself', {
+    headers: {
+      Authorization: 'Basic ' + btoa(email + ':' + token),
+      Accept: 'application/json',
+    },
+  });
+  if (!r.ok) {
+    throw new Error(
+      r.status === 401 || r.status === 403
+        ? 'the site rejected these credentials (' + r.status + ')'
+        : r.status + ' ' + r.statusText
+    );
+  }
+  const me = await r.json();
+  return me.displayName || me.emailAddress || 'your account';
+}
+
 // ── SHARED FETCH HELPER ───────────────────────────────────────────────────────
 // All Jira REST calls share the same error-message shape: "<status> <statusText>:
 // <errorMessages[0] or message>". Extracting this removes five duplicated try/

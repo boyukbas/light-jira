@@ -42,6 +42,9 @@ Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a str
 - **Command Palette** — Press `Ctrl/Cmd + K` for a fuzzy launcher over tabs, lists, recent tickets, and quick actions.
 - **Cross-Linking** — Attach any note, diagram, or snippet to a ticket; linked items show in the reading pane and open in their tab (local-only).
 - **Stale Indicators** — Cards flag tickets that haven't been updated in 14+ days with an "idle" chip.
+- **Parent at a Glance** — Sub-task and Epic-child cards show `↳ PARENT-KEY`, so a ticket called "Dev: Implementation" tells you what it belongs to. No extra API call.
+- **Fast List Loading** — A whole beamed or filtered list hydrates in a single JQL request rather than one request per ticket. Tickets the server won't return (deleted, moved, restricted) are labelled instead of stalling on "Loading…".
+- **Test Connection** — Settings has a one-click check that confirms your site URL, email and API token actually work — before you save them.
 - **Issue Type & Level at a Glance** — Every card carries a type chip whose glyph and colour show the hierarchy level (sub-task → standard → epic → above epic) with the type's own name as the label — so your site's custom or renamed types are distinguished automatically, with nothing to configure. Type names are searchable too.
 - **Backup & Export** — Export/import a portable JSON backup from Settings, plus automatic rolling daily snapshots you can restore in one click (all local, no backend).
 - **Progressive Disclosure** — A new install opens with just the Jira tab; enable Labels, Timeline, History, Notes, Mindmap, or Snippets when you want them, via the tab-bar **+** menu or Settings → Tabs. Existing installs keep every tab.

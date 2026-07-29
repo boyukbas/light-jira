@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Crisp for Jira",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Crisp for Jira — fast Jira client. Organise tickets into groups add labels, take canvas notes, run JQL filters, and build diagrams.",
   "permissions": ["tabs", "windows", "storage"],
   "host_permissions": [
@@ -20,6 +20,12 @@
     "16": "extension/icons/icon16.png",
     "48": "extension/icons/icon48.png",
     "128": "extension/icons/icon128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+J" },
+      "description": "Open Crisp for Jira"
+    }
   },
   "content_scripts": [
     {
