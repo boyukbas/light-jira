@@ -53,7 +53,7 @@ Crisp for Jira is a Chrome Extension that replaces sluggish Jira tabs with a str
 - **Cross-Device Sync** — Groups, labels, notes, diagrams, timeline dates, and preferences sync automatically via `chrome.storage.sync` across all Chrome instances signed into the same Google account.
 - **Code Block Copy** — Every code block in a ticket description gets a hover-reveal Copy button.
 - **Jira Link Interception** — `/browse/KEY-123` links open inside the app. Ctrl/Cmd+click opens in the browser. User profile links always open externally.
-- **Jira Beam** — Content script on Jira pages detects ticket keys in the current view and surfaces them in the extension popup for one-click navigation.
+- **Jira Beam** — Content script on Jira pages detects ticket keys in the current view and surfaces them in the extension popup for one-click navigation. The popup's **Beam N Jira Tabs** action collects every Jira tab in the window you're looking at; if another window has Jira tabs too, an opt-in link widens the sweep.
 
 ---
 

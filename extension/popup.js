@@ -83,13 +83,25 @@ function quickOpen(raw) {
   beamToApp({ type: 'open-url', url: value });
 }
 
-// Collect tickets from all open Jira tabs and beam them as a group.
-async function beamAllJiraTabs(btn) {
+const JIRA_TAB_URL = 'https://*.atlassian.net/*';
+
+// Jira tabs in the active window by default. `currentWindow` in a popup means the
+// window the popup was opened from, i.e. the one the user is looking at — which is
+// the scope people expect from "beam my open tabs". Pass allWindows to widen it.
+function queryJiraTabs(allWindows) {
+  const q = { url: JIRA_TAB_URL };
+  if (!allWindows) q.currentWindow = true;
+  return chrome.tabs.query(q);
+}
+
+// Collect tickets from the open Jira tabs and beam them as one group.
+async function beamAllJiraTabs(btn, { allWindows = false } = {}) {
+  const originalLabel = btn ? btn.textContent : '';
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'Scanning…';
   }
-  const tabs = await chrome.tabs.query({ url: 'https://*.atlassian.net/*' });
+  const tabs = await queryJiraTabs(allWindows);
   // Query every tab concurrently — a serial await-loop made the popup feel slow
   // when many Jira tabs were open. allSettled preserves tab order (so the title
   // dedup below stays deterministic) and never rejects on a content-script-less tab.
@@ -108,17 +120,18 @@ async function beamAllJiraTabs(btn) {
     }
   }
   if (!ticketMap.size) {
-    // Give the user feedback instead of silently closing the popup.
+    // Give the user feedback instead of silently closing the popup. Restore the
+    // caller's own label — it is generated from the live tab count.
     if (btn) {
       btn.disabled = false;
-      btn.textContent = 'Beam All Jira Tabs';
+      btn.textContent = originalLabel;
     }
     showMsg('No tickets found in open Jira tabs.', 'error');
     return;
   }
   beamToApp({
     type: 'open-group',
-    name: 'All Jira Tabs',
+    name: allWindows ? 'All Jira Tabs' : 'Jira Tabs',
     keys: Array.from(ticketMap.keys()),
   });
 }
@@ -266,9 +279,41 @@ async function init() {
     window.close();
   });
 
-  document
-    .getElementById('beam-all-btn')
-    ?.addEventListener('click', (e) => beamAllJiraTabs(e.currentTarget));
+  // ── Beam All: scoped to the active window ─────────────────────────────────
+  // The label states what will actually be beamed, so there is no guessing (and
+  // no silently hoovering up tabs from a window the user isn't looking at).
+  // Cross-window beaming stays reachable via a link that appears only when
+  // another window really does have Jira tabs. Runs before the current-tab
+  // section below, which returns early on non-Jira pages.
+  const beamAllBtn = document.getElementById('beam-all-btn');
+  const beamAllWindowsBtn = document.getElementById('beam-all-windows-btn');
+  const plural = (n) => (n === 1 ? '' : 's');
+
+  beamAllBtn?.addEventListener('click', (e) => beamAllJiraTabs(e.currentTarget));
+  beamAllWindowsBtn?.addEventListener('click', (e) =>
+    beamAllJiraTabs(e.currentTarget, { allWindows: true })
+  );
+
+  (async () => {
+    const [here, everywhere] = await Promise.all([queryJiraTabs(false), queryJiraTabs(true)]);
+    const mine = here.length;
+    const elsewhere = Math.max(0, everywhere.length - mine);
+    if (beamAllBtn) {
+      if (mine) {
+        beamAllBtn.textContent = `Beam ${mine} Jira Tab${plural(mine)}`;
+        beamAllBtn.title = `Beam ${mine} Jira tab${plural(mine)} from this window`;
+      } else {
+        beamAllBtn.disabled = true;
+        beamAllBtn.textContent = 'No Jira Tabs';
+        beamAllBtn.title = 'No Jira tabs are open in this window';
+      }
+    }
+    if (beamAllWindowsBtn && elsewhere) {
+      beamAllWindowsBtn.textContent = `+${elsewhere} in other window${plural(elsewhere)}`;
+      beamAllWindowsBtn.title = `Also beam ${elsewhere} Jira tab${plural(elsewhere)} open in other Chrome windows`;
+      beamAllWindowsBtn.classList.remove('hidden');
+    }
+  })();
 
   // ── Quick-open (always visible launcher) ──────────────────────────────────
   // Fuzzy-match the user's history as they type (Fuse over key+title); Enter with
@@ -379,9 +424,11 @@ async function init() {
     if (label) label.textContent = 'This Ticket';
   }
   if (pageTitle) {
-    urlDisplay.innerHTML =
-      `<strong>${escHtml(truncate(pageTitle, 45))}</strong>` +
-      escHtml(truncate(currentTab.url, 55));
+    // Title only — the raw URL is redundant next to it (and next to the "Open
+    // TTN-123" button), and vertical space is the scarcest thing in the popup.
+    // Keep the full URL discoverable on hover.
+    urlDisplay.innerHTML = `<strong>${escHtml(truncate(pageTitle, 45))}</strong>`;
+    urlDisplay.title = currentTab.url;
   } else {
     urlDisplay.textContent = truncate(currentTab.url, 80);
   }
@@ -449,6 +496,11 @@ async function init() {
   keysList.classList.remove('hidden');
   groupForm.classList.remove('hidden');
   groupNameInput.value = pageTitle || 'Jira Group';
+
+  // The list is height-bounded and scrolls internally, so state the total —
+  // otherwise rows below the fold are invisible with no hint that they exist.
+  const keysLabel = sectionKeys.querySelector('.section-label');
+  if (keysLabel) keysLabel.textContent = `Tickets on This Page (${extractedTickets.length})`;
 
   extractedTickets.forEach(({ key, title }) => {
     const li = document.createElement('li');
