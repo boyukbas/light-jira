@@ -154,7 +154,7 @@ function renderCbSidebar() {
       active +
       '" data-id="' +
       esc(block.id) +
-      '">' +
+      '" draggable="true">' +
       '<div class="cb-item-title">' +
       esc(block.title || 'Untitled') +
       '</div>' +
@@ -182,6 +182,12 @@ function renderCbSidebar() {
       list.querySelectorAll('.cb-item').forEach((x) => x.classList.remove('active'));
       el.classList.add('active');
     });
+    el.addEventListener('dragstart', (e) => handleItemDragStart(e, el.dataset.id));
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('dragleave', handleDragLeave);
+    el.addEventListener('drop', (e) =>
+      handleItemDrop(e, state.codeBlocks, el.dataset.id, renderCbSidebar)
+    );
   });
   list.querySelectorAll('.cb-item-del').forEach((btn) => {
     btn.addEventListener('click', (e) => {

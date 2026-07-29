@@ -120,7 +120,7 @@ function renderNotesSidebar() {
       active +
       '" data-id="' +
       esc(note.id) +
-      '">' +
+      '" draggable="true">' +
       '<div class="nc-note-title">' +
       esc(note.title || 'Untitled') +
       '</div>' +
@@ -149,6 +149,12 @@ function renderNotesSidebar() {
       saveState();
       updateViewMode();
     });
+    el.addEventListener('dragstart', (e) => handleItemDragStart(e, el.dataset.id));
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('dragleave', handleDragLeave);
+    el.addEventListener('drop', (e) =>
+      handleItemDrop(e, state.standAloneNotes, el.dataset.id, renderNotesSidebar)
+    );
   });
   list.querySelectorAll('.nc-note-del').forEach((btn) => {
     btn.addEventListener('click', (e) => {

@@ -387,7 +387,7 @@ function renderMindMapSidebar() {
       active +
       '" data-id="' +
       esc(d.id) +
-      '">' +
+      '" draggable="true">' +
       '<span class="mm-diagram-title">' +
       esc(d.name) +
       '</span>' +
@@ -414,6 +414,12 @@ function renderMindMapSidebar() {
       resetMmView();
       renderMindMap();
     });
+    el.addEventListener('dragstart', (e) => handleItemDragStart(e, el.dataset.id));
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('dragleave', handleDragLeave);
+    el.addEventListener('drop', (e) =>
+      handleItemDrop(e, state.mindMaps, el.dataset.id, renderMindMapSidebar)
+    );
   });
 
   list.querySelectorAll('.mm-diagram-del').forEach((btn) => {

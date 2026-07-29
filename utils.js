@@ -412,6 +412,23 @@ function filterByGroup(items, activeGroupId) {
   return activeGroupId === null ? items : items.filter((x) => x.groupId === activeGroupId);
 }
 
+// Reorder `arr` in place: move the item whose key === movedId to the slot the item
+// whose key === targetId occupies, using direction-aware displacement (drag down →
+// land after target, drag up → land before it). Both indices are resolved against
+// the FULL array before the splice, so a group-filtered view reorders correctly
+// while filtered-out items keep their positions. `keyFn` extracts each item's key
+// (identity for plain strings, entryKey for history entries, x => x.id for aux
+// items). Returns true if a move happened.
+function reorderById(arr, movedId, targetId, keyFn) {
+  if (movedId === targetId) return false;
+  const from = arr.findIndex((x) => keyFn(x) === movedId);
+  const to = arr.findIndex((x) => keyFn(x) === targetId);
+  if (from === -1 || to === -1) return false;
+  const [moved] = arr.splice(from, 1);
+  arr.splice(to, 0, moved);
+  return true;
+}
+
 // Render a group filter section into `listId` and wire up click + delete handlers.
 // config: { listId, groups, items, activeGroupId, allLabel, delClass,
 //           onSelect(id), onDelete(id), addBtnId, onAdd }
