@@ -382,6 +382,80 @@ function avBadge(name, cls) {
   );
 }
 
+// ── ISSUE TYPE / HIERARCHY LEVEL ──────────────────────────────────────────────
+// Jira ships its own hierarchy abstraction on every issue type:
+//   hierarchyLevel  -1 = sub-task tier · 0 = base tier (Story / Task / Bug / any
+//                   custom base type) · 1 = Epic tier · 2+ = above Epic (the
+//                   extra levels available on premium plans).
+// The visual tier is derived from that NUMBER, never from the type name, so a
+// site with renamed or bespoke types (e.g. a project-specific sub-task type)
+// classifies correctly with no per-customer vocabulary baked into the app.
+// `subtask` is the documented fallback for payloads predating hierarchyLevel.
+function typeTier(issuetype) {
+  if (!issuetype) return 'unknown';
+  const lvl = issuetype.hierarchyLevel;
+  if (typeof lvl === 'number') {
+    if (lvl <= -1) return 'sub';
+    if (lvl === 0) return 'base';
+    if (lvl === 1) return 'epic';
+    return 'above';
+  }
+  return issuetype.subtask === true ? 'sub' : 'unknown';
+}
+
+// Tier → chip class + tooltip wording + glyph. Class names are stored whole (not
+// concatenated at the call site) so check-classes.js can see them as literals.
+const TYPE_TIERS = {
+  sub: {
+    cls: 'lc-type lc-type-sub',
+    label: 'sub-task level',
+    glyph: '<path d="M5 4v6a3 3 0 0 0 3 3h8"/><polyline points="14 9 19 13 14 17"/>',
+  },
+  base: {
+    cls: 'lc-type lc-type-base',
+    label: 'standard level',
+    glyph: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/>',
+  },
+  epic: {
+    cls: 'lc-type lc-type-epic',
+    label: 'epic level',
+    glyph: '<path d="M13 2 4 14h7l-1 8 10-13h-7l1-7z"/>',
+  },
+  above: {
+    cls: 'lc-type lc-type-above',
+    label: 'above epic level',
+    glyph: '<polyline points="5 12 12 5 19 12"/><polyline points="5 19 12 12 19 19"/>',
+  },
+  unknown: {
+    cls: 'lc-type lc-type-unknown',
+    label: 'level unknown',
+    glyph: '<circle cx="12" cy="12" r="7.5"/>',
+  },
+};
+
+// Chip identifying an issue's type. The glyph + colour encode the hierarchy
+// LEVEL (Epic vs Story vs Sub-task at a glance); the text is the type's own name
+// as Jira reports it, so two types sharing a level still read distinctly.
+function typeBadge(issuetype) {
+  if (!issuetype || !issuetype.name) return '';
+  const tier = TYPE_TIERS[typeTier(issuetype)];
+  return (
+    '<span class="' +
+    tier.cls +
+    '" title="' +
+    esc(issuetype.name) +
+    ' (' +
+    tier.label +
+    ')">' +
+    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    tier.glyph +
+    '</svg>' +
+    esc(issuetype.name) +
+    '</span>'
+  );
+}
+
 const TRASH_SVG =
   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
   '<polyline points="3 6 5 6 21 6"/>' +

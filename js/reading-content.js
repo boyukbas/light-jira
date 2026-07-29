@@ -95,7 +95,7 @@ function buildMetaGridHtml(f, key) {
         ? avBadge(f.reporter.displayName, 'av-rg') + ' ' + esc(f.reporter.displayName)
         : '\u2014',
     },
-    { l: 'Type', v: f.issuetype?.name || '\u2014' },
+    { l: 'Type', v: typeBadge(f.issuetype) || '\u2014' },
     { l: 'Priority', v: f.priority?.name || '\u2014' },
     { l: 'Created', v: relDate(f.created) },
     { l: 'Updated', v: relDate(f.updated) },

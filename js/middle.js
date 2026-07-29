@@ -54,6 +54,7 @@ function buildCardHtml(entry, activeKey, sel) {
   const sum = f.summary || 'Loading...';
   const stat = f.status ? f.status.name : '';
   const staleHtml = staleBadge(f.updated);
+  const typeHtml = typeBadge(f.issuetype);
 
   return (
     '<div class="list-card' +
@@ -68,8 +69,9 @@ function buildCardHtml(entry, activeKey, sel) {
     '" data-cached="' +
     (f.summary ? 'true' : 'false') +
     '" draggable="true">' +
-    (stat || staleHtml
+    (stat || staleHtml || typeHtml
       ? '<div class="lc-key-row">' +
+        typeHtml +
         staleHtml +
         (stat
           ? '<span class="status-badge ' +
@@ -129,6 +131,7 @@ function renderMiddle() {
         summary: f.summary || '',
         assignee: f.assignee?.displayName || '',
         status: f.status?.name || '',
+        type: f.issuetype?.name || '',
         priority: f.priority?.name || '',
         labels: (state.labels[key] || []).join(' '),
         description: descHtml ? stripHtml(descHtml) : '',
@@ -140,6 +143,7 @@ function renderMiddle() {
         { name: 'summary', weight: 2 },
         { name: 'assignee', weight: 1.5 },
         { name: 'status', weight: 1.5 },
+        { name: 'type', weight: 1.5 },
         { name: 'priority', weight: 1 },
         { name: 'labels', weight: 1 },
         { name: 'description', weight: 0.5 },
@@ -160,6 +164,7 @@ function renderMiddle() {
         f.summary || '',
         f.assignee?.displayName || '',
         f.status?.name || '',
+        f.issuetype?.name || '',
         f.priority?.name || '',
         (state.labels[key] || []).join(' '),
         descHtml ? stripHtml(descHtml) : '',
